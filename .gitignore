@@ -133,3 +133,4 @@ dmypy.json
 
 # images
 images/Unused/
+out/
