@@ -1,3 +1,4 @@
+import random
 
 import baopig as bp
 
@@ -13,15 +14,24 @@ class Player:
         "south_america": "Rouge",
     }
     COLORS = {
-        "north_america": (255, 237, 0),
+        "north_america": (242, 219, 0),
         "europa": (0, 82, 255),
         "asia": (0, 201, 0),
         "oceania": (214, 0, 153),
         "africa": (108, 124, 111),
         "south_america": (243, 0, 0),
     }
+    s = bp.load("images/soldiers.png")
+    SOLDIERS = {
+        "north_america": s.subsurface(0, 0, 14, 14),
+        "europa": s.subsurface(14, 0, 14, 14),
+        "asia": s.subsurface(28, 0, 14, 14),
+        "south_america": s.subsurface(0, 14, 14, 14),
+        "africa": s.subsurface(14, 14, 14, 14),
+        "oceania": s.subsurface(28, 14, 14, 14),
+    }
 
-    def __init__(self, game, continent):
+    def __init__(self, game, map_zone, continent):
 
         self.game = game
         self.id = len(game.players)
@@ -30,15 +40,22 @@ class Player:
         self.continent = continent.upper().replace("_", " ")
         self.name = Player.NAMES[continent]
         self.color = Player.COLORS[continent]
+        self.soldier_image = Player.SOLDIERS[continent]
+        self.flag = bp.Image(map_zone, bp.load(f"images/flag_{continent}.png"),
+                             visible=False, touchable=False, layer=map_zone.frontof_regions_layer)
 
         self.gold = 6
         self.regions = {}
+        self.soldiers = {}
 
         z = bp.Zone(game.info_right_zone, size=("100%", 100), pos=(0, 97 * len(game.info_right_zone.children)))
         bp.Rectangle(z, size=z.size)
         bp.Rectangle(z, size=(z.w, 32), color=self.color)
         bp.Text(z, self.continent, pos=("50%", 10), pos_location="midtop")
-        bp.DynamicText(z, lambda: "Or : " + str(self.gold), pos=(10, 50))
+        g = bp.DynamicText(z, lambda: str(self.gold), pos=(10, 40))
+        bp.Image(z, Region.MINE, pos_ref=g, pos=(-4, -8), pos_ref_location="topright")
+        s = bp.DynamicText(z, lambda: str(sum(r.soldiers for r in self.regions)), pos=(10, 65))
+        bp.Image(z, self.soldier_image, pos_ref=s, pos=(4, -2), pos_ref_location="topright")
 
     def build_stuff(self):
 
@@ -48,6 +65,15 @@ class Player:
             else:
                 region.build_circle.show()
             region.produce()
+
+    def conquer(self, region):
+
+        if region.owner is not None:
+            region.owner.unconquer(region)  # todo
+
+        self.regions[region] = 0
+        self.soldiers[region.name] = []
+        region.owner = self
 
     def has_fully_built(self):
 
@@ -72,32 +98,36 @@ class Game(bp.Scene):
 
         # MAP
         map_zone = bp.Zone(self, size=(1225, 753), background_color="gray", sticky="center")
+        # LAYERS
+        map_zone.behind_regions_layer = bp.Layer(map_zone, weight=0, name="0", default_sortkey=lambda w: (w.bottom, w.centerx))
+        map_zone.regions_layer = bp.Layer(map_zone, Region, weight=1, name="1")
+        map_zone.frontof_regions_layer = bp.Layer(map_zone, weight=2, name="2", default_sortkey=lambda w: (w.bottom, w.centerx))
         self.world = WorldImage(map_zone)
-        RegionImage("alaska", map_zone, center=(133, 103), flag_midbottom=(133, 77),
+        Region("alaska", map_zone, center=(133, 103), flag_midbottom=(133, 77),
                     neighbors=("territoires_du_nord_ouest", "alberta"),
                     title_center=(130, 110))
-        RegionImage("territoires_du_nord_ouest", map_zone, center=(231, 73), flag_midbottom=(271, 76),
+        Region("territoires_du_nord_ouest", map_zone, center=(231, 73), flag_midbottom=(271, 76),
                     build_center=(220, 80), neighbors=("alaska", "alberta", "ontario", "groenland"),
                     title_center=(220, 85), max_width=100)
-        RegionImage("alberta", map_zone, center=(207, 141), flag_midbottom=(190, 130), build_center=(220, 141),
+        Region("alberta", map_zone, center=(207, 141), flag_midbottom=(190, 130), build_center=(220, 141),
                     neighbors=("alaska", "territoires_du_nord_ouest", "ontario", "western"),
                     title_center=(211, 141))
-        RegionImage("quebec", map_zone, center=(348, 158), flag_midbottom=(337, 132),
+        Region("quebec", map_zone, center=(348, 158), flag_midbottom=(337, 132),
                     neighbors=("groenland", "ontario", "etats_unis"),
                     title_center=(342, 157))
-        RegionImage("ontario", map_zone, center=(290, 157), flag_midbottom=(273, 140),
+        Region("ontario", map_zone, center=(290, 157), flag_midbottom=(273, 140),
                     neighbors=("territoires_du_nord_ouest", "alberta", "western", "etats_unis", "quebec", "groenland"),
                     title_center=(281, 153))
-        RegionImage("groenland", map_zone, center=(417, 71), flag_midbottom=(455, 63),
+        Region("groenland", map_zone, center=(417, 71), flag_midbottom=(455, 63),
                     neighbors=("territoires_du_nord_ouest", "ontario", "quebec"),
                     title_center=(420, 48))
-        RegionImage("western", map_zone, center=(212, 225), flag_midbottom=(178, 237),
+        Region("western", map_zone, center=(212, 225), flag_midbottom=(178, 237),
                     neighbors=("alberta", "ontario", "etats_unis", "mexique"),
                     title_center=(210, 212))
-        RegionImage("etats_unis", map_zone, center=(280, 235), flag_midbottom=(248, 259), build_center=(290, 235),
+        Region("etats_unis", map_zone, center=(280, 235), flag_midbottom=(248, 259), build_center=(290, 235),
                     neighbors=("western", "ontario", "quebec", "mexique"),
                     title_center=(270, 245))
-        RegionImage("mexique", map_zone, center=(204, 327), flag_midbottom=(192, 300),
+        Region("mexique", map_zone, center=(204, 327), flag_midbottom=(192, 300),
                     neighbors=("western", "etats_unis"),
                     title_center=(200, 315), max_width=30)
 
@@ -121,21 +151,34 @@ class Game(bp.Scene):
                 self.set_todo(3)
             else:
                 self.set_todo(self.todo.id + 1)
-        next_todo = bp.Button(self.info_top_zone, "Next  ->", pos=(map_zone.w - 3, 3), pos_location="topright",
-                              visible=False, command=next_todo_command)
+        self.next_todo = bp.Button(self.info_top_zone, "Next  ->", pos=(map_zone.w - 3, 3), pos_location="topright",
+                                   visible=False, command=next_todo_command)
         self.info_right_zone = bp.Zone(self, sticky="topright", size=(self.w - map_zone.right, self.h))
         self.info_country_zone = bp.Zone(self, size=(150, 150), visible=False)
-        self.info_country_zone.set_style_for(bp.Text, color="black", max_width=self.info_country_zone.w - 10)
+        self.info_country_zone.set_style_for(bp.Text, max_width=self.info_country_zone.w - 10)
         r = bp.Rectangle(self.info_country_zone, size=self.info_country_zone.size)
         r2 = bp.Rectangle(self.info_country_zone, size=(r.w, 40), color=(0, 0, 0, 0))
         self.info_country_title = bp.Text(self.info_country_zone, "", align_mode="center", sticky="center", pos_ref=r2)
         self.info_country_soldiers = bp.Text(self.info_country_zone, "", pos=(5, r2.bottom + 5))
+        self.info_left_zone = bp.Zone(self, sticky="midleft", size=("11%", "90%"), visible=False)
+        bp.GridLayer(self.info_left_zone, nbcols=1, nbrows=3, col_width=self.info_left_zone.w,
+                     row_height=int(self.info_left_zone.h / 3))
+        z1 = bp.Zone(self.info_left_zone, size=("100%", "32%"), row=0)
+        bp.Rectangle(z1, size=("100%", "100%"))
+        bp.Text(z1, "CONSTRUCTION", sticky="center")
+        z2 = bp.Zone(self.info_left_zone, size=("100%", "32%"), row=1)
+        bp.Rectangle(z2, size=("100%", "100%"))
+        bp.Text(z2, "ATTAQUE", sticky="center")
+        z3 = bp.Zone(self.info_left_zone, size=("100%", "32%"), row=2)
+        bp.Rectangle(z3, size=("100%", "100%"))
+        bp.Text(z3, "REORGANISATION", sticky="center")
+        #bp.Rectangle(self.info_left_zone, size=self.info_left_zone.size, layer_level=bp.LayersManager.BACKGROUND)
 
         # FLAG CHOOSE
         self.choose_color_zone = bp.Zone(self, size=map_zone.size, background_color=(0, 0, 0, 0), sticky="center",
                                          visible=False)
         r = bp.Rectangle(self.choose_color_zone, size=self.center, sticky="center",
-                         color="darkslategray", border_width=2, border_color="black")
+                         color="darkslategray", border_width=2)
         done = bp.Button(self.choose_color_zone, "No more player", command=self.next_turn, width=150, visible=False,
                          pos=(-5, -5), pos_ref=r, pos_ref_location="bottomright", pos_location="bottomright")
         r2 = bp.Rectangle(self.choose_color_zone, size=(r.w, 50), pos=(r.left, r.top - 46), color="black")
@@ -147,10 +190,9 @@ class Game(bp.Scene):
                 btn.continent = continent
                 btn.flag = bp.Image(btn, bp.load(f"images/flag_{continent}.png"), sticky="center")
             def validate(btn, *args, **kwargs):
-                self.players.append(Player(self, btn.continent))
+                self.players.append(Player(self, map_zone, btn.continent))
                 self.next_player()
-                self.flags.append(bp.Image(map_zone, bp.load(f"images/flag_{btn.continent}.png"),
-                                           visible=False, touchable=False))
+                self.flags.append(self.current_player.flag)
                 self.set_todo(2)
                 btn.disable()
                 if len(self.players) > 1:
@@ -167,7 +209,7 @@ class Game(bp.Scene):
         hibou = bp.Image(hibou_zone, bp.load("images/hibou.png"), sticky="bottomright")
         bulle = bp.Image(hibou_zone, bp.load("images/hibou_bulle.png"), pos=hibou.midtop, pos_location="midbottom")
         bulle_text = bp.Text(hibou_zone, "", pos=(bulle.left + 10, bulle.top + 10), max_width=bulle.width - 20,
-                             align_mode="center", color="black")
+                             align_mode="center")
         bp.Button(hibou_zone, text="Close tutorial", sticky="bottomright",
                   command=bp.PackedFunctions(hibou_zone.hide, hibou_zone.lock_visibility))
 
@@ -176,9 +218,11 @@ class Game(bp.Scene):
             @staticmethod
             def confirm_place_flag():
                 flag = self.flags[self.current_player_id]
+                flag.swap_layer(map_zone.behind_regions_layer)
                 flag.show()
-                self.current_player.regions[self.last_selected_region] = 3  # 3 soldiers in this region
-                self.last_selected_region.owner = self.current_player
+                # self.current_player.regions[self.last_selected_region] = 3  # 3 soldiers in this region
+                self.current_player.conquer(self.last_selected_region)
+                self.last_selected_region.add_soldiers(200)
                 if len(self.players) == 6:
                     self.next_turn()
                 else:
@@ -211,7 +255,7 @@ class Game(bp.Scene):
             Todo(2, "place flag", confirm=Todo.confirm_place_flag,
                  f_start=(bp.PrefilledFunction(bulle_text.set_text,
                  "Clique sur un pays pour y planter ton drapeau !"),)),
-            Todo(3, "build", f_start=(next_todo.show, lambda: self.current_player.build_stuff(),
+            Todo(3, "build", f_start=(self.next_todo.show, lambda: self.current_player.build_stuff(),
                  bp.PrefilledFunction(bulle_text.set_text,
                  "Tu peux maintenant construire des bâtiments ! Les mines rapportent 2 kilos d'or par tour "
                  "et les camps rapportent 3 soldats par tour ! Chaque bâtiment te coûte 3 kilos d'or.")),
@@ -230,10 +274,10 @@ class Game(bp.Scene):
         #self.confirm_zone.theme.colors.border = (0, 0, 0, 0)
         bp.Rectangle(self.confirm_zone, size=self.confirm_zone.size, color="darkslategray")
         bp.Button(self.confirm_zone, size=(30, 30), pos=(6, 6), background_color="green4", focus=-1,
-                  background_image=RegionImage.BUILDS.subsurface(0, 60, 30, 30),
+                  background_image=Region.BUILDS.subsurface(0, 60, 30, 30),
                   command=bp.PackedFunctions(lambda: self.todo.confirm(), self.world.unselect))
         bp.Button(self.confirm_zone, size=(30, 30), pos=(6, 40), background_color="red4", focus=-1,
-                  background_image=RegionImage.BUILDS.subsurface(30, 60, 30, 30),
+                  background_image=Region.BUILDS.subsurface(30, 60, 30, 30),
                   command=self.world.unselect)
 
         # CHOOSE BUILD
@@ -246,10 +290,10 @@ class Game(bp.Scene):
                 self.set_todo(4)
         bp.Button(self.choose_build_zone, "", size=(30, 30), pos=(6, 6),
                   command=bp.PackedFunctions(bp.PrefilledFunction(build, "mine"), self.world.unselect),
-                  background_color="darkslategray", background_image=RegionImage.MINE)
+                  background_color="darkslategray", background_image=Region.MINE)
         bp.Button(self.choose_build_zone, "", size=(30, 30), pos=(6, 40),
                   command=bp.PackedFunctions(bp.PrefilledFunction(build, "camp"), self.world.unselect),
-                  background_color="darkslategray", background_image=RegionImage.CAMP)
+                  background_color="darkslategray", background_image=Region.CAMP)
 
         # SETUP
         self.world.signal.REGION_SELECT.connect(self.handle_region_select)
@@ -337,13 +381,18 @@ class Game(bp.Scene):
                                 if self.world.hovered_region is region:
                                     return
                                 if self.world.hovered_region is not None:
-                                    self.world.hovered_region.sail.hide()
+                                    self.world.hovered_region.hide()
                                 self.world.hovered_region = region
-                                region.sail.show()
+                                region.show()
                                 return
                     if self.world.hovered_region is not None:
-                        self.world.hovered_region.sail.hide()
+                        self.world.hovered_region.hide()
                     self.world.hovered_region = None
+
+            elif event.type == bp.KEYDOWN:
+                if self.todo.id > 2:
+                    if event.unicode == "n":
+                        self.next_todo.validate()
 
     def run(self):
         pass
@@ -353,7 +402,7 @@ class WorldImage(bp.Image, bp.Clickable):
 
     def __init__(self, parent):
 
-        bp.Image.__init__(self, parent, bp.load("images/world.png"))
+        bp.Image.__init__(self, parent, bp.load("images/world.png"), layer_level=bp.LayersManager.BACKGROUND)
         bp.Clickable.__init__(self)
         self.selected_region = None
         self.hovered_region = None
@@ -366,8 +415,7 @@ class WorldImage(bp.Image, bp.Clickable):
         if self.selected_region is None:
             return
 
-        self.selected_region.hide()
-        self.hovered_region.sail.hide()
+        self.hovered_region.hide()
         self.selected_region = None
         self.signal.REGION_UNSELECT.emit()
 
@@ -382,45 +430,17 @@ class WorldImage(bp.Image, bp.Clickable):
                     return
                 else:
                     if self.selected_region is not None:
-                        self.selected_region.hide()
-                        self.hovered_region.sail.hide()
+                        self.hovered_region.hide()
                     self.hovered_region = self.selected_region = region
-                    self.hovered_region.sail.show()
+                    self.hovered_region.show()
                     self.signal.REGION_SELECT.emit(region)
                     #print(region.title.text, region.center, bp.mouse.x - self.abs.left, bp.mouse.y - self.abs.top)
                 return
         self.unselect()
         # print(bp.mouse.x - self.abs.left, bp.mouse.y - self.abs.top)
 
-    def validateTBR(self):
 
-        if self.parent.parent.todo.id < 2:
-            return
-
-        for region in self.parent.parent.regions.values():
-            if region.get_hovered():
-                if region is self.selected_region:
-                    return
-                else:
-                    if self.selected_region is not None:
-                        self.selected_region.hide()
-                        self.hovered_region.sail.hide()
-                    region.show()
-                    self.selected_region = region
-                    self.hovered_region = self.selected_region
-                    self.hovered_region.sail.show()
-                    self.signal.REGION_SELECT.emit(region)
-                    #print(region.title.text, region.center, bp.mouse.x - self.abs.left, bp.mouse.y - self.abs.top)
-                return
-        if self.selected_region is not None:
-            self.selected_region.hide()
-            self.hovered_region.sail.hide()
-            self.selected_region = None
-            self.signal.REGION_UNSELECT.emit()
-        # print(bp.mouse.x - self.abs.left, bp.mouse.y - self.abs.top)
-
-
-class RegionImage(bp.Image):
+class Region(bp.Image):
 
     BUILDS = bp.load("images/builds.png")
     DOTTED = BUILDS.subsurface(0, 0, 30, 30)
@@ -431,29 +451,30 @@ class RegionImage(bp.Image):
     def __init__(self, name, parent, center, flag_midbottom, build_center=None,
                  title_center=None, max_width=None, neighbors=()):
 
-        bp.Image.__init__(self, parent, bp.load(f"images/{name}.png"), pos=center, pos_location="center", name=name, touchable=False, visible=False)
-        # TODO : remove this object ? the sail might be enough
+        bp.Image.__init__(self, parent, bp.load(f"images/{name}.png"), pos=center, pos_location="center", name=name,
+                          touchable=False, visible=False, layer=parent.regions_layer)
 
         # bp.Rectangle(parent, pos=flag_midbottom, pos_location="midbottom", size=(36, 60))
-        self.sail = bp.Image(parent, self.surface, visible=False, touchable=False, sticky="center", pos_ref=self)
-        self.sail_mask = bp.mask.from_surface(self.sail.surface)
+        # self.name = name
+        # self = bp.Image(parent, bp.load(f"images/{name}.png"), visible=False, touchable=False, pos=center, pos_location="center")
+        self.mask = bp.mask.from_surface(self.surface)
 
         """
-        surf = self.sail.surface.copy()
+        surf = self.surface.copy()
         import random
         flag = random.choice((bp.BLEND_ADD, bp.BLEND_SUB, bp.BLEND_MULT, bp.BLEND_MIN, bp.BLEND_MAX))
         surf.blit(self.surface, (10, 10), special_flags=flag)
-        self.sail.set_surface(surf)
+        self.set_surface(surf)
         """
         """
         # Gets a black transparent surface from the alpha image
         surf = self.surface.copy()
-        surf.blit(self.sail.surface, (-10, -10), special_flags=bp.BLEND_RGBA_MULT)
-        self.sail.set_surface(surf)
+        surf.blit(self.surface, (-10, -10), special_flags=bp.BLEND_RGBA_MULT)
+        self.set_surface(surf)
         """
 
-        self.build_circle = bp.Image(self.parent, image=RegionImage.DOTTED, pos_location="center", touchable=False,
-                                     pos=build_center if build_center is not None else self.center, visible=False)
+        self.build_circle = bp.Image(parent, image=Region.DOTTED, pos_location="center", touchable=False,
+                                     pos=build_center if build_center is not None else center, visible=False)
         self.flag_midbottom = flag_midbottom
         self.build = None
         self.build_state = "empty"
@@ -475,26 +496,74 @@ class RegionImage(bp.Image):
 
     soldiers = property(lambda self: self.owner.regions[self] if self.owner is not None else 0)
 
-    def get_hovered(self):
+    def add_soldiers(self, amount):
 
-        try:
-            return self.sail_mask.get_at((bp.mouse.x - self.abs.left, bp.mouse.y - self.abs.top)) == 1
-        except IndexError:
-            return False
+        if self.owner is None:
+            raise PermissionError("This country is unoccupied")
+
+        self.owner.regions[self] += amount
+
+        for i in range(amount):
+            ok = 0
+            while ok == 0:
+                x, y = random.randint(18, self.w - 18), random.randint(18, self.h - 18)
+                ok = self.mask.get_at((x, y))
+                if ok == 1:
+                    pixel = self.surface.get_at((x, y))
+                    if pixel != (255, 237, 0, 255):
+                        ok = 0
+                    # print(pixel)
+            self.owner.soldiers[self.name].append(bp.Image(self.parent, self.owner.soldier_image, touchable=False,
+                                                  pos=(x + self.left, y + self.top), pos_location="center"))
 
     def end_construction(self):
 
         if self.build_state != "construction":
             raise PermissionError
-        self.build_circle.set_surface(RegionImage.CIRCLE)
+        self.build_circle.set_surface(Region.CIRCLE)
         self.build_state = "producing"
+
+    def get_hovered(self):
+
+        try:
+            return self.mask.get_at((bp.mouse.x - self.abs.left, bp.mouse.y - self.abs.top)) == 1
+        except IndexError:
+            return False
+
+    def hide(self):
+
+        with bp.paint_lock:
+            super().hide()
+            if self.owner is None:
+                return
+
+            for s in self.owner.soldiers[self.name]:
+                s.swap_layer(self.parent.behind_regions_layer)
+            self.owner.flag.swap_layer(self.parent.behind_regions_layer)
+            self.build_circle.swap_layer(self.parent.behind_regions_layer)
+            if self.build is not None:
+                self.build.swap_layer(self.parent.behind_regions_layer)
+
+    def show(self):
+
+        with bp.paint_lock:
+            super().show()
+            if self.owner is None:
+                return
+
+            for s in self.owner.soldiers[self.name]:
+                s.swap_layer(self.parent.frontof_regions_layer)
+            self.owner.flag.swap_layer(self.parent.frontof_regions_layer)
+            self.build_circle.swap_layer(self.parent.frontof_regions_layer)
+            if self.build is not None:
+                self.build.swap_layer(self.parent.frontof_regions_layer)
 
     def start_construction(self, build_name):
 
         self.build_state = "construction"
         self.build_circle.show()
         self.build_circle.lock_visibility()
-        self.build = bp.Image(self.parent, getattr(RegionImage, build_name.upper()), name=build_name,
+        self.build = bp.Image(self.parent, getattr(Region, build_name.upper()), name=build_name,
                               pos=self.build_circle.center, pos_location="center", touchable=False)
 
     def produce(self):
@@ -504,11 +573,13 @@ class RegionImage(bp.Image):
         if self.build.name == "mine":
             self.owner.gold += 2
         elif self.build.name == "camp":
-            self.owner.regions[self] += 3
+            self.add_soldiers(3)
 
 
 theme = bp.DarkTheme().subtheme()
 theme.colors.content = "green4"
+theme.set_style_for(bp.ButtonText, color=theme.colors.font)
+theme.colors.font = "black"
 theme.set_style_for(bp.Rectangle, color=theme.colors.scene_background, border_width=2, border_color="black")
 app = bp.Application(name="PremierEmpire", theme=theme, size=(1600, 837))
 game = Game(app)
