@@ -521,6 +521,10 @@ class Game(bp.Scene):
             self.info_csi.show()
             self.info_csa.show()
 
+        if self.map.selected_region is region:
+            self.back_btn.hide()
+            self.import_btn.hide()
+
     def handle_region_select(self, region):
 
         if self.mapsail_close_animator.is_running:
@@ -774,80 +778,80 @@ class Map(bp.Zone, bp.Clickable):
                neighbors=("western", "etats_unis", "venezuela"))
 
         # EUROPA
-        Region("islande", self, center=(568, 129), flag_midbottom=(700, 150),
+        Region("islande", self, center=(568, 129),
                neighbors=("groenland", "scandinavie", "grande_bretagne"))
-        Region("scandinavie", self, center=(644, 121), flag_midbottom=(700, 150),
+        Region("scandinavie", self, center=(644, 121),
                neighbors=("islande", "europe_du_nord", "grande_bretagne", "russie"))
-        Region("grande_bretagne", self, center=(539, 206), flag_midbottom=(700, 150),
+        Region("grande_bretagne", self, center=(539, 206),
                neighbors=("scandinavie", "islande", "europe_du_nord", "europe_occidentale"))
-        Region("europe_occidentale", self, center=(561, 311), flag_midbottom=(700, 150),
+        Region("europe_occidentale", self, center=(561, 311),
                neighbors=("grande_bretagne", "europe_du_nord", "europe_meridionale", "afrique_subsaharienne"))
-        Region("europe_du_nord", self, center=(627, 219), flag_midbottom=(700, 150),
+        Region("europe_du_nord", self, center=(627, 219),
                neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("europe_meridionale", self, center=(629, 308), flag_midbottom=(700, 150),
+        Region("europe_meridionale", self, center=(629, 308),
                neighbors=("europe_du_nord", "europe_occidentale", "russie", "afrique_subsaharienne", "egypte", "moyen-orient"))
-        Region("russie", self, center=(750, 201), flag_midbottom=(700, 150),
+        Region("russie", self, center=(750, 201),
                neighbors=("scandinavie", "europe_du_nord", "europe_meridionale", "moyen-orient", "afghanistan", "oural"))
 
         # ASIA
-        Region("moyen-orient", self, center=(731, 409), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "scandinavie", "grande_bretagne"))
-        Region("afghanistan", self, center=(799, 282), flag_midbottom=(700, 150),
-               neighbors=("islande", "europe_du_nord", "grande_bretagne", "russie"))
-        Region("oural", self, center=(850, 162), flag_midbottom=(700, 150),
-               neighbors=("scandinavie", "islande", "europe_du_nord", "europe_occidentale"))
-        Region("inde", self, center=(853, 410), flag_midbottom=(700, 150),
-               neighbors=("grande_bretagne", "europe_du_nord", "europe_meridionale"))
-        Region("chine", self, center=(924, 329), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("siberie", self, center=(902, 153), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
-        Region("siam", self, center=(932, 440), flag_midbottom=(700, 150),
-               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale"))
-        Region("mongolie", self, center=(965, 267), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("japon", self, center=(1068, 263), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
-        Region("tchita", self, center=(961, 198), flag_midbottom=(700, 150),
-               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale"))
-        Region("yakoutie", self, center=(976, 113), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("kamchatka", self, center=(1059, 172), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
+        Region("moyen-orient", self, center=(731, 409),
+               neighbors=("europe_meridionale", "russie", "afghanistan", "inde", "egypte", "afrique_orientale"))
+        Region("afghanistan", self, center=(799, 282),
+               neighbors=("moyen-orient", "inde", "chine", "russie", "oural"))
+        Region("oural", self, center=(850, 162),
+               neighbors=("russie", "afghanistan", "siberie", "chine"))
+        Region("inde", self, center=(853, 410),
+               neighbors=("moyen-orient", "afghanistan", "chine", "siam"))
+        Region("chine", self, center=(924, 329),
+               neighbors=("siam", "inde", "afghanistan", "oural", "siberie", "mongolie"))
+        Region("siberie", self, center=(902, 153),
+               neighbors=("oural", "chine", "mongolie", "tchita", "yakoutie"))
+        Region("siam", self, center=(932, 440),
+               neighbors=("inde", "chine", "indonesie"))
+        Region("mongolie", self, center=(965, 267),
+               neighbors=("chine", "siberie", "tchita", "kamchatka", "japon"))
+        Region("japon", self, center=(1068, 263),
+               neighbors=("kamchatka", "mongolie"))
+        Region("tchita", self, center=(961, 198),
+               neighbors=("siberie", "mongolie", "kamchatka", "yakoutie"))
+        Region("yakoutie", self, center=(976, 113),
+               neighbors=("kamchatka", "tchita", "siberie"))
+        Region("kamchatka", self, center=(1059, 172),
+               neighbors=("yakoutie", "tchita", "mongolie", "japon", "alaska"))
 
         # SOUTH AMERICA
-        Region("venezuela", self, center=(290, 406), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
-        Region("bresil", self, center=(341, 497), flag_midbottom=(700, 150),
-               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale"))
-        Region("perou", self, center=(282, 495), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("argentine", self, center=(315, 640), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
+        Region("venezuela", self, center=(290, 406),
+               neighbors=("mexique", "perou", "bresil"))
+        Region("bresil", self, center=(341, 497),
+               neighbors=("venezuela", "perou", "argentine", "afrique_subsaharienne"))
+        Region("perou", self, center=(282, 495),
+               neighbors=("venezuela", "bresil", "argentine"))
+        Region("argentine", self, center=(315, 640),
+               neighbors=("perou", "bresil"))
 
         # AFRICA
-        Region("afrique_subsaharienne", self, center=(580, 464), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
-        Region("egypte", self, center=(648, 420), flag_midbottom=(700, 150),
-               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale"))
-        Region("afrique_centrale", self, center=(661, 587), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("afrique_orientale", self, center=(707, 554), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
-        Region("afrique_du_sud", self, center=(666, 677), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("madacascar", self, center=(747, 682), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
+        Region("afrique_subsaharienne", self, center=(580, 464),
+               neighbors=("bresil", "europe_occidentale", "europe_meridionale", "egypte", "afrique_orientale", "afrique_centrale"))
+        Region("egypte", self, center=(648, 420),
+               neighbors=("afrique_subsaharienne", "afrique_orientale", "europe_meridionale", "moyen-orient"))
+        Region("afrique_centrale", self, center=(661, 587),
+               neighbors=("afrique_subsaharienne", "afrique_du_sud", "afrique_orientale"))
+        Region("afrique_orientale", self, center=(707, 554),
+               neighbors=("afrique_subsaharienne", "egypte", "afrique_centrale", "afrique_du_sud", "madacascar", "moyen-orient"))
+        Region("afrique_du_sud", self, center=(666, 677),
+               neighbors=("afrique_centrale", "afrique_orientale", "madacascar"))
+        Region("madacascar", self, center=(747, 682),
+               neighbors=("afrique_orientale", "afrique_du_sud"))
 
         # SOUTH AMERICA
-        Region("indonesie", self, center=(922, 535), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
-        Region("nouvelle_guinee", self, center=(1022, 516), flag_midbottom=(700, 150),
-               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale"))
-        Region("australie_occidentale", self, center=(981, 647), flag_midbottom=(700, 150),
-               neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("australie_orientale", self, center=(1048, 644), flag_midbottom=(700, 150),
-               neighbors=("europe_du_nord", "europe_occidentale", "russie"))
+        Region("indonesie", self, center=(922, 535),
+               neighbors=("siam", "nouvelle_guinee", "australie_occidentale"))
+        Region("nouvelle_guinee", self, center=(1022, 516),
+               neighbors=("australie_occidentale", "australie_orientale", "indonesie"))
+        Region("australie_occidentale", self, center=(981, 647),
+               neighbors=("nouvelle_guinee", "australie_orientale", "indonesie"))
+        Region("australie_orientale", self, center=(1048, 644),
+               neighbors=("nouvelle_guinee", "australie_occidentale"))
 
     def region_unselect(self):
 
@@ -887,7 +891,7 @@ class Region(bp.Image):
     MINE = BUILDS.subsurface(0, 30, 30, 30)
     CAMP = BUILDS.subsurface(30, 30, 30, 30)
 
-    def __init__(self, name, parent, center, flag_midbottom, build_center=None, neighbors=()):
+    def __init__(self, name, parent, center, flag_midbottom=None, build_center=None, neighbors=()):
 
         bp.Image.__init__(self, parent, bp.load(f"images/{name}.png"), pos=center, pos_location="center", name=name,
                           touchable=False, visible=False, layer=parent.regions_layer)
@@ -909,6 +913,8 @@ class Region(bp.Image):
         self.mask = bp.mask.from_surface(self.surface, threshold=0)
         self.build_circle = bp.Image(parent, image=Region.DOTTED, pos_location="center", touchable=False,
                                      pos=build_center if build_center is not None else center, visible=False)
+        if flag_midbottom is None:
+            flag_midbottom = self.build_circle.midtop
         self.flag_midbottom = flag_midbottom
         self.build = None
         self.build_state = "empty"
