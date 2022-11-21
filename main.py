@@ -8,7 +8,7 @@ sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\python\\baopig')
 
 import pygame
 pygame.init()
-fullscreen_size = pygame.display.list_modes()[0]
+fullscreen_size = pygame.display.list_modes()[2]
 
 loading_screen = True
 
@@ -133,6 +133,11 @@ class Player:
         game.players[self.id] = self
         self.continent = continent.upper().replace("_", " ")
         self.name = Player.NAMES[continent]
+        if text_storage.ref_language == text_storage.language:
+            self.translated_name = self.name
+        else:
+            self.translated_name = translator.translate(self.name, src=text_storage.ref_language,
+                                                        dest=text_storage.language)
         self.color = Player.COLORS[continent]
         self.soldier_icon = Player.SOLDIERS[continent]
         self.flag = bp.Image(game.map, Player.FLAGS[continent], name=str(self.id),
@@ -146,7 +151,7 @@ class Player:
 
         z = BackgroundedZone(game.info_right_zone, size=("100%", 104), pos=(0, 1000))
         colored_rect = bp.Rectangle(z, size=(z.rect.w, 42), color=self.color, border_width=2, border_color="black")
-        bp.Text(z, self.continent, ref=colored_rect, sticky="center")
+        bp.Text(z, self.translated_name, ref=colored_rect, sticky="center")
         g = bp.DynamicText(z, lambda: str(self.gold), pos=(10, 50))
         bp.Image(z, Region.MINE, ref=g, pos=(-4, -8), refloc="topright")
         self.soldiers_title = bp.Text(z, "0", pos=(10, 75))
@@ -227,7 +232,7 @@ class Player:
 
                 self.game.time_left.pause()
                 self.game.map.region_unselect()
-                self.game.info_winner_title.set_text(self.continent + " a gagné !")
+                self.game.info_winner_title.complete_text()
                 self.game.info_winner_panel.set_color(self.color)
                 self.game.info_winner_zone.show()
                 self.game.newgame_btn.enable()
@@ -284,8 +289,142 @@ class Player:
             soldiers_amount += self.game.transfert_amount
         self.soldiers_title.set_text(str(soldiers_amount))
 
+
 if loading_screen:
     set_progression(.2)
+
+import googletrans
+class Dictionnaries(dict):
+    lowest_free_id = -1
+    def add(self, lang1, text1, lang2, text2):
+        self.lowest_free_id += 1
+        self[lang1][self.lowest_free_id] = text1
+        self[lang2][self.lowest_free_id] = text2
+        # print("ADDED", self.lowest_free_id, lang1, text1, lang2, text2)
+class Dictionnary(dict):
+    def __init__(self, lang_id):
+        dict.__init__(self)
+        self.lang_id = lang_id
+dicts = Dictionnaries()
+dicts["en"] = Dictionnary("en")
+dicts["fr"] = Dictionnary("fr")
+dicts.add('fr', 'Quitter', 'en', 'Exit')
+dicts.add('fr', 'Cacher', 'en', 'Hide')
+dicts.add('fr', 'Nouvelle partie', 'en', 'New game')
+dicts.add('fr', 'JOUER', 'en', 'PLAY')
+dicts.add('fr', 'Envahir', 'en', 'Invade')
+dicts.add('fr', 'Au tour de {}', 'en', "{}'s turn")
+dicts.add('fr', 'Bravo à tous, bel effort.', 'en', 'Congratulations everyone, great effort.')
+# dict_fr[0] = "Quitter"
+# dict_en[0] = "Exit"
+# dict_fr[1] = "Cacher"
+# dict_en[1] = "Hide"
+# dict_fr[2] = "Nouvelle partie"
+# dict_en[2] = "New game"
+# dict_fr[3] = "JOUER"
+# dict_en[3] = "PLAY"
+# dict_fr[4] = "Envahir"
+# dict_en[4] = "Invade"
+class SmartTranslator(googletrans.Translator):
+    def translate(self, text: str, src, dest):
+        #    si pas dans un dico:
+        #        traduction
+        #        création nouveau id
+        #        ajout des deux nouveaux mots dans les dicos
+        for word_id, word in dicts[src].items():
+            if word == text:
+                try:
+                    return dicts[dest][word_id]
+                except KeyError:
+                    translation = super().translate(text, src=src, dest=dest).text
+                    dicts[dest][word_id] = translation
+                    return translation
+        translation = super().translate(text, src=src, dest=dest).text
+        dicts.add(lang1=src, text1=text, lang2=dest, text2=translation)
+        return translation
+translator = SmartTranslator()
+class TextStorage:
+    _ref_texts = {}
+    _ref_language = _language = "fr"
+    language = property(lambda self: self._language)
+    ref_language = property(lambda self: self._ref_language)
+    def get_text_from_id(self, text_id):
+        return dicts[self._language][text_id]
+    def set_language(self, lang_id):
+        if lang_id == self._language:
+            return
+        self._language = lang_id
+        if lang_id == self._ref_language:
+            for player in game.players.values():
+                player.translated_name = player.name
+            for widget, text in self._ref_texts.items():
+                widget.set_text(text)
+                widget.fit()
+        else:
+            for player in game.players.values():
+                player.translated_name = translator.translate(player.name, src=self._ref_language, dest=lang_id)
+            for widget, text in self._ref_texts.items():
+                self._update_widget(widget, text)
+    def set_ref_text(self, widget, text):
+        self._ref_texts[widget] = text
+        if self._language != self._ref_language:
+            self._update_widget(widget, text)
+    def _update_widget(self, widget, text):
+        if widget.text_id is not None and widget.text_id in dicts[self._language]:
+            widget.set_text(dicts[self._language][widget.text_id])
+        else:
+            translation = translator.translate(text, src=self._ref_language, dest=self._language)
+            widget.set_text(translation)
+        widget.fit()
+text_storage = TextStorage()
+class TranslatableText(bp.Text):
+
+    def __init__(self, *args, text_id=None, **kwargs):
+
+        if text_id is not None:
+            kwargs["text"] = text_storage.get_text_from_id(text_id)
+
+        bp.Text.__init__(self, *args, **kwargs)
+        self._text_id = text_id
+        text_storage.set_ref_text(self, self.text)
+
+    text_id = property(lambda self: self._text_id)
+
+    def set_ref_text(self, text):
+        text_storage.set_ref_text(self, text)
+        if text_storage.ref_language == text_storage.language:
+            self.set_text(text)
+            self.fit()
+        # else, the text is translated and set by set_ref_text()
+
+    def fit(self):
+        """ Called each time the text has been translated, and need to be ajusted """
+class PartiallyTranslatableText(TranslatableText):
+
+    def __init__(self, parent, get_args:tuple, **kwargs):
+        TranslatableText.__init__(self, parent, **kwargs)
+
+        assert self.text.count("{}") == len(get_args)
+
+        self.partial_text = self.translated_partial_text = self.text
+        self.get_args = get_args
+
+    def complete_text(self):
+
+        inserts = tuple(get_arg() for get_arg in self.get_args)
+        complete_text = self.translated_partial_text.format(*inserts)
+        self.set_text(complete_text)
+
+    def set_text(self, text):
+        if "{}" in text:
+            self.translated_partial_text = text
+            try:
+                self.complete_text()
+            except:  # still in construction, self.get_args is not defined
+                     # or a function in get_args raised an exception
+                super().set_text(text)
+        else:
+            super().set_text(text)
 
 
 class Game(bp.Scene):
@@ -385,6 +524,30 @@ class Game(bp.Scene):
                 self.tuto_btn.text_widget.set_text("Tuto : OFF")
                 self.tuto_zone.hide()
 
+        # LANGUAGE
+        lang_choose_zone = BackgroundedZone(self, visible=False, layer_level=2, padding=(90, 60), spacing=30,
+                                            sticky="center")
+        class LangBtn(PE_Button):
+            def __init__(btn, id):
+                text = googletrans.LANGUAGES[id]
+                if id not in dicts:
+                    dicts[id] = Dictionnary(id)
+                result = translator.translate(text, src="en", dest=id)
+                PE_Button.__init__(btn, parent=lang_choose_zone, text=result.capitalize(), translated=False)
+                btn.id = id
+            def handle_validate(btn):
+                self.lang_btn.text_widget.set_text(btn.text)
+                text_storage.set_language(btn.id)
+                lang_choose_zone.hide()
+        PE_Button(lang_choose_zone, text="< Retour", command=lang_choose_zone.hide)
+        LangBtn(id="es")
+        LangBtn(id="en")
+        LangBtn(id="fr")
+        LangBtn(id="it")
+        LangBtn(id="la")
+        lang_choose_zone.pack()
+        lang_choose_zone.adapt()
+
         # PARAMETERS
         def close_paramsail():
             if not self.paramsail_animator.is_running:
@@ -402,15 +565,21 @@ class Game(bp.Scene):
         self.paramsail = bp.Circle(self, (0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
         param_zone = BackgroundedZone(self, visible=False, layer_level=2, padding=(90, 60), spacing=30, sticky="center")
         param_zone.signal.HIDE.connect(close_paramsail, owner=self.paramsail)
-        PE_Button(parent=param_zone, text="Hide", command=param_zone.hide)
+        PE_Button(parent=param_zone, text_id=1, command=param_zone.hide)
         def newgame():
             param_zone.hide()
             self.set_todo(1)
             self.newgame_btn.disable()
-        self.newgame_btn = PE_Button(parent=param_zone, text="New game", command=newgame)
+        self.newgame_btn = PE_Button(parent=param_zone, text_id=2, command=newgame)
         self.newgame_btn.disable()
         self.tuto_btn = PE_Button(parent=param_zone, text="Tuto : OFF", command=switch_tuto)
-        PE_Button(parent=param_zone, text="Quit", command=app.exit)
+        lang_choose_zone.move_in_front_of(param_zone)
+        lang_zone = bp.Zone(param_zone)
+        lang_title = TranslatableText(lang_zone, "Langue :", sticky="midtop")
+        self.lang_btn = PE_Button(parent=lang_zone, text="Français", pos=(0, lang_title.rect.bottom + 3),
+                                  command=lang_choose_zone.show, translated=False)
+        lang_zone.adapt()
+        PE_Button(parent=param_zone, text_id=0, command=app.exit)
         param_zone.default_layer.pack()
         param_zone.adapt(param_zone.default_layer)
         def paramsail_animate():
@@ -427,13 +596,14 @@ class Game(bp.Scene):
         self.settings_btn = PE_Button(self, text="Paramètres", command=toggle_param)
 
         # TODO : fullscreen button
-        # TODO : language button
+        # TODO : language right info & tuto
 
         # INFORMATION ON TOP & RIGHT
         self.info_right_zone = bp.Zone(self, sticky="midright", size=("10%", 0), spacing=-3)
         self.info_right_zone.move_behind(self.tuto_zone)
         self.info_top_zone = bp.Zone(self, sticky="midtop", size=("80%", "5%"), visible=False)
-        self.au_tour_de = bp.Text(self.info_top_zone, "", sticky="center")
+        self.au_tour_de = PartiallyTranslatableText(self.info_top_zone, sticky="center", text_id=5,
+                                                  get_args=(lambda : self.current_player.translated_name,))
 
         # INFORMATION AT LEFT
         self.info_left_zone = bp.Zone(self, sticky="midleft", size=("10%", "60%"), visible=False)
@@ -443,7 +613,7 @@ class Game(bp.Scene):
                 self.set_todo(20)
             else:
                 self.set_todo(self.todo.id + 1)
-        self.next_todo = PE_Button(self.info_left_zone, "Next  ->", width="100%", sticky="midbottom",
+        self.next_todo = PE_Button(self.info_left_zone, "Étape suivante", width="100%", sticky="midbottom",
                                    command=next_todo_command)
         def handle_timeout():
             if self.todo.text == "build":
@@ -462,11 +632,11 @@ class Game(bp.Scene):
         bp.DynamicText(timer_zone, lambda: bp.format_time(self.time_left.get_time_left(), formatter="%M:%S"),
                             sticky="center", align_mode="center", font_color="white")
         z1 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        bp.Text(z1, "CONSTRUCTION", sticky="center", align_mode="center")
+        construction_text = TranslatableText(z1, "CONSTRUCTION", sticky="center", align_mode="center")
         z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        bp.Text(z2, "ATTAQUE", sticky="center", align_mode="center")
+        attack_text = TranslatableText(z2, "ATTAQUE", sticky="center", align_mode="center")
         z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        bp.Text(z3, "REORGANISATION", sticky="center", align_mode="center")
+        reorganize_text = TranslatableText(z3, "REORGANISATION", sticky="center", align_mode="center")
         order_zone.pack()
 
         # INFO COUNTRY
@@ -474,9 +644,9 @@ class Game(bp.Scene):
         self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False)
         r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 40),
                           color=(0, 0, 0, 0), border_width=2, border_color="black")
-        self.invade_btn = RegionInfoButton(self, "Envahir")
-        self.back_btn = RegionInfoButton(self, "Rapatrier")
-        self.import_btn = RegionInfoButton(self, "Déplacer")
+        self.invade_btn = RegionInfoButton(self, text_id=4)
+        self.back_btn = RegionInfoButton(self, text="Rapatrier")
+        self.import_btn = RegionInfoButton(self, text="Déplacer")
         info_country_title = bp.Text(self.region_info_zone, "", align_mode="center", sticky="center", ref=r2,
                                      max_width=self.region_info_zone.rect.w - 10)
         self.info_csa = bp.Text(self.region_info_zone, "", pos=(5, r2.rect.bottom + 5))
@@ -550,8 +720,8 @@ class Game(bp.Scene):
         # self.rc_no = PE_Button(self, size=("17%", "10%"), pos=(30, "65%"), background_color="red4",
         #                         text="J'attends une autre région.", command=rc_next, visible=False)
 
-        self.rc_yes = RegionInfoButton(self, "Sélectionner")
-        self.rc_no = RegionInfoButton(self, "Passer")
+        self.rc_yes = RegionInfoButton(self, text="Sélectionner")
+        self.rc_no = RegionInfoButton(self, text="Passer")
         self.rc_yes.set_pos(midbottom=(75, 103))
         self.rc_yes.command = yes
         self.rc_no.command = rc_next
@@ -561,13 +731,14 @@ class Game(bp.Scene):
                                         visible=False)
         self.info_winner_panel = rw1 = bp.Rectangle(self.info_winner_zone, size=("40%", "40%"), sticky="center",
                                                     border_width=2, border_color="black")
-        self.info_winner_title = bp.Text(self.info_winner_zone, "ASIA a gagné !", max_width=rw1.rect.w - 10,
-                                         font_height=self.info_winner_zone.get_style_for(bp.Text)["font_height"] + 15,
-                                         align_mode="center", pos=(rw1.rect.left + 5, rw1.rect.top + 5))
+        self.info_winner_title = PartiallyTranslatableText(self.info_winner_zone,
+                            text="{} a gagné !", get_args=(lambda : self.current_player.translated_name,),
+                            font_height=self.info_winner_zone.get_style_for(bp.Text)["font_height"] + 15,
+                            max_width=rw1.rect.w - 10, align_mode="center", pos=(rw1.rect.left + 5, rw1.rect.top + 5))
         rw2 = bp.Rectangle(self.info_winner_zone, size=(rw1.rect.w, self.info_winner_title.rect.h + 10),
                            pos=rw1.rect.topleft, color=(0, 0, 0, 0), border_width=2, border_color="black")  # border
-        self.info_winner_subtitle = bp.Text(self.info_winner_zone, "Bravo à tous, bel effort.",
-                                            max_width=rw1.rect.w - 10, pos=(5, 5), ref=rw2, refloc="bottomleft")
+        self.info_winner_subtitle = TranslatableText(self.info_winner_zone, text_id=6, max_width=rw1.rect.w - 10,
+                                                     pos=(5, 5), ref=rw2, refloc="bottomleft")
         def ok():
             self.info_winner_zone.hide()
         PE_Button(self.info_winner_zone, "OK", midbottom=(rw1.rect.centerx, rw1.rect.bottom - 5), command=ok)
@@ -578,7 +749,7 @@ class Game(bp.Scene):
         r2 = bp.Rectangle(self.choose_nb_players_zone, size=("100%", 50), color="black")
         centerx = int(self.choose_nb_players_zone.rect.w / 2)
         centery = int((self.choose_nb_players_zone.rect.h + r2.rect.h + 3) / 2)
-        bp.Text(self.choose_nb_players_zone, "Nombre de joueurs", center=r2.rect.center, font_height=30,
+        TranslatableText(self.choose_nb_players_zone, "Nombre de joueurs", center=r2.rect.center, font_height=30,
                 font_color=self.theme.colors.font_opposite)
         btn_w = 36*3
         btn_marg = 20
@@ -609,7 +780,7 @@ class Game(bp.Scene):
             b1 = ClickableNb(1, pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
             b1.set_background_color((0, 0, 0, 0))
             b1.disable()
-            bp.Text(b1, "Un jour\npeut-être ?", sticky="midbottom", pos=(0, -5), align_mode="center")
+            TranslatableText(b1, "Un jour\npeut-être ?", sticky="midbottom", pos=(0, -5), align_mode="center")
             ClickableNb(2, pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
             ClickableNb(3, pos=(centerx - btn_mid, centery))
             ClickableNb(4, pos=(centerx + btn_mid, centery))
@@ -621,7 +792,7 @@ class Game(bp.Scene):
         r2 = bp.Rectangle(self.choose_color_zone, size=("100%", 50), color="black")
         centerx = int(self.choose_color_zone.rect.w / 2)
         centery = int((self.choose_color_zone.rect.h + r2.rect.h + 3) / 2)
-        bp.Text(self.choose_color_zone, "Choisis ton peuple", center=r2.rect.center, font_height=30,
+        TranslatableText(self.choose_color_zone, "Choisis ton drapeau", center=r2.rect.center, font_height=30,
                 font_color=self.theme.colors.font_opposite)
         class ClickableFlag(bp.Button):
             STYLE = bp.Button.STYLE.substyle()
@@ -673,7 +844,7 @@ class Game(bp.Scene):
         logo_play_zone.fill((255, 255, 255))
         logo_play_zone.blit(logo, (0, 0))
         bp.Image(play_zone, image=logo_play_zone)
-        play_box = PE_Button(play_zone, "JOUER",
+        play_box = PE_Button(play_zone, text_id=3,
                             center=(0, -37), refloc="midbottom", command=bp.PrefilledFunction(self.set_todo, 1))
         play_box_originalsize = play_box.rect.size
         play_box.growing = True
@@ -767,42 +938,48 @@ class Game(bp.Scene):
         self.todo_from_text = {}
         Todo(0, "owl presentation", f_start=(bp.PrefilledFunction(bulle_text.set_text,
              "Salut !\nMoi c'est Pony la chouette !\nOn me paie pour que je te fasse le tuto !"),
-                                    open_play_zone), f_end=(play_zone.hide, play_btn_animator.cancel)),
+                                    open_play_zone), f_end=(play_zone.hide, play_btn_animator.cancel))
         Todo(1, "choose nb players", f_start=(self.choose_nb_players_zone.show, self.newgame_setup,
              bp.PrefilledFunction(bulle_text.set_text, "Combien de joueurs participeront à cette partie ?"),
              self.info_top_zone.hide, self.info_right_zone.hide),
-             f_end=(self.choose_nb_players_zone.hide,)),
+             f_end=(self.choose_nb_players_zone.hide,))
         Todo(10, "choose color",
              f_start=(self.choose_color_zone.show, bp.PrefilledFunction(bulle_text.set_text,
              "Choisis un peuple, cette étape est facile !")),
-             f_end=(self.choose_color_zone.hide, self.info_top_zone.show, self.info_right_zone.show)),
+             f_end=(self.choose_color_zone.hide, self.info_top_zone.show, self.info_right_zone.show))
         Todo(11, "choose region", f_start=(bp.PrefilledFunction(bulle_text.set_text,
-             "Choisis cette région ou passe ton tour !\nTu as droit à 3 tirages."), self.pick_region)),
+             "Choisis cette région ou passe ton tour !\nTu as droit à 3 tirages."), self.pick_region))
         Todo(17, "place flag", confirm=Todo.confirm_place_flag, f_start=(bp.PrefilledFunction(bulle_text.set_text,
              "Clique sur un pays pour y planter ton drapeau !\n"
-             "Pendant la partie, tu devras le protéger à tous prix !"),)),
-        Todo(20, "build", f_start=(self.next_todo.show, self.info_left_zone.show,
-             bp.PrefilledFunction(bulle_text.set_text,
-             "Construis des bâtiments !\nIls coûtent 3 lingots chacun.\nLes mines rapportent 4 lingots par tour, "
-             "et les camps, 3 soldats par tour !"),
-             bp.PrefilledFunction(z1.set_background_color, "orange"),
-             bp.PrefilledFunction(nextsail_text.set_text, "CONSTRUCTION"),
-             lambda: self.current_player.build_stuff()),
+             "Pendant la partie, tu devras le protéger à tous prix !"),))
+        def start_build():
+            self.next_todo.show()
+            self.info_left_zone.show()
+            bulle_text.set_text("Construis des bâtiments !"
+                                "\nIls coûtent 3 lingots chacun."
+                                "\nLes mines rapportent 4 lingots par tour, et les camps, 3 soldats par tour !")
+            z1.set_background_color("orange")
+            nextsail_text.set_text(construction_text.text)
+            self.current_player.build_stuff()
+        Todo(20, "build", f_start=(start_build,),
              f_end=(lambda: tuple(r.build_circle.hide() for r in self.current_player.regions),
-             bp.PrefilledFunction(z1.set_background_color, BackgroundedZone.STYLE["background_color"]))),
-        Todo(21, "attack", f_start=(bp.PrefilledFunction(bulle_text.set_text,
-             "C'est le moment d'étendre ton empire !\n"
-             "Prends des soldats avec le clic droit de ta souris, puis envahis tes voisins !"),
-             bp.PrefilledFunction(z2.set_background_color, "orange"),
-             bp.PrefilledFunction(nextsail_text.set_text, "ATTAQUE"),
-             lambda: self.current_player.check_attack()),
-             f_end=(bp.PrefilledFunction(z2.set_background_color, BackgroundedZone.STYLE["background_color"]),)),
-        Todo(22, "troops movement", f_start=(bp.PrefilledFunction(bulle_text.set_text, "Avant de finir ton tour, "
-             "réorganise tes troupes !\nTes adversaires pourraient attaquer ton empire !"),
-             bp.PrefilledFunction(z3.set_background_color, "orange"),
-             bp.PrefilledFunction(nextsail_text.set_text, "REORGANISATION"),
-             lambda: self.current_player.check_movement()),
-             f_end=(bp.PrefilledFunction(z3.set_background_color, BackgroundedZone.STYLE["background_color"]),)),
+             bp.PrefilledFunction(z1.set_background_color, BackgroundedZone.STYLE["background_color"])))
+        def start_attack():
+            bulle_text.set_text("C'est le moment d'étendre ton empire !\n"
+                                "Prends des soldats avec le clic droit de ta souris, puis envahis tes voisins !")
+            z2.set_background_color("orange")
+            nextsail_text.set_text(attack_text.text)
+            self.current_player.check_attack()
+        Todo(21, "attack", f_start=(start_attack,),
+             f_end=(bp.PrefilledFunction(z2.set_background_color, BackgroundedZone.STYLE["background_color"]),))
+        def start_reorganization():
+            bulle_text.set_text("Avant de finir ton tour, réorganise tes troupes !"
+                                "\nTes adversaires pourraient attaquer ton empire !")
+            z3.set_background_color("orange")
+            nextsail_text.set_text(reorganize_text.text)
+            self.current_player.check_movement()
+        Todo(22, "troops movement", f_start=(start_reorganization,),
+             f_end=(bp.PrefilledFunction(z3.set_background_color, BackgroundedZone.STYLE["background_color"]),))
 
         self.todo = self.todo_from_id[0]
         self.set_todo(0)
@@ -1006,7 +1183,7 @@ class Game(bp.Scene):
         if not self.current_player.is_alive:
             self.next_player()
             return
-        self.au_tour_de.set_text(f"AU TOUR DE : {self.current_player.continent}")
+        self.au_tour_de.complete_text()
         self.info_top_zone.set_background_color(self.current_player.color)
 
         if self.time_left.is_running:
@@ -1450,10 +1627,31 @@ if loading_screen:
 
 btn_background = load("Images/btn_back.png")
 btn_window = load("Images/btn_window.png")
-# btn_window = pygame.transform.scale(btn_background, (130, 20))
-# default_btn_color = (26, 81, 74)
 default_btn_color = (68, 76, 70)
 btn_background.fill(default_btn_color, special_flags=pygame.BLEND_RGBA_MIN)
+class PE_Button_Text(bp.Button_Text, TranslatableText):
+
+    def __init__(self, *args, **kwargs):
+        bp.Button_Text.__init__(self, *args, **kwargs)
+        if self.parent.translated:
+            text_storage.set_ref_text(self, self.text)
+
+    text_id = property(lambda self: self.parent.text_id)
+
+    def fit(self):
+        max_font_height = self.parent.style["text_style"]["font_height"]
+        # if self.font.height < max_font_height:
+        content_rect = self.parent.content_rect
+        self.font.config(height=min(max_font_height, content_rect.height))
+        while self.rect.width > content_rect.width or self.rect.height > content_rect.height:
+            if self.font.height == 2:
+                break
+                # raise ValueError(f"This text is too long for the text area : {text} (area={content_rect})")
+            self.font.config(height=self.font.height - 1)  # changing the font will automatically update the text
+        assert not self.parent.is_hovered
+        self.parent.original_font_height = self.font.height
+        self.parent.text_widget2.font.config(height=self.font.height)
+        self.parent.text_widget2.set_text(self.text)
 class PE_Button(bp.Button):
 
     class Button_HoverImage(bp.Image):
@@ -1500,6 +1698,7 @@ class PE_Button(bp.Button):
         focus_class=None,
         hover_class=Button_HoverImage,
         link_class=Button_LinkImage,
+        text_class=PE_Button_Text,
 
         width=140,
         height=40,
@@ -1509,8 +1708,13 @@ class PE_Button(bp.Button):
         text_style={"font_height": 25},
     )
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, translated=True, text_id=None, **kwargs):
 
+        if text_id is not None:
+            kwargs["text"] = text_storage.get_text_from_id(text_id)
+
+        self.text_id = text_id
+        self.translated = translated
         bp.Button.__init__(self, parent, *args, **kwargs)
 
         if self.background_color != default_btn_color:
@@ -1532,13 +1736,11 @@ class PE_Button(bp.Button):
         self._disable_sail_ref =bp.Image(self, disable_surf, visible=False,
                                          layer=self.above_content, name=self.name + ".disable_sail").get_weakref()
 
-        self.original_font_height = self.text_widget.font.height
-        self.extended_font_height = self.original_font_height + 3
-
-        self.text_widget2 = self.style["text_class"](self, text=self.text, layer=self.content, font_color="white",
-                                                     **self.style["text_style"])
+        self.text_widget2 = bp.Button_Text(self, text=self.text, layer=self.content, font_color="white",
+                                           **self.style["text_style"])
         self.text_widget.move(1, 1)
         self.text_widget2.move(-1, -1)
+        self.original_font_height = self.text_widget.font.height
 
         def handle_new_surf():
             self.text_widget2.set_text(self.text)
@@ -1548,8 +1750,8 @@ class PE_Button(bp.Button):
 
         with bp.paint_lock:
             self.hover_sail.show()
-            self.text_widget.font.config(height=self.extended_font_height)
-            self.text_widget2.font.config(height=self.extended_font_height)
+            self.text_widget.font.config(height=self.original_font_height + 4)
+            self.text_widget2.font.config(height=self.original_font_height + 4)
 
     def handle_unhover(self):
 
@@ -1561,9 +1763,9 @@ class PE_Button(bp.Button):
 
 class RegionInfoButton(PE_Button):
 
-    def __init__(self, game, text):
+    def __init__(self, game, **kwargs):
 
-        PE_Button.__init__(self, game.region_info_zone, text=text, midbottom=(75, 145), command=game.end_transfert)
+        PE_Button.__init__(self, game.region_info_zone, midbottom=(75, 145), command=game.end_transfert, **kwargs)
 
 
 if loading_screen:
@@ -1611,7 +1813,7 @@ set_cursor("default")
 if loading_screen:
     set_progression(.8)
 
-Game(app)
+game = Game(app)
 
 if loading_screen:
     set_progression(.9)
