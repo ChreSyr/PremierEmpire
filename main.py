@@ -8,7 +8,7 @@ sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\python\\baopig')
 
 import pygame
 pygame.init()
-fullscreen_size = pygame.display.list_modes()[2]
+fullscreen_size = pygame.display.list_modes()[0]
 
 loading_screen = True
 
@@ -24,23 +24,27 @@ def set_progression(prc):
 
 if loading_screen:
     # LOADING SCREEN
-    import win32api
-    import win32con
-    import win32gui
 
-    logo = pygame.image.load("Images/logo.png")
+    logo = pygame.image.load("images/logo.png")
     # screen = pygame.display.set_mode(fullscreen_size, pygame.NOFRAME)
     screen = pygame.display.set_mode(fullscreen_size, pygame.NOFRAME | pygame.HIDDEN)
     pygame.display.set_mode(fullscreen_size, pygame.NOFRAME | pygame.SHOWN)
     done = False
     fuchsia = (1, 0, 0)  # Transparency color
 
-    # Create layered window
-    hwnd = pygame.display.get_wm_info()["window"]
-    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE,
-                           win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
-    # Set window transparency color
-    win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(*fuchsia), 0, win32con.LWA_COLORKEY)
+    # Transparency
+    try:
+        import win32api
+        import win32con
+        import win32gui
+        # Create layered window
+        hwnd = pygame.display.get_wm_info()["window"]
+        win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE,
+                               win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
+        # Set window transparency color
+        win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(*fuchsia), 0, win32con.LWA_COLORKEY)
+    except ModuleNotFoundError:
+        pass
 
     set_progression(0)
 
@@ -133,11 +137,13 @@ class Player:
         game.players[self.id] = self
         self.continent = continent.upper().replace("_", " ")
         self.name = Player.NAMES[continent]
-        if text_storage.ref_language == text_storage.language:
+        if lang_manager.ref_language == lang_manager.language:
             self.translated_name = self.name
         else:
-            self.translated_name = translator.translate(self.name, src=text_storage.ref_language,
-                                                        dest=text_storage.language)
+            self.translated_name = translator.translate(self.name, src=lang_manager.ref_language,
+                                                        dest=lang_manager.language)
+        self.translated_name_id = dicts.add("fr", self.name)
+
         self.color = Player.COLORS[continent]
         self.soldier_icon = Player.SOLDIERS[continent]
         self.flag = bp.Image(game.map, Player.FLAGS[continent], name=str(self.id),
@@ -293,14 +299,33 @@ class Player:
 if loading_screen:
     set_progression(.2)
 
+
+# TODO : load tuto only when clicked on it
+# TODO : load languages only when clicked on game.lang_btn
+# TODO : traduire tous les textes en une seule requête
+# TODO : language module in baopig
+
 import googletrans
 class Dictionnaries(dict):
-    lowest_free_id = -1
-    def add(self, lang1, text1, lang2, text2):
-        self.lowest_free_id += 1
-        self[lang1][self.lowest_free_id] = text1
-        self[lang2][self.lowest_free_id] = text2
-        # print("ADDED", self.lowest_free_id, lang1, text1, lang2, text2)
+    highest_id = -1
+    def add(self, lang1, text1):  # , lang2=None, text2=None
+        self.highest_id += 1
+        self[lang1][self.highest_id] = text1
+        # if lang2:
+        #     self[lang2][self.highest_id] = text2
+        # print("ADDED", self.highest_id, lang1, text1, lang2, text2)
+        return self.highest_id
+    def add_translation(self, text_id, lang, translation):
+        self[lang][text_id] = translation
+    def get_id(self, text):
+        text_id = None
+        for stored_id, stored_text in dicts["fr"].items():
+            if stored_text == text:
+                text_id = stored_id
+                break
+        if text_id is None:
+            text_id = self.add("fr", text)
+        return text_id
 class Dictionnary(dict):
     def __init__(self, lang_id):
         dict.__init__(self)
@@ -308,13 +333,16 @@ class Dictionnary(dict):
 dicts = Dictionnaries()
 dicts["en"] = Dictionnary("en")
 dicts["fr"] = Dictionnary("fr")
-dicts.add('fr', 'Quitter', 'en', 'Exit')
-dicts.add('fr', 'Cacher', 'en', 'Hide')
-dicts.add('fr', 'Nouvelle partie', 'en', 'New game')
-dicts.add('fr', 'JOUER', 'en', 'PLAY')
-dicts.add('fr', 'Envahir', 'en', 'Invade')
-dicts.add('fr', 'Au tour de {}', 'en', "{}'s turn")
-dicts.add('fr', 'Bravo à tous, bel effort.', 'en', 'Congratulations everyone, great effort.')
+from ref_texts import fr_dict
+for text in fr_dict:
+    dicts.add("fr", text)
+dicts.add_translation(0, 'en', 'Exit')
+dicts.add_translation(1, 'en', 'Hide')
+dicts.add_translation(2, 'en', 'New game')
+dicts.add_translation(3, 'en', 'PLAY')
+dicts.add_translation(4, 'en', 'Invade')
+dicts.add_translation(5, 'en', "{}'s turn")
+dicts.add_translation(6, 'en', 'Congratulations everyone, great effort.')
 # dict_fr[0] = "Quitter"
 # dict_en[0] = "Exit"
 # dict_fr[1] = "Cacher"
@@ -326,7 +354,10 @@ dicts.add('fr', 'Bravo à tous, bel effort.', 'en', 'Congratulations everyone, g
 # dict_fr[4] = "Envahir"
 # dict_en[4] = "Invade"
 class SmartTranslator(googletrans.Translator):
+    game = None
     def translate(self, text: str, src, dest):
+        if self.game.connected_to_network is False:
+            return text
         #    si pas dans un dico:
         #        traduction
         #        création nouveau id
@@ -341,72 +372,118 @@ class SmartTranslator(googletrans.Translator):
                         dicts[dest][word_id] = translation
                         return translation
                     except Exception:
-                        bp.LOGGER.warning(f"Translation failed : {text} from {src} to {dest}")
+                        bp.LOGGER.warning(f"Couldn't translate {text} from {src} to {dest}")
+                        self.game.connected_to_network = False
                         return text
         try:
             translation = super().translate(text, src=src, dest=dest).text
             dicts.add(lang1=src, text1=text, lang2=dest, text2=translation)
             return translation
         except Exception:
-            bp.LOGGER.warning(f"Translation failed : {text} from {src} to {dest}")
+            bp.LOGGER.warning(f"Couldn't translate {text} from {src} to {dest}")
+            self.game.connected_to_network = False
             return text
 translator = SmartTranslator()
-class TextStorage:
+class LangManager:  # TODO : LangManager
     _ref_texts = {}
+    _textid_by_widget = {}
     _ref_language = _language = "fr"
     language = property(lambda self: self._language)
     ref_language = property(lambda self: self._ref_language)
+    def _update_widget(self, widget, text):
+        try:
+            widget.set_text(dicts[self._language][widget.text_id])
+        except KeyError:  # we're offline and this text has not been translated
+            widget.set_text(dicts[self._ref_language][widget.text_id])
+        widget.fit()
     def get_text_from_id(self, text_id):
-        return dicts[self._language][text_id]
+        try:
+            return dicts[self._language][text_id]
+        except KeyError:
+            return dicts[self._ref_language][text_id]
+    def remove_widget(self, widget):
+        self._ref_texts.pop(widget)
+        self._textid_by_widget.pop(widget)
     def set_language(self, lang_id):
         if lang_id == self._language:
             return
         self._language = lang_id
-        if lang_id == self._ref_language:
-            for player in game.players.values():
+        self.update_language()
+    def set_ref_text(self, widget, text=None, text_id=None):
+        assert (text is None) != (text_id is None)
+        if text_id is None:
+            text = text
+            for stored_id, stored_text in dicts["fr"].items():
+                if stored_text == text:
+                    text_id = stored_id
+                    break
+            if text_id is None:
+                text_id = dicts.add(self._ref_language, text)
+        else:
+            text_id = text_id
+            text = dicts["fr"][text_id]
+        self._ref_texts[widget] = text
+        self._textid_by_widget[widget] = text_id
+        widget.text_id = text_id
+        # if self._language != self._ref_language:
+        self._update_widget(widget, text)
+    def update_language(self):
+
+        if self._language != self._ref_language and game.connected_to_network:
+            new_dict = dicts[self._language]
+            for player in game.players.values():  # TODO
+                if player.translated_name_id not in new_dict:
+                    translation = translator.translate(player.name, src=self._ref_language, dest=self._language)
+                    if translation is not None:
+                        new_dict[player.translated_name_id] = translation
+                player.translated_name = translator.translate(player.name, src=self._ref_language, dest=self._language)
+            for id, ref_text in dicts[self._ref_language].items():
+                if id not in new_dict:
+                    translation = translator.translate(ref_text, src=self._ref_language, dest=self._language)
+                    if translation is not None:
+                        new_dict[id] = translation
+
+        for player in game.players.values():
+            try:
+                player.translated_name = dicts[self._ref_language][player.translated_name_id]
+            except KeyError:  # we're offline and this text has not been translated
                 player.translated_name = player.name
+
+        if self._language == self._ref_language:
             for widget, text in self._ref_texts.items():
                 widget.set_text(text)
                 widget.fit()
         else:
-            for player in game.players.values():
-                player.translated_name = translator.translate(player.name, src=self._ref_language, dest=lang_id)
             for widget, text in self._ref_texts.items():
                 self._update_widget(widget, text)
-    def set_ref_text(self, widget, text):
-        self._ref_texts[widget] = text
-        if self._language != self._ref_language:
-            self._update_widget(widget, text)
-    def _update_widget(self, widget, text):
-        if widget.text_id is not None and widget.text_id in dicts[self._language]:
-            widget.set_text(dicts[self._language][widget.text_id])
-        else:
-            translation = translator.translate(text, src=self._ref_language, dest=self._language)
-            widget.set_text(translation)
-        widget.fit()
-text_storage = TextStorage()
-class TranslatableText(bp.Text):
+lang_manager = LangManager()
+class Translatable:
 
-    def __init__(self, *args, text_id=None, **kwargs):
-
-        if text_id is not None:
-            kwargs["text"] = text_storage.get_text_from_id(text_id)
-
-        bp.Text.__init__(self, *args, **kwargs)
-        self._text_id = text_id
-        text_storage.set_ref_text(self, self.text)
-
-    text_id = property(lambda self: self._text_id)
-
-    def set_ref_text(self, text):
-        text_storage.set_ref_text(self, text)
-        if text_storage.ref_language == text_storage.language:
-            self.set_text(text)
-            self.fit()
-        # else, the text is translated and set by set_ref_text()
+    def __init__(self, text=None, text_id=None):
+        assert (text is None) != (text_id is None)
+        if text_id is None:
+            text_id = dicts.get_id(text)
+        self.text_id = text_id
+        lang_manager.set_ref_text(self, text_id=text_id)
 
     def fit(self):
         """ Called each time the text has been translated, and need to be ajusted """
+
+    def set_ref_text(self, text_id):
+        lang_manager.set_ref_text(self, text_id=text_id)
+class TranslatableText(bp.Text, Translatable):
+
+    def __init__(self, parent, text=None, text_id=None, **kwargs):
+        assert (text is None) != (text_id is None)
+        if text is None:
+            text = lang_manager.get_text_from_id(text_id)
+
+        bp.Text.__init__(self, parent=parent, text=text, **kwargs)
+        Translatable.__init__(self, text)
+
+        def handle_kill():
+            lang_manager.remove_widget(self)
+        self.signal.KILL.connect(handle_kill, owner=self)
 class PartiallyTranslatableText(TranslatableText):
 
     def __init__(self, parent, get_args:tuple, **kwargs):
@@ -419,7 +496,7 @@ class PartiallyTranslatableText(TranslatableText):
 
     def complete_text(self):
 
-        inserts = tuple(get_arg() for get_arg in self.get_args)
+        inserts = tuple(lang_manager.get_text_from_id(get_arg()) for get_arg in self.get_args)
         complete_text = self.translated_partial_text.format(*inserts)
         self.set_text(complete_text)
 
@@ -439,22 +516,22 @@ class Game(bp.Scene):
 
     class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
 
-        def __init__(self, game, msg, explain):
+        def __init__(self, game, text_id, explain_id=None):
 
-            BackgroundedZone.__init__(self, game, size=("25%", "25%"), pos=game.settings_btn.bottomleft)
-            bp.LinkableByMouse.__init__(self)
+            BackgroundedZone.__init__(self, game, size=(300, 100), sticky="midtop", layer_level=2)
+            bp.LinkableByMouse.__init__(self, game)
 
-            msg_w = bp.Text(self, msg, max_width=r.w - 10, font_height=self.get_style_for(bp.Text)["font_height"] + 7,
-                            align_mode="center", pos=(5, 5))
-            r2 = bp.Rectangle(self, size=(r.w, msg_w.h + 10), color=(0, 0, 0, 0), border_width=2)
-            bp.Text(self, explain, max_width=r.w - 10, pos=(5, 5), ref=r2, refloc="bottomleft")
-
-            self.temp_import_region = None
+            msg_w = TranslatableText(self, text_id=text_id, max_width=self.rect.w - 10, align_mode="center", pos=(0, 5),
+                                     sticky="midtop", font_height=self.get_style_for(bp.Text)["font_height"] + 4)
+            r2 = bp.Rectangle(self, size=(self.rect.w, msg_w.rect.h + 10), color=(0, 0, 0, 0), border_width=2)
+            if explain_id:
+                TranslatableText(self, text_id=explain_id, max_width=self.rect.w - 10,
+                                 pos=(5, 5), ref=r2, refloc="bottomleft")
 
             self.timer = bp.Timer(3, command=self.kill)
             self.timer.start()
 
-        def handle_link(self):
+        def handle_linkm(self):
 
             self.timer.cancel()
             self.kill()
@@ -471,40 +548,24 @@ class Game(bp.Scene):
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
         self.last_selected_region = None
 
-        # MAP
-        map = self.map = Map(self)
-        self.map_sail = map.sail
-        def mapsail_open_animate():
-            self.map_sail.set_radius(self.map_sail.radius + 60)
-            if self.map_sail.radius >= 250:
-                self.mapsail_open_animator.cancel()
-        self.mapsail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
-        def mapsail_close_animate():
-            self.map_sail.set_radius(self.map_sail.radius - 60)
-            if self.map_sail.radius <= 0:
-                self.mapsail_close_animator.cancel()
-                self.map_sail.hide()
-        self.mapsail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
+        # LAYERS
+        self.game_layer = bp.Layer(self, level=1, weight=2)
+        self.gameinfo_layer = bp.Layer(self, level=1, weight=3)
+        self.gametuto_layer = bp.Layer(self, level=1, weight=4)
+        self.extra_layer = bp.Layer(self, level=2)
 
-        # NEXT_TODO ANIMATION
-        self.next_sail = bp.Zone(map, pos=(-map.rect.h, 0), size=(map.rect.h, "100%"), layer_level=2)
-        def nextsail_animate():
-            self.next_sail.move(dx=max(abs(self.next_sail.rect.centerx - map.auto_rect.centerx) / 5, 20))
-            if self.next_sail.rect.left >= self.map.rect.width:
-                self.nextsail_animator.cancel()
-        self.nextsail_animator = bp.RepeatingTimer(.04, nextsail_animate)
-        bp.Circle(self.next_sail, (0, 0, 0, 63), radius=map.auto_rect.centery, center=("50%", "50%"))
-        nextsail_text = bp.Text(self.next_sail, "HELLO !!", font_height=50, font_color="orange", font_bold=True,
-                                sticky="center", ref=map)
+        # NETWORK
+        self._connected_to_network = True
 
         # TUTORIAL
-        self.tuto_zone = hibou_zone = bp.Zone(self, size=(305, 500), sticky="bottomright", visible=False)
+        self.tuto_zone = hibou_zone = bp.Zone(self, size=(305, 500), sticky="bottomright", visible=False,
+                                              layer=self.gametuto_layer)
         hibou1 = bp.Image(hibou_zone, load("images/hibou1.png"), sticky="bottomright", pos=(-30, 50))
         hibou2 = bp.Image(hibou_zone, load("images/hibou2.png"), sticky="bottomright", pos=(-30, 50), visible=False)
         hibou3 = bp.Image(hibou_zone, load("images/hibou3.png"), sticky="bottomright", pos=(-30, 50), visible=False)
         bulle = bp.Image(hibou_zone, load("images/hibou_bulle.png"), midbottom=hibou1.rect.midtop)
-        bulle_text = bp.Text(hibou_zone, "", pos=(bulle.rect.left + 10, bulle.rect.top + 10),
-                             max_width=bulle.rect.w - 20, align_mode="center")
+        bulle_text = TranslatableText(hibou_zone, text_id=38, pos=(bulle.rect.left + 10, bulle.rect.top + 10),
+                                      max_width=bulle.rect.w - 20, align_mode="center")
         def animate_hibou():
             if hibou1.is_visible:
                 hibou1.hide()
@@ -532,30 +593,6 @@ class Game(bp.Scene):
                 self.tuto_btn.text_widget.set_text("Tuto : OFF")
                 self.tuto_zone.hide()
 
-        # LANGUAGE
-        lang_choose_zone = BackgroundedZone(self, visible=False, layer_level=2, padding=(90, 60), spacing=30,
-                                            sticky="center")
-        class LangBtn(PE_Button):
-            def __init__(btn, id):
-                text = googletrans.LANGUAGES[id]
-                if id not in dicts:
-                    dicts[id] = Dictionnary(id)
-                result = translator.translate(text, src="en", dest=id)
-                PE_Button.__init__(btn, parent=lang_choose_zone, text=result.capitalize(), translated=False)
-                btn.id = id
-            def handle_validate(btn):
-                self.lang_btn.text_widget.set_text(btn.text)
-                text_storage.set_language(btn.id)
-                lang_choose_zone.hide()
-        PE_Button(lang_choose_zone, text="< Retour", command=lang_choose_zone.hide)
-        LangBtn(id="es")
-        LangBtn(id="en")
-        LangBtn(id="fr")
-        LangBtn(id="it")
-        LangBtn(id="la")
-        lang_choose_zone.pack()
-        lang_choose_zone.adapt()
-
         # PARAMETERS
         def close_paramsail():
             if not self.paramsail_animator.is_running:
@@ -571,7 +608,8 @@ class Game(bp.Scene):
                 if not self.paramsail_animator.is_running:
                     self.paramsail_animator.start()
         self.paramsail = bp.Circle(self, (0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
-        param_zone = BackgroundedZone(self, visible=False, layer_level=2, padding=(90, 60), spacing=30, sticky="center")
+        param_zone = BackgroundedZone(self, visible=False, padding=(90, 60), spacing=20, sticky="center",
+                                      layer=self.extra_layer)
         param_zone.signal.HIDE.connect(close_paramsail, owner=self.paramsail)
         PE_Button(parent=param_zone, text_id=1, command=param_zone.hide)
         def newgame():
@@ -580,12 +618,35 @@ class Game(bp.Scene):
             self.newgame_btn.disable()
         self.newgame_btn = PE_Button(parent=param_zone, text_id=2, command=newgame)
         self.newgame_btn.disable()
-        self.tuto_btn = PE_Button(parent=param_zone, text="Tuto : OFF", command=switch_tuto)
-        lang_choose_zone.move_in_front_of(param_zone)
+        self.tuto_btn = PE_Button(parent=param_zone, text_id=7, command=switch_tuto)
+        connection_zone = bp.Zone(param_zone)
+        self.connection_title = TranslatableText(connection_zone, text_id=9, sticky="midtop", align_mode="center")
+        def toggle_connection():
+            with bp.paint_lock:
+                if self.connected_to_network:
+                    self.connected_to_network = False
+                    self.connection_btn.text_widget.set_ref_text(11)
+                    # if lang_manager.language == "fr":
+                    #     self.connection_btn.text_widget.set_text("Reconnecter")
+                else:
+                    try:
+                        googletrans.Translator.translate(translator, "Bonjour", "fr", "en")
+                    except Exception:
+                        return
+                    self._connected_to_network = True
+                    # self.connection_title.set_ref_text("État du réseau :\nConnecté")
+                    # if lang_manager.language == "fr":
+                    #     self.connection_title.set_text("État du réseau :\nConnecté")
+                    #     self.connection_btn.text_widget.set_text("Déconnecter")
+                    lang_manager.update_language()
+                    self.connection_btn.text_widget.set_ref_text(10)
+        self.connection_btn = PE_Button(parent=connection_zone, text_id=10, command=toggle_connection,
+                                        pos=(0, self.connection_title.rect.bottom + 3))
+        connection_zone.adapt()
         lang_zone = bp.Zone(param_zone)
-        lang_title = TranslatableText(lang_zone, "Langue :", sticky="midtop")
+        lang_title = TranslatableText(lang_zone, text_id=12, sticky="midtop")
         self.lang_btn = PE_Button(parent=lang_zone, text="Français", pos=(0, lang_title.rect.bottom + 3),
-                                  command=lang_choose_zone.show, translated=False)
+                                  translated=False)
         lang_zone.adapt()
         PE_Button(parent=param_zone, text_id=0, command=app.exit)
         param_zone.default_layer.pack()
@@ -601,21 +662,74 @@ class Game(bp.Scene):
                     self.paramsail_animator.cancel()
                     self.paramsail.hide()
         self.paramsail_animator = bp.RepeatingTimer(.03, paramsail_animate)
-        self.settings_btn = PE_Button(self, text="Paramètres", command=toggle_param)
+        self.settings_btn = PE_Button(self, text_id=13, command=toggle_param, layer=self.extra_layer)
+
+        # LANGUAGE
+        translator.game = self
+        lang_choose_zone = BackgroundedZone(self, visible=False, padding=(90, 60), spacing=20, sticky="center",
+                                            layer=self.extra_layer)
+        self.lang_btn.command = lang_choose_zone.show
+        class LangBtn(PE_Button):
+            def __init__(btn, id):
+                text = googletrans.LANGUAGES[id]
+                if id not in dicts:
+                    dicts[id] = Dictionnary(id)
+                result = translator.translate(text, src="en", dest=id)
+                PE_Button.__init__(btn, parent=lang_choose_zone, text=result.capitalize(), translated=False)
+                btn.id = id
+            def handle_validate(btn):
+                lang_manager.set_language(btn.id)
+                if not self.connected_to_network:
+                    Game.TmpMessage(self, text_id=34, explain_id=37)
+                self.lang_btn.text_widget.set_text(btn.text)
+                lang_choose_zone.hide()
+        PE_Button(lang_choose_zone, text_id=14, command=lang_choose_zone.hide)
+        LangBtn(id="es")
+        LangBtn(id="en")
+        LangBtn(id="fr")
+        LangBtn(id="it")
+        LangBtn(id="la")
+        lang_choose_zone.pack()
+        lang_choose_zone.adapt()
 
         # TODO : fullscreen button
         # TODO : language right info & tuto
-        # TODO : catch errors from no internet connection when translating
+        # TODO : solve : un text ne doit etre traduit que depuis le français, dans un souci de consistence
+
+        # MAP
+        map = self.map = Map(self)
+        self.map_sail = map.sail
+        def mapsail_open_animate():
+            self.map_sail.set_radius(self.map_sail.radius + 60)
+            if self.map_sail.radius >= 250:
+                self.mapsail_open_animator.cancel()
+        self.mapsail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
+        def mapsail_close_animate():
+            self.map_sail.set_radius(self.map_sail.radius - 60)
+            if self.map_sail.radius <= 0:
+                self.mapsail_close_animator.cancel()
+                self.map_sail.hide()
+        self.mapsail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
+
+        # NEXT_TODO ANIMATION
+        self.next_sail = bp.Zone(map, pos=(-map.rect.h, 0), size=(map.rect.h, "100%"), layer_level=2)
+        def nextsail_animate():
+            self.next_sail.move(dx=max(abs(self.next_sail.rect.centerx - map.auto_rect.centerx) / 5, 20))
+            if self.next_sail.rect.left >= self.map.rect.width:
+                self.nextsail_animator.cancel()
+        self.nextsail_animator = bp.RepeatingTimer(.04, nextsail_animate)
+        bp.Circle(self.next_sail, (0, 0, 0, 63), radius=map.auto_rect.centery, center=("50%", "50%"))
+        nextsail_text = bp.Text(self.next_sail, "HELLO !!", font_height=50, font_color="orange", font_bold=True,
+                                sticky="center", ref=map)
 
         # INFORMATION ON TOP & RIGHT
-        self.info_right_zone = bp.Zone(self, sticky="midright", size=("10%", 0), spacing=-3)
-        self.info_right_zone.move_behind(self.tuto_zone)
-        self.info_top_zone = bp.Zone(self, sticky="midtop", size=("80%", "5%"), visible=False)
+        self.info_right_zone = bp.Zone(self, sticky="midright", size=("10%", 0), spacing=-3, layer=self.gameinfo_layer)
+        self.info_top_zone = bp.Zone(self, sticky="midtop", size=("80%", "5%"), visible=False, layer=self.gameinfo_layer)
         self.au_tour_de = PartiallyTranslatableText(self.info_top_zone, sticky="center", text_id=5,
-                                                  get_args=(lambda : self.current_player.translated_name,))
+                                                  get_args=(lambda : self.current_player.translated_name_id,))
 
         # INFORMATION AT LEFT
-        self.info_left_zone = bp.Zone(self, sticky="midleft", size=("10%", "60%"), visible=False)
+        self.info_left_zone = bp.Zone(self, sticky="midleft", size=("10%", "60%"), visible=False, layer=self.gameinfo_layer)
         def next_todo_command():
             if self.todo.id == 22:
                 self.next_player()
@@ -641,21 +755,21 @@ class Game(bp.Scene):
         bp.DynamicText(timer_zone, lambda: bp.format_time(self.time_left.get_time_left(), formatter="%M:%S"),
                             sticky="center", align_mode="center", font_color="white")
         z1 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        construction_text = TranslatableText(z1, "CONSTRUCTION", sticky="center", align_mode="center")
+        construction_text = TranslatableText(z1, text_id=16, sticky="center", align_mode="center")
         z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        attack_text = TranslatableText(z2, "ATTAQUE", sticky="center", align_mode="center")
+        attack_text = TranslatableText(z2, text_id=17, sticky="center", align_mode="center")
         z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        reorganize_text = TranslatableText(z3, "REORGANISATION", sticky="center", align_mode="center")
+        reorganize_text = TranslatableText(z3, text_id=18, sticky="center", align_mode="center")
         order_zone.pack()
 
         # INFO COUNTRY
         self.info_country_on_hover = False
-        self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False)
+        self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False, layer=self.game_layer)
         r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 40),
                           color=(0, 0, 0, 0), border_width=2, border_color="black")
         self.invade_btn = RegionInfoButton(self, text_id=4)
-        self.back_btn = RegionInfoButton(self, text="Rapatrier")
-        self.import_btn = RegionInfoButton(self, text="Déplacer")
+        self.back_btn = RegionInfoButton(self, text_id=19)
+        self.import_btn = RegionInfoButton(self, text_id=20)
         info_country_title = bp.Text(self.region_info_zone, "", align_mode="center", sticky="center", ref=r2,
                                      max_width=self.region_info_zone.rect.w - 10)
         self.info_csa = bp.Text(self.region_info_zone, "", pos=(5, r2.rect.bottom + 5))
@@ -729,19 +843,19 @@ class Game(bp.Scene):
         # self.rc_no = PE_Button(self, size=("17%", "10%"), pos=(30, "65%"), background_color="red4",
         #                         text="J'attends une autre région.", command=rc_next, visible=False)
 
-        self.rc_yes = RegionInfoButton(self, text="Sélectionner")
-        self.rc_no = RegionInfoButton(self, text="Passer")
+        self.rc_yes = RegionInfoButton(self, text_id=21)
+        self.rc_no = RegionInfoButton(self, text_id=22)
         self.rc_yes.set_pos(midbottom=(75, 103))
         self.rc_yes.command = yes
         self.rc_no.command = rc_next
 
         # WINNER INFO
         self.info_winner_zone = bp.Zone(self, size=map.rect.size, background_color=(0, 0, 0, 63), sticky="center",
-                                        visible=False)
+                                        visible=False, layer=self.gameinfo_layer)
         self.info_winner_panel = rw1 = bp.Rectangle(self.info_winner_zone, size=("40%", "40%"), sticky="center",
                                                     border_width=2, border_color="black")
         self.info_winner_title = PartiallyTranslatableText(self.info_winner_zone,
-                            text="{} a gagné !", get_args=(lambda : self.current_player.translated_name,),
+                            text_id=23, get_args=(lambda : self.current_player.translated_name_id,),
                             font_height=self.info_winner_zone.get_style_for(bp.Text)["font_height"] + 15,
                             max_width=rw1.rect.w - 10, align_mode="center", pos=(rw1.rect.left + 5, rw1.rect.top + 5))
         rw2 = bp.Rectangle(self.info_winner_zone, size=(rw1.rect.w, self.info_winner_title.rect.h + 10),
@@ -754,11 +868,12 @@ class Game(bp.Scene):
 
         # NB PLAYERS CHOOSE
         self.nb_players = None
-        self.choose_nb_players_zone = BackgroundedZone(self, size=(992, 400), sticky="center", visible=False)
+        self.choose_nb_players_zone = BackgroundedZone(self, size=(992, 400), sticky="center", visible=False,
+                                                       layer=self.gameinfo_layer)
         r2 = bp.Rectangle(self.choose_nb_players_zone, size=("100%", 50), color="black")
         centerx = int(self.choose_nb_players_zone.rect.w / 2)
         centery = int((self.choose_nb_players_zone.rect.h + r2.rect.h + 3) / 2)
-        TranslatableText(self.choose_nb_players_zone, "Nombre de joueurs", center=r2.rect.center, font_height=30,
+        TranslatableText(self.choose_nb_players_zone, text_id=25, center=r2.rect.center, font_height=30,
                 font_color=self.theme.colors.font_opposite)
         btn_w = 36*3
         btn_marg = 20
@@ -789,7 +904,7 @@ class Game(bp.Scene):
             b1 = ClickableNb(1, pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
             b1.set_background_color((0, 0, 0, 0))
             b1.disable()
-            TranslatableText(b1, "Un jour\npeut-être ?", sticky="midbottom", pos=(0, -5), align_mode="center")
+            TranslatableText(b1, text_id=36, sticky="midbottom", pos=(0, -5), align_mode="center")
             ClickableNb(2, pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
             ClickableNb(3, pos=(centerx - btn_mid, centery))
             ClickableNb(4, pos=(centerx + btn_mid, centery))
@@ -797,11 +912,12 @@ class Game(bp.Scene):
             ClickableNb(6, pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
 
         # FLAG CHOOSE
-        self.choose_color_zone = BackgroundedZone(self, size=(992, 400), sticky="center", visible=False)
+        self.choose_color_zone = BackgroundedZone(self, size=(992, 400), sticky="center", visible=False,
+                                                  layer=self.gameinfo_layer)
         r2 = bp.Rectangle(self.choose_color_zone, size=("100%", 50), color="black")
         centerx = int(self.choose_color_zone.rect.w / 2)
         centery = int((self.choose_color_zone.rect.h + r2.rect.h + 3) / 2)
-        TranslatableText(self.choose_color_zone, "Choisis ton drapeau", center=r2.rect.center, font_height=30,
+        TranslatableText(self.choose_color_zone, text_id=26, center=r2.rect.center, font_height=30,
                 font_color=self.theme.colors.font_opposite)
         class ClickableFlag(bp.Button):
             STYLE = bp.Button.STYLE.substyle()
@@ -848,7 +964,7 @@ class Game(bp.Scene):
             ClickableFlag("oceania", pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
 
         # CLICK TO START
-        play_zone = bp.Zone(self, size=(logo.get_width(), logo.get_height()), sticky="center")
+        play_zone = bp.Zone(self, size=(logo.get_width(), logo.get_height()), sticky="center", layer=self.game_layer)
         logo_play_zone = pygame.Surface(logo.get_size())
         logo_play_zone.fill((255, 255, 255))
         logo_play_zone.blit(logo, (0, 0))
@@ -875,7 +991,7 @@ class Game(bp.Scene):
             play_btn_animator.start()
 
         # CONFIRMATION
-        self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4)
+        self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
         bp.Button(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
                   background_image=Region.BUILDS.subsurface(0, 60, 30, 30),
                   command=bp.PackedFunctions(lambda: self.todo.confirm(), self.map.region_unselect))
@@ -884,7 +1000,7 @@ class Game(bp.Scene):
         self.confirm_zone.pack(adapt=True)
 
         # CHOOSE BUILD
-        self.choose_build_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4)
+        self.choose_build_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
 
         def build(build_name):
             self.last_selected_region.start_construction(build_name)
@@ -901,7 +1017,7 @@ class Game(bp.Scene):
         # SOLDIERS TRANSFERT
         self.transfert_from = None
         self.transfert_zone = BackgroundedZone(self, size=(35, 24), visible=False,
-                                               padding=4, spacing=4)
+                                               padding=4, spacing=4, layer=self.game_layer)
         self.transfert_amount = 0
         self.transfert_title = bp.Text(self.transfert_zone, "")
         self.transfert_icon = bp.Image(self.transfert_zone, Player.SOLDIERS["asia"])
@@ -945,28 +1061,28 @@ class Game(bp.Scene):
 
         self.todo_from_id = {}
         self.todo_from_text = {}
-        Todo(0, "owl presentation", f_start=(bp.PrefilledFunction(bulle_text.set_text,
-             "Salut !\nMoi c'est Pony la chouette !\nOn me paie pour que je te fasse le tuto !"),
-                                    open_play_zone), f_end=(play_zone.hide, play_btn_animator.cancel))
-        Todo(1, "choose nb players", f_start=(self.choose_nb_players_zone.show, self.newgame_setup,
-             bp.PrefilledFunction(bulle_text.set_text, "Combien de joueurs participeront à cette partie ?"),
-             self.info_top_zone.hide, self.info_right_zone.hide),
+        def start_presentation():
+            bulle_text.set_ref_text(text_id=38)
+            open_play_zone()
+        Todo(0, "owl presentation", f_start=(start_presentation,), f_end=(play_zone.hide, play_btn_animator.cancel))
+        def start_choosenbplayer():
+            self.choose_nb_players_zone.show()
+            self.newgame_setup()
+            bulle_text.set_ref_text(text_id=27)
+            self.info_top_zone.hide()
+            self.info_right_zone.hide()
+        Todo(1, "choose nb players", f_start=(start_choosenbplayer,),
              f_end=(self.choose_nb_players_zone.hide,))
         Todo(10, "choose color",
-             f_start=(self.choose_color_zone.show, bp.PrefilledFunction(bulle_text.set_text,
-             "Choisis un peuple, cette étape est facile !")),
+             f_start=(self.choose_color_zone.show, bp.PrefilledFunction(bulle_text.set_ref_text, 28)),
              f_end=(self.choose_color_zone.hide, self.info_top_zone.show, self.info_right_zone.show))
-        Todo(11, "choose region", f_start=(bp.PrefilledFunction(bulle_text.set_text,
-             "Choisis cette région ou passe ton tour !\nTu as droit à 3 tirages."), self.pick_region))
-        Todo(17, "place flag", confirm=Todo.confirm_place_flag, f_start=(bp.PrefilledFunction(bulle_text.set_text,
-             "Clique sur un pays pour y planter ton drapeau !\n"
-             "Pendant la partie, tu devras le protéger à tous prix !"),))
+        Todo(11, "choose region", f_start=(bp.PrefilledFunction(bulle_text.set_ref_text, 29), self.pick_region))
+        Todo(17, "place flag", confirm=Todo.confirm_place_flag,
+             f_start=(bp.PrefilledFunction(bulle_text.set_text, 30),))
         def start_build():
             self.next_todo.show()
             self.info_left_zone.show()
-            bulle_text.set_text("Construis des bâtiments !"
-                                "\nIls coûtent 3 lingots chacun."
-                                "\nLes mines rapportent 4 lingots par tour, et les camps, 3 soldats par tour !")
+            bulle_text.set_ref_text(31)
             z1.set_background_color("orange")
             nextsail_text.set_text(construction_text.text)
             self.current_player.build_stuff()
@@ -974,16 +1090,14 @@ class Game(bp.Scene):
              f_end=(lambda: tuple(r.build_circle.hide() for r in self.current_player.regions),
              bp.PrefilledFunction(z1.set_background_color, BackgroundedZone.STYLE["background_color"])))
         def start_attack():
-            bulle_text.set_text("C'est le moment d'étendre ton empire !\n"
-                                "Prends des soldats avec le clic droit de ta souris, puis envahis tes voisins !")
+            bulle_text.set_ref_text(32)
             z2.set_background_color("orange")
             nextsail_text.set_text(attack_text.text)
             self.current_player.check_attack()
         Todo(21, "attack", f_start=(start_attack,),
              f_end=(bp.PrefilledFunction(z2.set_background_color, BackgroundedZone.STYLE["background_color"]),))
         def start_reorganization():
-            bulle_text.set_text("Avant de finir ton tour, réorganise tes troupes !"
-                                "\nTes adversaires pourraient attaquer ton empire !")
+            bulle_text.set_ref_text(33)
             z3.set_background_color("orange")
             nextsail_text.set_text(reorganize_text.text)
             self.current_player.check_movement()
@@ -997,6 +1111,22 @@ class Game(bp.Scene):
         self.map.signal.REGION_SELECT.connect(self.handle_region_select, owner=self)
         self.map.signal.REGION_UNSELECT.connect(self.handle_region_unselect, owner=self)
 
+    def _set_connected_to_network(self, boolean):
+        if boolean:
+            raise PermissionError("Can only set game.connected_to_network to False")
+        if self._connected_to_network is False:
+            return
+        self._connected_to_network = False
+        # self.connection_title.set_ref_text(text="État du réseau :\nDéconnecté")
+        self.connection_btn.text_widget.set_ref_text(11)
+        # if lang_manager.language == "fr":
+        #     self.connection_title.set_text("État du réseau :\nDéconnecté")
+        self.connection_btn.enable()
+        # tz = BackgroundedZone(self, size=(250, 150), pos=game.settings_btn.rect.bottomleft, layer_level=2)
+        # tz._flip()
+        # bp.Text(tz, "Network is not connected")
+        Game.TmpMessage(self, text_id=34)
+    connected_to_network = property(lambda self: self._connected_to_network, _set_connected_to_network)
     current_player = property(lambda self: self.players[self.current_player_id])
     transferring = property(lambda self: self.transfert_from is not None)
 
@@ -1634,20 +1764,23 @@ if loading_screen:
     set_progression(.4)
 
 
-btn_background = load("Images/btn_back.png")
-btn_window = load("Images/btn_window.png")
+btn_background = load("images/btn_back.png")
+btn_window = load("images/btn_window.png")
 default_btn_color = (68, 76, 70)
 btn_background.fill(default_btn_color, special_flags=pygame.BLEND_RGBA_MIN)
-class PE_Button_Text(bp.Button_Text, TranslatableText):
+class PE_Button_Text(bp.Button_Text, Translatable):
 
     def __init__(self, *args, **kwargs):
         bp.Button_Text.__init__(self, *args, **kwargs)
         if self.parent.translated:
-            text_storage.set_ref_text(self, self.text)
-
-    text_id = property(lambda self: self.parent.text_id)
+            if self.parent.text_id is None:
+                Translatable.__init__(self, text=self.text)
+            else:
+                Translatable.__init__(self, text_id=self.parent.text_id)
 
     def fit(self):
+        if not hasattr(self.parent, "text_widget2"):
+            return  # called from construction
         max_font_height = self.parent.style["text_style"]["font_height"]
         # if self.font.height < max_font_height:
         content_rect = self.parent.content_rect
@@ -1657,9 +1790,12 @@ class PE_Button_Text(bp.Button_Text, TranslatableText):
                 break
                 # raise ValueError(f"This text is too long for the text area : {text} (area={content_rect})")
             self.font.config(height=self.font.height - 1)  # changing the font will automatically update the text
-        assert not self.parent.is_hovered
-        self.parent.original_font_height = self.font.height
-        self.parent.text_widget2.font.config(height=self.font.height)
+        if self.parent.is_hovered:
+            self.parent.original_font_height = self.font.height - 4
+            self.parent.text_widget2.font.config(height=self.font.height - 4)
+        else:
+            self.parent.original_font_height = self.font.height
+            self.parent.text_widget2.font.config(height=self.font.height)
         self.parent.text_widget2.set_text(self.text)
 class PE_Button(bp.Button):
 
@@ -1673,7 +1809,7 @@ class PE_Button(bp.Button):
         def __init__(self, textbutton):
 
             if textbutton.style["background_color"] != default_btn_color:
-                self.surf = load("Images/btn_back.png")
+                self.surf = load("images/btn_back.png")
                 self.surf.fill(textbutton.style["background_color"], special_flags=pygame.BLEND_RGBA_MIN)
                 win = btn_window.copy()
                 win.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
@@ -1720,14 +1856,15 @@ class PE_Button(bp.Button):
     def __init__(self, parent, *args, translated=True, text_id=None, **kwargs):
 
         if text_id is not None:
-            kwargs["text"] = text_storage.get_text_from_id(text_id)
+            kwargs["text"] = lang_manager.get_text_from_id(text_id)
 
         self.text_id = text_id
         self.translated = translated
         bp.Button.__init__(self, parent, *args, **kwargs)
+        self.__delattr__("text_id")
 
         if self.background_color != default_btn_color:
-            self.surf = load("Images/btn_back.png")
+            self.surf = load("images/btn_back.png")
             self.surf.fill(self.background_color, special_flags=pygame.BLEND_RGBA_MIN)
             win = btn_window.copy()
             win.fill((255, 255, 255, 15), special_flags=pygame.BLEND_RGBA_MIN)
@@ -1807,7 +1944,7 @@ if loading_screen:
 
 def set_cursor(cursor_name):
     pygame.mouse.set_cursor((5, 0), mouses[cursor_name])
-mouses_full = bp.image.load("Images/hands.png")
+mouses_full = bp.image.load("images/hands.png")
 mouses = {
     "default": mouses_full.subsurface(0, 0, 32, 32),
     "Jaune": mouses_full.subsurface(0, 32, 32, 32),
@@ -1829,5 +1966,3 @@ if loading_screen:
 
 if __name__ == "__main__":
     app.launch()
-
-# TODO : sur les camps d'entraînement, remplacer l'ancien soldat par le nouveau
