@@ -38,6 +38,10 @@ fr_dict = [
     "Un jour\npeut-être ?",
     "Certaines traductions pourraient ne pas fonctionner",
     "Salut !\nMoi c'est Pony la chouette !\nOn me paie pour que je te fasse le tuto !",
-    "Déconnecté",
-    "Déconnecté",
+    "Jaune",
+    "Bleu",
+    "Vert",
+    "Violet",
+    "Gris",
+    "Rouge",
 ]
