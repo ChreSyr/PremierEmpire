@@ -45,4 +45,6 @@ fr_dict = [
     "Gris",
     "Rouge",
     "La partie est terminée !",
+    "Résolution :",
+    "Plein écran",
 ]

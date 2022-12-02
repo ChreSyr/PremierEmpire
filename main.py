@@ -8,7 +8,8 @@ sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\python\\baopig')
 
 import pygame
 pygame.init()
-fullscreen_size = pygame.display.list_modes()[2]
+screen_sizes = pygame.display.list_modes()
+fullscreen_size = screen_sizes[2]
 
 loading_screen = True
 
@@ -456,7 +457,11 @@ class Game(bp.Scene):
         self.lang_btn = PE_Button(parent=lang_zone, text="Français", pos=(0, lang_title.rect.bottom + 3),
                                   translatable=False)
         lang_zone.adapt()
-        # TODO : fullscreen button
+        resolution_zone = bp.Zone(param_zone)
+        resolution_title = TranslatableText(resolution_zone, text_id=46, sticky="midtop")
+        self.resolution_btn = PE_Button(parent=resolution_zone, text=f"{self.rect.width} × {self.rect.height}",
+                                        pos=(0, resolution_title.rect.bottom + 3), translatable=False)
+        resolution_zone.adapt()
         PE_Button(parent=param_zone, text_id=0, command=app.exit)
         param_zone.default_layer.pack()
         param_zone.adapt(param_zone.default_layer)
@@ -495,7 +500,6 @@ class Game(bp.Scene):
                             Game.TmpMessage(self, text_id=34, explain_id=37)
                         self.lang_btn.text_widget.set_text(btn.text)
                         self.lang_btn.text_widget2.set_text(btn.text)
-                        lang_choose_zone.hide()
                 PE_Button(lang_choose_zone, text_id=14, command=lang_choose_zone.hide)
                 LangBtn(id="es", text="Español")
                 LangBtn(id="en", text="English")
@@ -505,6 +509,36 @@ class Game(bp.Scene):
                 lang_choose_zone.pack()
                 lang_choose_zone.adapt()
         self.lang_btn.command = create_lang_choose_zone
+
+        # RESOLUTION
+        def create_resolution_choose_zone():
+            with bp.paint_lock:
+                resolution_choose_zone = BackgroundedZone(self, padding=(90, 60), spacing=20, sticky="center",
+                                                          layer=self.extra_layer)
+                PE_Button(resolution_choose_zone, text_id=14, command=resolution_choose_zone.hide)
+                class ResolutionBtn(PE_Button):
+                    def __init__(btn, resolution=None):
+                        if resolution is None:
+                            PE_Button.__init__(btn, resolution_choose_zone, text_id=47)
+                        else:
+                            PE_Button.__init__(btn, resolution_choose_zone, text=f"{resolution[0]} × {resolution[1]}",
+                                               translatable=False)
+                        btn.resolution = resolution
+                    def handle_validate(btn):
+                        if btn.resolution is None:
+                            self.application.set_default_size(screen_sizes[0])
+                            pygame.display.set_mode(screen_sizes[0], pygame.FULLSCREEN)
+                            self.resolution_btn.text_widget.set_text(btn.text)
+                            self.resolution_btn.text_widget2.set_text(btn.text)
+                        else:
+                            self.application.set_default_size(btn.resolution)
+                ResolutionBtn()
+                for i in range(min(len(screen_sizes), 8)):
+                    ResolutionBtn(screen_sizes[i])
+                resolution_choose_zone.pack()
+                resolution_choose_zone.adapt()
+            self.resolution_btn.command = resolution_choose_zone.show
+        self.resolution_btn.command = create_resolution_choose_zone
 
         # MAP
         map = self.map = Map(self)
@@ -1099,6 +1133,15 @@ class Game(bp.Scene):
         if self.todo.text == "place flag":
             flag = self.flags[self.current_player_id]
             flag.hide()
+
+    def handle_resize(self):
+
+        super().handle_resize()
+        # if self.resolution_btn.text_widget.has_locked("text"):
+        #     return
+        text = f"{self.rect.width} × {self.rect.height}"
+        self.resolution_btn.text_widget.set_text(text)
+        self.resolution_btn.text_widget2.set_text(text)
 
     def next_player(self):
 
