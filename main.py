@@ -352,7 +352,8 @@ class Game(bp.Scene):
         self.game_layer = bp.Layer(self, level=1, weight=2)
         self.gameinfo_layer = bp.Layer(self, level=1, weight=3)
         self.gametuto_layer = bp.Layer(self, level=1, weight=4)
-        self.extra_layer = bp.Layer(self, level=2)
+        self.extra_layer = bp.Layer(self, level=2, weight=2)
+        self.progress_layer = bp.Layer(self, level=2, weight=3)
 
         # NETWORK
         self._connected_to_network = True
@@ -431,24 +432,19 @@ class Game(bp.Scene):
         connection_zone = bp.Zone(param_zone)
         self.connection_title = TranslatableText(connection_zone, text_id=9, sticky="midtop", align_mode="center")
         def toggle_connection():
-            with bp.paint_lock:
-                if self.connected_to_network:
-                    self.connected_to_network = False
-                    self.connection_btn.text_widget.set_ref_text(11)
-                    # if lang_manager.language == "fr":
-                    #     self.connection_btn.text_widget.set_text("Reconnecter")
-                else:
-                    try:
-                        googletrans.Translator.translate(translator, "Bonjour", "fr", "en")
-                    except Exception:
-                        return
-                    self._connected_to_network = True
-                    # self.connection_title.set_ref_text("État du réseau :\nConnecté")
-                    # if lang_manager.language == "fr":
-                    #     self.connection_title.set_text("État du réseau :\nConnecté")
-                    #     self.connection_btn.text_widget.set_text("Déconnecter")
-                    lang_manager.update_language()
-                    self.connection_btn.text_widget.set_ref_text(10)
+            if self.connected_to_network:
+                self.connected_to_network = False
+                self.connection_btn.text_widget.set_ref_text(11)
+                # if lang_manager.language == "fr":
+                #     self.connection_btn.text_widget.set_text("Reconnecter")
+            else:
+                try:
+                    googletrans.Translator.translate(translator, "Bonjour", "fr", "en")
+                except Exception:
+                    return
+                self._connected_to_network = True
+                lang_manager.update_language(progress_tracker=self.progress_tracker)
+                self.connection_btn.text_widget.set_ref_text(10)
         self.connection_btn = PE_Button(parent=connection_zone, text_id=10, command=toggle_connection,
                                         pos=(0, self.connection_title.rect.bottom + 3))
         connection_zone.adapt()
@@ -495,7 +491,7 @@ class Game(bp.Scene):
                         btn.id = id
                     def handle_validate(btn):
                         load_hardtranslations(btn.id)
-                        lang_manager.set_language(btn.id)
+                        lang_manager.set_language(btn.id, progress_tracker=self.progress_tracker)
                         if not self.connected_to_network:
                             Game.TmpMessage(self, text_id=34, explain_id=37)
                         self.lang_btn.text_widget.set_text(btn.text)
@@ -539,6 +535,10 @@ class Game(bp.Scene):
                 resolution_choose_zone.adapt()
             self.resolution_btn.command = resolution_choose_zone.show
         self.resolution_btn.command = create_resolution_choose_zone
+
+        # PROGRESS TRACKER
+        self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
+        self.progress_tracker.hide()
 
         # MAP
         map = self.map = Map(self)
@@ -1288,9 +1288,28 @@ class Game(bp.Scene):
             self.transfert_zone.pack(axis="horizontal", adapt=True)
             self.transfert_zone.show()
 
+
 if loading_screen:
     set_progression(.3)
 
+
+class ProgressTracker(bp.Zone):
+
+    def __init__(self, scene, **kwargs):
+
+        bp.Zone.__init__(self, parent=scene, size=("100%", "100%"), **kwargs)
+
+        self.logo = bp.Image(self, image=logo, sticky="center")
+        self.progress_rect = bp.Rectangle(self, color="white", ref=self.logo, size=(0, self.logo.rect.height))
+        self.logo.move_in_front_of(self.progress_rect)
+
+        self.progress = 0
+
+    def set_progress(self, progress):
+
+        assert 0 <= progress <= 1
+        self.progress = progress
+        self.progress_rect.resize_width(int(self.logo.rect.width * progress))
 
 class Map(bp.Zone, bp.LinkableByMouse):
 
@@ -1334,7 +1353,6 @@ class Map(bp.Zone, bp.LinkableByMouse):
                neighbors=("territoires_du_nord_ouest", "ontario", "quebec", "islande"))
         Region("western", self, center=(212, 225), flag_midbottom=(178, 237),
                neighbors=("alberta", "ontario", "etats_unis", "mexique"))
-        # TODO : accents (égypte, europe méridionale...)
         Region("etats_unis", self, center=(280, 235), flag_midbottom=(248, 259), build_center=(290, 235),
                neighbors=("western", "ontario", "quebec", "mexique"))
         Region("mexique", self, center=(204, 327), flag_midbottom=(192, 300),

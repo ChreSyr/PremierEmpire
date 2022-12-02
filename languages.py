@@ -1,6 +1,8 @@
 
 import googletrans
 import baopig as bp
+import pygame.time
+
 from ref_texts import fr_dict
 
 
@@ -73,11 +75,11 @@ class LangManager:
     def remove_widget(self, widget):
         self._ref_texts.pop(widget)
         self._textid_by_widget.pop(widget)
-    def set_language(self, lang_id):
+    def set_language(self, lang_id, progress_tracker=None):
         if lang_id == self._language:
             return
         self._language = lang_id
-        self.update_language()
+        self.update_language(progress_tracker=progress_tracker)
     def set_ref_text(self, widget, text=None, text_id=None):
         assert (text is None) != (text_id is None)
         if text_id is None:
@@ -94,9 +96,21 @@ class LangManager:
         widget.text_id = text_id
         widget.set_text(dicts.get(widget.text_id, self._language))
         widget.fit()
-    def update_language(self):
+    def update_language(self, progress_tracker=None):
+
+        progress_tracker.set_progress(0)
+        progress_tracker.show()
+        def increase_progress():
+            progress = min(progress_tracker.progress + .01, 1)
+            progress_tracker.set_progress(progress)
+
+        for i in range(90):
+            increase_progress()
+            progress_tracker.application.painter._can_draw.set()
+            pygame.time.wait(1)
 
         if self.game.connected_to_network is False:
+
             if self._language == self._ref_language:
                 for player in self.game.players.values():
                     player.translated_name = player.name
@@ -109,38 +123,45 @@ class LangManager:
                 for widget in self._ref_texts:
                     widget.set_text(dicts.get(widget.text_id, self._language))
                     widget.fit()
-            return
-
-
-        if self._language != self._ref_language:
-
-            new_dict = dicts[self._language]
-            to_translate = {}
-
-            for ref_text_id, ref_text in dicts[self._ref_language].items():
-                if ref_text_id not in new_dict:
-                    to_translate[ref_text_id] = ref_text
-
-            if to_translate:
-                translations = googletrans.Translator.translate(translator, list(to_translate.values()),
-                                                                 src=self._ref_language, dest=self._language)
-                for text_id, translation in zip(to_translate.keys(), translations):
-                    dicts.add_translation(text_id, lang=self.language, translation=translation)
-
-            for player in self.game.players.values():
-                player.translated_name = dicts.get(player.name_id, self.language)
-            for widget in self._ref_texts:
-                widget.set_text(dicts.get(widget.text_id, self._language))
-                widget.fit()
-
-
 
         else:
-            for player in self.game.players.values():
-                player.translated_name = player.name
-            for widget, text in self._ref_texts.items():
-                widget.set_text(text)
-                widget.fit()
+
+            if self._language != self._ref_language:
+
+                new_dict = dicts[self._language]
+                to_translate = {}
+
+                for ref_text_id, ref_text in dicts[self._ref_language].items():
+                    if ref_text_id not in new_dict:
+                        to_translate[ref_text_id] = ref_text
+
+                if to_translate:
+                    translations = googletrans.Translator.translate(translator, list(to_translate.values()),
+                                                                     src=self._ref_language, dest=self._language)
+
+                    for text_id, translation in zip(to_translate.keys(), translations):
+                        dicts.add_translation(text_id, lang=self.language, translation=translation)
+
+                for player in self.game.players.values():
+                    player.translated_name = dicts.get(player.name_id, self.language)
+
+                for widget in self._ref_texts:
+                    widget.set_text(dicts.get(widget.text_id, self._language))
+                    widget.fit()
+
+            else:
+                for player in self.game.players.values():
+                    player.translated_name = player.name
+                for widget, text in self._ref_texts.items():
+                    widget.set_text(text)
+                    widget.fit()
+
+        for i in range(10):
+            increase_progress()
+            progress_tracker.application.painter._can_draw.set()
+            pygame.time.wait(1)
+
+        progress_tracker.hide()
 
 
 class Translatable:
