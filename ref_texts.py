@@ -44,4 +44,5 @@ fr_dict = [
     "Violet",
     "Gris",
     "Rouge",
+    "La partie est terminée !",
 ]

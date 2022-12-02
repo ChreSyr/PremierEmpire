@@ -55,9 +55,11 @@ load = bp.image.load
 if loading_screen:
     set_progression(.1)
 
-
 from languages import Dictionnary, Translatable, TranslatableText, PartiallyTranslatableText
 from languages import googletrans, load_hardtranslations, dicts, lang_manager, translator
+
+if loading_screen:
+    set_progression(.2)
 
 # NOTE for v.1.5 : jouer en réseau
 # NOTE for v.2 : entrer son nom de joueur
@@ -248,7 +250,8 @@ class Player:
                 self.game.info_winner_panel.set_color(self.color)
                 self.game.info_winner_zone.show()
                 self.game.newgame_btn.enable()
-                self.game.tuto_zone.hide()
+                if self.game.tutoring:
+                    self.game.set_tuto_ref_text_id(45)
 
         elif region.owner is not None:
             region.owner.unconquer(region)
@@ -302,13 +305,6 @@ class Player:
         self.soldiers_title.set_text(str(soldiers_amount))
 
 
-if loading_screen:
-    set_progression(.2)
-
-
-# TODO : load tuto only when clicked on it
-
-
 class Game(bp.Scene):
 
     class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
@@ -356,33 +352,38 @@ class Game(bp.Scene):
 
         # TUTORIAL
         self.tutoring = False
-        # def create_tuto_zone():
-        self.tuto_zone = hibou_zone = bp.Zone(self, size=(305, 500), sticky="bottomright", visible=False,
-                                              layer=self.gametuto_layer)
-        hibou1 = bp.Image(hibou_zone, load("images/hibou1.png"), sticky="bottomright", pos=(-30, 50))
-        hibou2 = bp.Image(hibou_zone, load("images/hibou2.png"), sticky="bottomright", pos=(-30, 50), visible=False)
-        hibou3 = bp.Image(hibou_zone, load("images/hibou3.png"), sticky="bottomright", pos=(-30, 50), visible=False)
-        bulle = bp.Image(hibou_zone, load("images/hibou_bulle.png"), midbottom=hibou1.rect.midtop)
-        bulle_text = TranslatableText(hibou_zone, text_id=38, pos=(bulle.rect.left + 10, bulle.rect.top + 10),
-                                      max_width=bulle.rect.w - 20, align_mode="center")
-        def animate_hibou():
-            if hibou1.is_visible:
-                hibou1.hide()
-                hibou2.show()
-                self.hibou_animator.set_interval(.45)
-                self.hibou_animator.start()
-            elif hibou2.is_visible:
-                hibou2.hide()
-                hibou3.show()
-                self.hibou_animator.start()
-            else:
-                hibou3.hide()
-                hibou1.show()
-                self.hibou_animator.set_interval(3 + random.random() * 3)
-                self.hibou_animator.start()
-        self.hibou_animator = bp.Timer(.45, animate_hibou)
-        self.tuto_zone.signal.HIDE.connect(self.hibou_animator.cancel, owner=None)
-        self.tuto_zone.signal.SHOW.connect(self.hibou_animator.start, owner=None)
+        self.tuto_text = 38
+        def create_tuto_zone():
+            self.tutoring = True
+            self.tuto_btn.command = switch_tuto
+            self.tuto_btn.text_widget.set_ref_text(8)
+            self.tuto_zone = hibou_zone = bp.Zone(self, size=(305, 500), sticky="bottomright",
+                                                  layer=self.gametuto_layer)
+            hibou1 = bp.Image(hibou_zone, load("images/hibou1.png"), sticky="bottomright", pos=(-30, 50))
+            hibou2 = bp.Image(hibou_zone, load("images/hibou2.png"), sticky="bottomright", pos=(-30, 50), visible=False)
+            hibou3 = bp.Image(hibou_zone, load("images/hibou3.png"), sticky="bottomright", pos=(-30, 50), visible=False)
+            bulle = bp.Image(hibou_zone, load("images/hibou_bulle.png"), midbottom=hibou1.rect.midtop)
+            self.tuto_text = TranslatableText(hibou_zone, text_id=self.tuto_text,
+                                              pos=(bulle.rect.left + 10, bulle.rect.top + 10),
+                                              max_width=bulle.rect.w - 20, align_mode="center")
+            def animate_hibou():
+                if hibou1.is_visible:
+                    hibou1.hide()
+                    hibou2.show()
+                    self.hibou_animator.set_interval(.45)
+                    self.hibou_animator.start()
+                elif hibou2.is_visible:
+                    hibou2.hide()
+                    hibou3.show()
+                    self.hibou_animator.start()
+                else:
+                    hibou3.hide()
+                    hibou1.show()
+                    self.hibou_animator.set_interval(3 + random.random() * 3)
+                    self.hibou_animator.start()
+            self.hibou_animator = bp.Timer(.45, animate_hibou)
+            self.tuto_zone.signal.HIDE.connect(self.hibou_animator.cancel, owner=None)
+            self.tuto_zone.signal.SHOW.connect(self.hibou_animator.start, owner=None)
         def switch_tuto():
             if self.tutoring is False:
                 self.tuto_btn.text_widget.set_ref_text(8)
@@ -419,7 +420,7 @@ class Game(bp.Scene):
             self.newgame_btn.disable()
         self.newgame_btn = PE_Button(parent=param_zone, text_id=2, command=newgame)
         self.newgame_btn.disable()
-        self.tuto_btn = PE_Button(parent=param_zone, text_id=7, command=switch_tuto)
+        self.tuto_btn = PE_Button(parent=param_zone, text_id=7, command=create_tuto_zone)
         connection_zone = bp.Zone(param_zone)
         self.connection_title = TranslatableText(connection_zone, text_id=9, sticky="midtop", align_mode="center")
         def toggle_connection():
@@ -641,11 +642,6 @@ class Game(bp.Scene):
             self.current_player.move_flag(self.last_selected_region)
             self.last_selected_region.add_soldiers(3)
             rc_next()
-        # self.rc_yes = PE_Button(self, size=("17%", "10%"), pos=(30, "50%"), background_color="green4",
-        #                         text="Je choisis cette région !", command=yes, visible=False)
-        # self.rc_no = PE_Button(self, size=("17%", "10%"), pos=(30, "65%"), background_color="red4",
-        #                         text="J'attends une autre région.", command=rc_next, visible=False)
-
         self.rc_yes = RegionInfoButton(self, text_id=21)
         self.rc_no = RegionInfoButton(self, text_id=22)
         self.rc_yes.set_pos(midbottom=(75, 103))
@@ -695,24 +691,15 @@ class Game(bp.Scene):
                 self.set_todo("choose color")
                 self.nb_players = int(btn.text)
 
-        if False and 0.2:
-            btn = ClickableNb(1, pos=(centerx - 36*3 - 20, centery - 60*1.5 - 10))
-            btn.disable()
-            ClickableNb(2, pos=(centerx, centery - 60*1.5 - 10))
-            ClickableNb(3, pos=(centerx + 36*3 + 20, centery - 60*1.5 - 10))
-            ClickableNb(4, pos=(centerx - 36*3 - 20, centery + 60*1.5 + 10))
-            ClickableNb(5, pos=(centerx, centery + 60*1.5 + 10))
-            ClickableNb(6, pos=(centerx + 36*3 + 20, centery + 60*1.5 + 10))
-        else:
-            b1 = ClickableNb(1, pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
-            b1.set_background_color((0, 0, 0, 0))
-            b1.disable()
-            TranslatableText(b1, text_id=36, sticky="midbottom", pos=(0, -5), align_mode="center")
-            ClickableNb(2, pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
-            ClickableNb(3, pos=(centerx - btn_mid, centery))
-            ClickableNb(4, pos=(centerx + btn_mid, centery))
-            ClickableNb(5, pos=(centerx + btn_w * 1 + btn_marg * 1 + btn_mid, centery))
-            ClickableNb(6, pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
+        b1 = ClickableNb(1, pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
+        b1.set_background_color((0, 0, 0, 0))
+        b1.disable()
+        TranslatableText(b1, text_id=36, sticky="midbottom", pos=(0, -5), align_mode="center")
+        ClickableNb(2, pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
+        ClickableNb(3, pos=(centerx - btn_mid, centery))
+        ClickableNb(4, pos=(centerx + btn_mid, centery))
+        ClickableNb(5, pos=(centerx + btn_w * 1 + btn_marg * 1 + btn_mid, centery))
+        ClickableNb(6, pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
 
         # FLAG CHOOSE
         self.choose_color_zone = BackgroundedZone(self, size=(992, 400), sticky="center", visible=False,
@@ -751,20 +738,12 @@ class Game(bp.Scene):
                 self.flags.append(self.current_player.flag)
                 self.set_todo("choose region")
                 btn.disable()
-        if False and 0:
-            ClickableFlag("north_america", pos=(centerx - 36*3 - 20, centery - 60*1.5 - 10))
-            ClickableFlag("europa", pos=(centerx, centery - 60*1.5 - 10))
-            ClickableFlag("asia", pos=(centerx + 36*3 + 20, centery - 60*1.5 - 10))
-            ClickableFlag("south_america", pos=(centerx - 36*3 - 20, centery + 60*1.5 + 10))
-            ClickableFlag("africa", pos=(centerx, centery + 60*1.5 + 10))
-            ClickableFlag("oceania", pos=(centerx + 36*3 + 20, centery + 60*1.5 + 10))
-        else:
-            ClickableFlag("north_america", pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
-            ClickableFlag("europa", pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
-            ClickableFlag("asia", pos=(centerx - btn_mid, centery))
-            ClickableFlag("south_america", pos=(centerx + btn_mid, centery))
-            ClickableFlag("africa", pos=(centerx + btn_w * 1 + btn_marg * 1 + btn_mid, centery))
-            ClickableFlag("oceania", pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
+        ClickableFlag("north_america", pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
+        ClickableFlag("europa", pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
+        ClickableFlag("asia", pos=(centerx - btn_mid, centery))
+        ClickableFlag("south_america", pos=(centerx + btn_mid, centery))
+        ClickableFlag("africa", pos=(centerx + btn_w * 1 + btn_marg * 1 + btn_mid, centery))
+        ClickableFlag("oceania", pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
 
         # CLICK TO START
         play_zone = bp.Zone(self, size=(logo.get_width(), logo.get_height()), sticky="center", layer=self.game_layer)
@@ -865,27 +844,27 @@ class Game(bp.Scene):
         self.todo_from_id = {}
         self.todo_from_text = {}
         def start_presentation():
-            bulle_text.set_ref_text(text_id=38)
+            self.set_tuto_ref_text_id(38)
             open_play_zone()
         Todo(0, "owl presentation", f_start=(start_presentation,), f_end=(play_zone.hide, play_btn_animator.cancel))
         def start_choosenbplayer():
             self.choose_nb_players_zone.show()
             self.newgame_setup()
-            bulle_text.set_ref_text(text_id=27)
+            self.set_tuto_ref_text_id(27)
             self.info_top_zone.hide()
             self.info_right_zone.hide()
         Todo(1, "choose nb players", f_start=(start_choosenbplayer,),
              f_end=(self.choose_nb_players_zone.hide,))
         Todo(10, "choose color",
-             f_start=(self.choose_color_zone.show, bp.PrefilledFunction(bulle_text.set_ref_text, 28)),
+             f_start=(self.choose_color_zone.show, bp.PrefilledFunction(self.set_tuto_ref_text_id, 28)),
              f_end=(self.choose_color_zone.hide, self.info_top_zone.show, self.info_right_zone.show))
-        Todo(11, "choose region", f_start=(bp.PrefilledFunction(bulle_text.set_ref_text, 29), self.pick_region))
+        Todo(11, "choose region", f_start=(bp.PrefilledFunction(self.set_tuto_ref_text_id, 29), self.pick_region))
         Todo(17, "place flag", confirm=Todo.confirm_place_flag,
-             f_start=(bp.PrefilledFunction(bulle_text.set_text, 30),))
+             f_start=(bp.PrefilledFunction(self.set_tuto_ref_text_id, 30),))
         def start_build():
             self.next_todo.show()
             self.info_left_zone.show()
-            bulle_text.set_ref_text(31)
+            self.set_tuto_ref_text_id(31)
             z1.set_background_color("orange")
             nextsail_text.set_text(construction_text.text)
             self.current_player.build_stuff()
@@ -893,14 +872,14 @@ class Game(bp.Scene):
              f_end=(lambda: tuple(r.build_circle.hide() for r in self.current_player.regions),
              bp.PrefilledFunction(z1.set_background_color, BackgroundedZone.STYLE["background_color"])))
         def start_attack():
-            bulle_text.set_ref_text(32)
+            self.set_tuto_ref_text_id(32)
             z2.set_background_color("orange")
             nextsail_text.set_text(attack_text.text)
             self.current_player.check_attack()
         Todo(21, "attack", f_start=(start_attack,),
              f_end=(bp.PrefilledFunction(z2.set_background_color, BackgroundedZone.STYLE["background_color"]),))
         def start_reorganization():
-            bulle_text.set_ref_text(33)
+            self.set_tuto_ref_text_id(33)
             z3.set_background_color("orange")
             nextsail_text.set_text(reorganize_text.text)
             self.current_player.check_movement()
@@ -1213,6 +1192,13 @@ class Game(bp.Scene):
             if self.nextsail_animator.is_running:
                 self.nextsail_animator.cancel()
             self.nextsail_animator.start()
+
+    def set_tuto_ref_text_id(self, text_id):
+        self.tuto_ref_text_id = text_id
+        if isinstance(self.tuto_text, TranslatableText):
+            self.tuto_text.set_ref_text(text_id)
+        else:
+            self.tuto_text = text_id
 
     def transfert(self, region):
 
