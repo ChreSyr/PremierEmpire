@@ -614,8 +614,15 @@ class Game(bp.Scene):
         self.invade_btn = RegionInfoButton(self, text_id=4)
         self.back_btn = RegionInfoButton(self, text_id=19)
         self.import_btn = RegionInfoButton(self, text_id=20)
-        info_country_title = bp.Text(self.region_info_zone, "", align_mode="center", sticky="center", ref=r2,
-                                     max_width=self.region_info_zone.rect.w - 10)
+        class InfoCountryTitle(TranslatableText):
+            def __init__(txt, *args, **kwargs):
+                TranslatableText.__init__(txt, *args, text_id=0, **kwargs)
+            def set_region(self, region):
+                if region.upper_name == self.text:
+                    return
+                self.set_ref_text(region.upper_name_id)
+        info_country_title = InfoCountryTitle(self.region_info_zone, align_mode="center", sticky="center", ref=r2,
+                                              max_width=self.region_info_zone.rect.w - 10)
         self.info_csa = bp.Text(self.region_info_zone, "", pos=(5, r2.rect.bottom + 5))
         self.info_csi = bp.Image(self.region_info_zone, Player.SOLDIERS["asia"],
                                  ref=self.info_csa, pos=(4, -2), refloc="topright")
@@ -623,7 +630,8 @@ class Game(bp.Scene):
             region = self.map.selected_region if region is None else region
 
             self.region_info_zone.set_pos(midleft=(region.abs_rect.right + 5, region.abs_rect.centery))
-            info_country_title.set_text(region.name.upper().replace("_", " "))
+            # info_country_title.set_text(region.name.upper().replace("_", " "))
+            info_country_title.set_region(region)
             if region.owner is None:
                 self.info_csi.hide()
                 self.info_csa.hide()
@@ -1462,7 +1470,7 @@ class Region(bp.Image):
         self.build_circle = bp.Image(parent, image=Region.DOTTED, visible=False,
                                      center=build_center if build_center is not None else center)
         if flag_midbottom is None:
-            flag_midbottom = self.build_circle.midtop
+            flag_midbottom = self.build_circle.rect.midtop
         self.flag_midbottom = flag_midbottom
         self.build = None
         self.build_state = "empty"
@@ -1470,6 +1478,8 @@ class Region(bp.Image):
         self.neighbors = neighbors
         self.all_allied_neighbors = []
         self.flag = None
+        self.upper_name = self.name.upper().replace("_", " ")
+        self.upper_name_id = dicts.get_id(self.upper_name)
 
         parent.parent.regions[self.name] = self
 
