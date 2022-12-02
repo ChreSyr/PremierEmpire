@@ -166,8 +166,8 @@ class Player:
         z = BackgroundedZone(game.info_right_zone, size=("100%", 104), pos=(0, 1000))
         colored_rect = bp.Rectangle(z, size=(z.rect.w, 42), color=self.color, border_width=2, border_color="black")
         TranslatableText(z, text_id=self.name_id, ref=colored_rect, sticky="center")
-        g = bp.DynamicText(z, lambda: str(self.gold), pos=(10, 50))  # TODO : not dynamic ? player.set_gold() ?
-        bp.Image(z, Region.MINE, ref=g, pos=(-4, -8), refloc="topright")
+        self.gold_tracker = bp.Text(z, str(self.gold), pos=(10, 50))
+        bp.Image(z, Region.MINE, ref=self.gold_tracker, pos=(-4, -8), refloc="topright")
         self.soldiers_title = bp.Text(z, "0", pos=(10, 75))
         bp.Image(z, self.soldier_icon, ref=self.soldiers_title, pos=(4, -4), refloc="topright",
                  name="soldier")
@@ -193,6 +193,12 @@ class Player:
             region.produce()
 
         self.check_build()
+
+    def change_gold(self, delta):
+
+        self.gold += delta
+        assert self.gold >= 0
+        self.gold_tracker.set_text(str(self.gold))
 
     def check_attack(self):
 
@@ -786,7 +792,7 @@ class Game(bp.Scene):
 
         def build(build_name):
             self.last_selected_region.start_construction(build_name)
-            self.current_player.gold -= 3
+            self.current_player.change_gold(-3)
             self.current_player.check_build()
             self.map.region_unselect()
 
@@ -1534,7 +1540,7 @@ class Region(bp.Image):
         if self.build_state != "producing":
             return
         if self.build.name == "mine":
-            self.owner.gold += 4
+            self.owner.change_gold(+4)
         elif self.build.name == "camp":
             self.add_soldiers(3)
 
