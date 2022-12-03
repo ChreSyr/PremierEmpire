@@ -839,7 +839,7 @@ class Game(bp.Scene):
         logo_play_zone.blit(logo, (0, 0))
         bp.Image(play_zone, image=logo_play_zone)
         play_box = PE_Button(play_zone, text_id=3,
-                            center=(0, -37), refloc="midbottom", command=bp.PrefilledFunction(self.set_todo, 1))
+                             center=(0, -37), refloc="midbottom", command=bp.PrefilledFunction(self.set_todo, 1))
         play_box_originalsize = play_box.rect.size
         play_box.growing = True
         def anim_play_zone():
@@ -1671,6 +1671,7 @@ if loading_screen:
 
 btn_background = load("images/btn_back.png")
 btn_window = load("images/btn_window.png")
+btn_window_topleft = (int((btn_background.get_width() - btn_window.get_width()) / 2),) * 2
 default_btn_color = (68, 76, 70)
 btn_background.fill(default_btn_color, special_flags=pygame.BLEND_RGBA_MIN)
 class PE_Button_Text(bp.Button_Text, Translatable):
@@ -1702,8 +1703,6 @@ class PE_Button_Text(bp.Button_Text, Translatable):
             self.font.config(height=self.font.height + 4)
         self.parent.text_widget2.set_text(self.text)
         self.parent.text_widget2.font.config(height=self.font.height)
-        if self.text == "Tuto : ON":
-            print(3)
 class PE_Button(bp.Button):
 
     class Button_HoverImage(bp.Image):
@@ -1711,7 +1710,7 @@ class PE_Button(bp.Button):
         surf = btn_background.copy()
         win = btn_window.copy()
         win.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
-        surf.blit(win, (6, 5))
+        surf.blit(win, btn_window_topleft)
 
         def __init__(self, textbutton):
 
@@ -1720,11 +1719,11 @@ class PE_Button(bp.Button):
                 self.surf.fill(textbutton.style["background_color"], special_flags=pygame.BLEND_RGBA_MIN)
                 win = btn_window.copy()
                 win.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
-                self.surf.blit(win, (6, 5))
+                self.surf.blit(win, btn_window_topleft)
 
             surf = self.surf
             if surf.get_size() != textbutton.rect.size:
-                surf = pygame.transform.scale(self.surf, textbutton.rect.size)
+                surf = pygame.transform.smoothscale(self.surf, textbutton.rect.size)
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.behind_content)
 
     class Button_LinkImage(bp.Image):
@@ -1736,14 +1735,14 @@ class PE_Button(bp.Button):
 
             surf = self.surf
             if surf.get_size() != textbutton.rect.size:
-                surf = pygame.transform.scale(self.surf, textbutton.rect.size)
+                surf = pygame.transform.smoothscale(self.surf, textbutton.rect.size)
 
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.above_content)
 
     surf = btn_background.copy()
     win = btn_window.copy()
     win.fill((255, 255, 255, 15), special_flags=pygame.BLEND_RGBA_MIN)
-    surf.blit(win, (6, 5))
+    surf.blit(win, btn_window_topleft)
 
     STYLE = bp.Button.STYLE.substyle()
     STYLE.modify(
@@ -1775,16 +1774,16 @@ class PE_Button(bp.Button):
             self.surf.fill(self.background_color, special_flags=pygame.BLEND_RGBA_MIN)
             win = btn_window.copy()
             win.fill((255, 255, 255, 15), special_flags=pygame.BLEND_RGBA_MIN)
-            self.surf.blit(win, (6, 5))
+            self.surf.blit(win, btn_window_topleft)
             if self.surf.get_size() != self.rect.size:
-                self.surf = pygame.transform.scale(self.surf, self.rect.size)
+                self.surf = pygame.transform.smoothscale(self.surf, self.rect.size)
         self.set_background_image(self.surf)
         self.set_background_color((0, 0, 0, 0))
 
         disable_surf = btn_background.copy()
         disable_surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
         if disable_surf.get_size() != self.rect.size:
-            disable_surf = pygame.transform.scale(disable_surf, self.rect.size)
+            disable_surf = pygame.transform.smoothscale(disable_surf, self.rect.size)
         self.disable_sail.kill()
         self._disable_sail_ref =bp.Image(self, disable_surf, visible=False,
                                          layer=self.above_content, name=self.name + ".disable_sail").get_weakref()
