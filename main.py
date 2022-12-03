@@ -502,16 +502,22 @@ class Game(bp.Scene):
         param_zone.adapt(param_zone.default_layer)
         def paramsail_animate():
             if param_zone.is_visible:
-                self.paramsail.set_radius(self.paramsail.radius + 60)
-                if self.paramsail.radius >= 600:
+                if self.paramsail.radius < 480:
+                    self.paramsail.set_radius(self.paramsail.radius + 60)
+                else:
+                    self.paramsail.set_radius(sum(fullscreen_size) / 2)
                     self.paramsail_animator.cancel()
             else:
-                self.paramsail.set_radius(self.paramsail.radius - 60)
+                if self.paramsail.radius > 480:
+                    self.paramsail.set_radius(480)
+                else:
+                    self.paramsail.set_radius(self.paramsail.radius - 60)
                 if self.paramsail.radius <= 0:
                     self.paramsail_animator.cancel()
                     self.paramsail.hide()
         self.paramsail_animator = bp.RepeatingTimer(.03, paramsail_animate)
         self.settings_btn = PE_Button(self, text_id=13, command=toggle_param, layer=self.extra_layer)
+        self.settings_btn.move_behind(self.paramsail)
 
         # LANGUAGE
         def create_lang_choose_zone():
