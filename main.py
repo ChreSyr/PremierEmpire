@@ -457,9 +457,11 @@ class Game(bp.Scene):
                 if not self.paramsail_animator.is_running:
                     self.paramsail_animator.start()
         self.paramsail = bp.Circle(self, (0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
-        param_zone = BackgroundedZone(self, visible=False, padding=(90, 60), spacing=20, sticky="center",
+        param_zone = BackgroundedZone(self, visible=False, padding=(90, 60, 90, 60), spacing=20, sticky="center",
                                       layer=self.extra_layer)
         param_zone.signal.HIDE.connect(close_paramsail, owner=self.paramsail)
+        PE_Button(param_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False,
+                  command=param_zone.hide, size=(40, 40), background_color=(150, 20, 20))
         PE_Button(parent=param_zone, text_id=1, command=param_zone.hide)
         def newgame():
             param_zone.hide()
@@ -525,6 +527,11 @@ class Game(bp.Scene):
                 translator.game = self
                 lang_choose_zone = BackgroundedZone(self, padding=(90, 60), spacing=20, sticky="center",
                                                     layer=self.extra_layer)
+                PE_Button(lang_choose_zone, text="<", pos=(10, 10), layer_level=2, translatable=False, size=(40, 40),
+                          command=lang_choose_zone.hide)
+                PE_Button(lang_choose_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2,
+                          translatable=False, size=(40, 40), background_color=(150, 20, 20),
+                          command=bp.PackedFunctions(lang_choose_zone.hide, param_zone.hide))
                 self.lang_btn.command = lang_choose_zone.show
                 class LangBtn(PE_Button):
                     def __init__(btn, id, text=None):
@@ -541,14 +548,16 @@ class Game(bp.Scene):
                             Game.TmpMessage(self, text_id=34, explain_id=37)
                         self.lang_btn.text_widget.set_text(btn.text)
                         self.lang_btn.text_widget2.set_text(btn.text)
-                PE_Button(lang_choose_zone, text_id=14, command=lang_choose_zone.hide)
+                # PE_Button(lang_choose_zone, text_id=14, command=lang_choose_zone.hide)
                 LangBtn(id="es", text="Español")
                 LangBtn(id="en", text="English")
-                LangBtn(id="fr", text="Français")
+                fr = LangBtn(id="fr", text="Français")
                 LangBtn(id="it", text="Italiano")
                 LangBtn(id="la", text="Latinus")
-                lang_choose_zone.pack()
+                fr.layer.pack()
                 lang_choose_zone.adapt()
+                lang_choose_zone.resize(width=max(lang_choose_zone.rect.width, param_zone.rect.width),
+                                        height=max(lang_choose_zone.rect.height, param_zone.rect.height))
         self.lang_btn.command = create_lang_choose_zone
 
         # RESOLUTION
@@ -556,7 +565,11 @@ class Game(bp.Scene):
             with bp.paint_lock:
                 resolution_choose_zone = BackgroundedZone(self, padding=(90, 60), spacing=20, sticky="center",
                                                           layer=self.extra_layer)
-                PE_Button(resolution_choose_zone, text_id=14, command=resolution_choose_zone.hide)
+                PE_Button(resolution_choose_zone, text="<", pos=(10, 10), layer_level=2, translatable=False,
+                          size=(40, 40), command=resolution_choose_zone.hide)
+                PE_Button(resolution_choose_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2,
+                          translatable=False, size=(40, 40), background_color=(150, 20, 20),
+                          command=bp.PackedFunctions(resolution_choose_zone.hide, param_zone.hide))
                 class ResolutionBtn(PE_Button):
                     def __init__(btn, resolution=None):
                         if resolution is None:
@@ -573,11 +586,13 @@ class Game(bp.Scene):
                             self.resolution_btn.text_widget2.set_text(btn.text)
                         else:
                             self.application.set_default_size(btn.resolution)
-                ResolutionBtn()
-                for i in range(min(len(screen_sizes), 8)):
+                fullscreen_btn = ResolutionBtn()
+                for i in range(min(len(screen_sizes), 7)):
                     ResolutionBtn(screen_sizes[i])
-                resolution_choose_zone.pack()
+                fullscreen_btn.layer.pack()
                 resolution_choose_zone.adapt()
+                resolution_choose_zone.resize(width=max(resolution_choose_zone.rect.width, param_zone.rect.width),
+                                              height=max(resolution_choose_zone.rect.height, param_zone.rect.height))
             self.resolution_btn.command = resolution_choose_zone.show
         self.resolution_btn.command = create_resolution_choose_zone
 
@@ -1680,6 +1695,174 @@ btn_window = load("images/btn_window.png")
 btn_window_topleft = (int((btn_background.get_width() - btn_window.get_width()) / 2),) * 2
 default_btn_color = (68, 76, 70)
 btn_background.fill(default_btn_color, special_flags=pygame.BLEND_RGBA_MIN)
+
+
+class BtnImg:
+
+    def __init__(self):
+
+        # self.window_topleft = (int((btn_background.get_width() - btn_window.get_width()) / 2),) * 2
+        self.window_topleft = (5, 5)
+        self.default_color = (68, 76, 70)
+        self.win_color = (255, 255, 255, 15)
+        self.hover_color = (68, 86, 70)
+
+        self.raw_back = load("images/btn_back.png")
+        self.raw_window = load("images/btn_window.png")
+
+        self.colored_back = self.raw_back.copy()
+        self.colored_win = self.raw_window.copy()
+        self.colored_back.fill(self.default_color, special_flags=pygame.BLEND_RGBA_MIN)  # flag for transparency
+        self.colored_win.fill(self.win_color, special_flags=pygame.BLEND_RGBA_MIN)  # flag for transparency
+
+        w, h = self.raw_back.get_size()
+        self.raw_back_corners = (
+            self.raw_back.subsurface(0, 0, 6, 6),
+            self.raw_back.subsurface(w - 6, 0, 6, 6),
+            self.raw_back.subsurface(w - 6, h - 6, 6, 6),
+            self.raw_back.subsurface(0, h - 6, 6, 6),
+        )
+
+        w, h = self.raw_window.get_size()
+        self.raw_win_corners = (
+            self.raw_window.subsurface(0, 0, 6, 6),
+            self.raw_window.subsurface(w - 6, 0, 6, 6),
+            self.raw_window.subsurface(w - 6, h - 6, 6, 6),
+            self.raw_window.subsurface(0, h - 6, 6, 6),
+        )
+
+        self.default_background = self.colored_back.copy()
+        self.default_background.blit(self.colored_win, btn_window_topleft)
+
+        self.default_link = self.colored_back.copy()
+        self.default_link.fill((0, 0, 0, 63), special_flags=pygame.BLEND_RGBA_MIN)
+
+        self.default_hover = self.raw_back.copy()
+        self.default_hover.fill(self.hover_color, special_flags=pygame.BLEND_RGBA_MIN)
+        self.win_hover = self.raw_window.copy()
+        self.win_hover.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
+        self.default_hover.blit(self.win_hover, self.window_topleft)
+
+    def get_resized_background(self, size, color=None):
+
+        if color is None:
+            color = self.default_color
+        else:
+            color = bp.Color(color)
+
+        surf = pygame.Surface(size, pygame.SRCALPHA)
+
+        w, h = size
+        surf.blit(self.raw_back_corners[0], (0, 0))
+        surf.blit(self.raw_back_corners[1], (w - 6, 0))
+        surf.blit(self.raw_back_corners[2], (w - 6, h - 6))
+        surf.blit(self.raw_back_corners[3], (0, h - 6))
+
+        if w > 12:
+            pygame.draw.rect(surf, color, (6, 0, w - 12, h))
+        if h > 12:
+            pygame.draw.rect(surf, color, (0, 6, w, h - 12))
+
+        surf.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
+
+        win_width = int(w * 13 / 14)
+        if win_width % 2 == 1:
+            win_width -= 1
+        win_height = int(h / 2)
+        win = pygame.Surface((win_width, win_height), pygame.SRCALPHA)
+
+        win.blit(self.raw_win_corners[0], (0, 0))
+        win.blit(self.raw_win_corners[1], (win_width - 6, 0))
+        win.blit(self.raw_win_corners[2], (win_width - 6, win_height - 6))
+        win.blit(self.raw_win_corners[3], (0, win_height - 6))
+
+        win.fill(self.win_color, special_flags=pygame.BLEND_RGBA_MIN)
+
+        if win_width > 12:
+            pygame.draw.rect(win, self.win_color, (6, 0, win_width - 12, win_height))
+        if win_height > 12:
+            pygame.draw.rect(win, self.win_color, (0, 6, win_width, win_height - 12))
+
+        win_topleft = (int((w - win_width) / 2),) * 2
+        surf.blit(win, win_topleft)
+
+        return surf
+
+    def get_resized_hover(self, size, color=None):
+
+        if color is None:
+            color = self.hover_color
+        else:
+            color = bp.Color(color)
+            color.g += 10
+
+        surf = pygame.Surface(size, pygame.SRCALPHA)
+
+        w, h = size
+        surf.blit(self.raw_back_corners[0], (0, 0))
+        surf.blit(self.raw_back_corners[1], (w - 6, 0))
+        surf.blit(self.raw_back_corners[2], (w - 6, h - 6))
+        surf.blit(self.raw_back_corners[3], (0, h - 6))
+
+        if w > 12:
+            pygame.draw.rect(surf, color, (6, 0, w - 12, h))
+        if h > 12:
+            pygame.draw.rect(surf, color, (0, 6, w, h - 12))
+
+        surf.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
+
+        win_width = int(w * 13 / 14)
+        if win_width % 2 == 1:
+            win_width -= 1
+        win_height = int(h / 2)
+        win = pygame.Surface((win_width, win_height), pygame.SRCALPHA)
+
+        win.blit(self.raw_win_corners[0], (0, 0))
+        win.blit(self.raw_win_corners[1], (win_width - 6, 0))
+        win.blit(self.raw_win_corners[2], (win_width - 6, win_height - 6))
+        win.blit(self.raw_win_corners[3], (0, win_height - 6))
+
+        win.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
+
+        if win_width > 12:
+            pygame.draw.rect(win, (255, 255, 255, 50), (6, 0, win_width - 12, win_height))
+        if win_height > 12:
+            pygame.draw.rect(win, (255, 255, 255, 50), (0, 6, win_width, win_height - 12))
+
+        win_topleft = (int((w - win_width) / 2),) * 2
+        surf.blit(win, win_topleft)
+
+        return surf
+
+    def get_resized_window(self, size, color=None):
+
+        if color is None:
+            color = self.win_color
+        else:
+            color = bp.Color(color)
+
+        w, h = size
+        win = pygame.Surface((w, h), pygame.SRCALPHA)
+
+        win.blit(self.raw_win_corners[0], (0, 0))
+        win.blit(self.raw_win_corners[1], (w - 6, 0))
+        win.blit(self.raw_win_corners[2], (w - 6, h - 6))
+        win.blit(self.raw_win_corners[3], (0, h - 6))
+
+        win.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
+
+        if w > 12:
+            pygame.draw.rect(win, color, (6, 0, w - 12, h))
+        if h > 12:
+            pygame.draw.rect(win, color, (0, 6, w, h - 12))
+
+        win.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
+
+        return win
+
+btnimg_manager = BtnImg()
+
+
 class PE_Button_Text(bp.Button_Text, Translatable):
 
     def __init__(self, *args, **kwargs):
@@ -1720,35 +1903,34 @@ class PE_Button(bp.Button):
 
         def __init__(self, textbutton):
 
-            if textbutton.style["background_color"] != default_btn_color:
-                self.surf = load("images/btn_back.png")
+            surf = btnimg_manager.default_hover
+            if surf.get_size() != textbutton.rect.size:
+                surf = btnimg_manager.get_resized_hover(textbutton.rect.size,
+                                                        color=textbutton.style["background_color"])
+
+
+
+            if False and textbutton.style["background_color"] != btnimg_manager.default_color:
+                surf = load("images/btn_back.png")
                 self.surf.fill(textbutton.style["background_color"], special_flags=pygame.BLEND_RGBA_MIN)
                 win = btn_window.copy()
                 win.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
                 self.surf.blit(win, btn_window_topleft)
 
-            surf = self.surf
-            if surf.get_size() != textbutton.rect.size:
-                surf = pygame.transform.smoothscale(self.surf, textbutton.rect.size)
+            # surf = self.surf
+            # if surf.get_size() != textbutton.rect.size:
+            #     surf = pygame.transform.smoothscale(self.surf, textbutton.rect.size)
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.behind_content)
 
     class Button_LinkImage(bp.Image):
 
-        surf = btn_background.copy()
-        surf.fill((0, 0, 0, 63), special_flags=pygame.BLEND_RGBA_MIN)
-
         def __init__(self, textbutton):
 
-            surf = self.surf
+            surf = btnimg_manager.default_link
             if surf.get_size() != textbutton.rect.size:
-                surf = pygame.transform.smoothscale(self.surf, textbutton.rect.size)
+                surf = btnimg_manager.get_resized_window(textbutton.rect.size, color=(0, 0, 0, 63))
 
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.above_content)
-
-    surf = btn_background.copy()
-    win = btn_window.copy()
-    win.fill((255, 255, 255, 15), special_flags=pygame.BLEND_RGBA_MIN)
-    surf.blit(win, btn_window_topleft)
 
     STYLE = bp.Button.STYLE.substyle()
     STYLE.modify(
@@ -1759,8 +1941,8 @@ class PE_Button(bp.Button):
 
         width=140,
         height=40,
-        background_color=default_btn_color,
-        background_image=surf,
+        background_color=btnimg_manager.default_color,
+        background_image=btnimg_manager.default_background,
         padding=(10, 7, 10, 7),
         text_style={"font_height": 25},
     )
@@ -1775,15 +1957,10 @@ class PE_Button(bp.Button):
         bp.Button.__init__(self, parent, *args, **kwargs)
         self.__delattr__("text_id")
 
-        if self.background_color != default_btn_color:
-            self.surf = load("images/btn_back.png")
-            self.surf.fill(self.background_color, special_flags=pygame.BLEND_RGBA_MIN)
-            win = btn_window.copy()
-            win.fill((255, 255, 255, 15), special_flags=pygame.BLEND_RGBA_MIN)
-            self.surf.blit(win, btn_window_topleft)
-            if self.surf.get_size() != self.rect.size:
-                self.surf = pygame.transform.smoothscale(self.surf, self.rect.size)
-        self.set_background_image(self.surf)
+        surf = btnimg_manager.default_background
+        if surf.get_size() != self.rect.size or self.background_color != default_btn_color:
+            surf = btnimg_manager.get_resized_background(self.rect.size, color=self.background_color)
+        self.set_background_image(surf)
         self.set_background_color((0, 0, 0, 0))
 
         disable_surf = btn_background.copy()
