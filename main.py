@@ -1,4 +1,43 @@
 
+
+# PORTABILITÉ :
+# TODO : Update baopig, puis tester sans la ligne :
+#  sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\python\\baopig')
+# TODO : Tester le jeu sur un PC Windows sans pygame
+# TODO : Tester le jeu sur un MAC
+# TODO : Tester le jeu sur un Chromebook (si possible)
+
+# BUGS :
+
+# LANGUES :
+# TODO : ref_texts is a .txt (ou un tableau ?)
+# TODO : Ajouter un équivalent de ref_texts pour l'anglais
+# TODO : Bouton "Autre langue" -> tableau des langues dispo -> ajout d'un nouveau dictionnaire
+# TODO : Remplacer le chargement de la langue avec le logo par la souris qui charge
+# TODO : Traduire Premier Empire ?
+# TODO : Retenir la langue sélectionnée quand on ferme le jeu
+
+# DIVERS :
+# TODO : Mettre "Un jour, peut-être en bp.Indicator
+# TODO : Griser une étape lorsqu'elle est finie
+# TODO : Permettre de cliquer sur une étape pour la commencer
+# TODO : Remplacer "Étape suivante" par "Fin du tour"
+# TODO : Créer la classe GameStep pour remplacer les Todo
+
+# NOUVEAUTÉS :
+# TODO : Permettre d'acheter une carte Région pour 3 or
+# TODO : Permettre de construire un bateau
+# TODO : Ajouter Region.coast -> endroits où on peut mettre les bateaux
+# TODO : Ajouter Region.boats -> tous les bateaux d'une région
+# TODO : Permettre d'attaquer avec un bateau les régions qu'on a en carte
+
+# RÈGLES :
+# TODO : Choisir si on a un nombre maximum de cartes Région
+# TODO : Définir une utilité pour les cartes des régions occupées
+# TODO : Définir une façon de se débarrasser de ses cartes Région iutiles ?
+# TODO : Choisir si une région a un nombre max de bateaux du même peuple
+
+
 import os
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))  # executable from console
