@@ -5,7 +5,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))  # executable from console
 import sys
 sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\python\\baopig')
 
-from lib.loading import set_progression, fullscreen_size
+from library.loading import set_progression, fullscreen_size
 set_progression(.05)
 set_progression(.1)
 set_progression(.15)
@@ -15,8 +15,8 @@ import baopig as bp
 
 set_progression(.3)
 
-from lib.theme import MyTheme
-from lib.game import Game
+from library.theme import MyTheme
+from library.game import Game
 
 set_progression(.7)
 
