@@ -5,7 +5,7 @@ import baopig as bp
 import pygame
 load = bp.image.load
 
-from library.loading import set_progression, fullscreen_size, screen_sizes
+from library.loading import set_progression, screen_sizes
 
 import googletrans
 from language import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
@@ -48,7 +48,7 @@ class Game(bp.Scene):
         self.gameinfo_layer = bp.Layer(self, level=1, weight=3)
         self.gametuto_layer = bp.Layer(self, level=1, weight=4)
         self.extra_layer = bp.Layer(self, level=2, weight=2)
-        self.progress_layer = bp.Layer(self, level=2, weight=3)
+        # self.progress_layer = bp.Layer(self, level=2, weight=3)
 
         # NETWORK
         self._connected_to_network = True
@@ -99,166 +99,18 @@ class Game(bp.Scene):
                 self.tutoring = False
 
         # PARAMETERS
-        def close_paramsail():
-            if not self.paramsail_animator.is_running:
-                self.paramsail_animator.start()
-        def toggle_param():
-            if param_zone.is_visible:
-                param_zone.hide()
-                close_paramsail()
-            else:
-                param_zone.show()
-                self.paramsail.set_radius(120)
-                self.paramsail.show()
-                if not self.paramsail_animator.is_running:
-                    self.paramsail_animator.start()
-        self.paramsail = bp.Circle(self, (0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
-        param_zone = BackgroundedZone(self, visible=False, padding=(90, 60, 90, 60), spacing=20, sticky="center",
-                                      layer=self.extra_layer)
-        param_zone.signal.HIDE.connect(close_paramsail, owner=self.paramsail)
-        PE_Button(param_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False,
-                  command=param_zone.hide, size=(40, 40), background_color=(150, 20, 20))
-        def newgame():
-            param_zone.hide()
-            self.set_todo(1)
-            self.newgame_btn.disable()
-        self.newgame_btn = PE_Button(parent=param_zone, text_id=2, command=newgame)
-        self.newgame_btn.disable()
-        self.tuto_btn = PE_Button(parent=param_zone, text_id=7, command=create_tuto_zone)
-        connection_zone = bp.Zone(param_zone)
-        self.connection_title = TranslatableText(connection_zone, text_id=9, sticky="midtop", align_mode="center")
-        def toggle_connection():
-            if self.connected_to_network:
-                self.connected_to_network = False
-                self.connection_btn.text_widget.set_ref_text(11)
-                # if lang_manager.language == "fr":
-                #     self.connection_btn.text_widget.set_text("Reconnecter")
-            else:
-                try:
-                    googletrans.Translator.translate(translator, "Bonjour", "fr", "en")
-                except Exception:
-                    return
-                self._connected_to_network = True
-                lang_manager.update_language()
-                self.connection_btn.text_widget.set_ref_text(10)
-        self.connection_btn = PE_Button(parent=connection_zone, text_id=10, command=toggle_connection,
-                                        pos=(0, self.connection_title.rect.bottom + 3))
-        connection_zone.adapt()
-        lang_zone = bp.Zone(param_zone)
-        lang_title = TranslatableText(lang_zone, text_id=12, sticky="midtop")
-        self.lang_btn = PE_Button(parent=lang_zone, text=dicts.get(0, lang_manager.language),
-                                  pos=(0, lang_title.rect.bottom + 3), translatable=False)
-        lang_zone.adapt()
-        resolution_zone = bp.Zone(param_zone)
-        resolution_title = TranslatableText(resolution_zone, text_id=46, sticky="midtop")
-        self.resolution_btn = PE_Button(parent=resolution_zone, text=f"{self.rect.width} × {self.rect.height}",
-                                        pos=(0, resolution_title.rect.bottom + 3), translatable=False)
-        resolution_zone.adapt()
-        PE_Button(parent=param_zone, text_id=1, command=app.exit)
-        param_zone.default_layer.pack()
-        param_zone.adapt(param_zone.default_layer)
-        def paramsail_animate():
-            if param_zone.is_visible:
-                if self.paramsail.radius < 480:
-                    self.paramsail.set_radius(self.paramsail.radius + 60)
-                else:
-                    self.paramsail.set_radius(sum(fullscreen_size) / 2)
-                    self.paramsail_animator.cancel()
-            else:
-                if self.paramsail.radius > 480:
-                    self.paramsail.set_radius(480)
-                else:
-                    self.paramsail.set_radius(self.paramsail.radius - 60)
-                if self.paramsail.radius <= 0:
-                    self.paramsail_animator.cancel()
-                    self.paramsail.hide()
-        self.paramsail_animator = bp.RepeatingTimer(.03, paramsail_animate)
-        self.settings_btn = PE_Button(self, text_id=13, command=toggle_param, layer=self.extra_layer)
-        self.settings_btn.move_behind(self.paramsail)
+        from library.zones import SettingsZone, SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone
+        self.settings_zone = SettingsMainZone(self)
+        self.settings_zone.tuto_btn.command = create_tuto_zone
+        self.settings_btn = PE_Button(self, text_id=13, command=self.settings_zone.toggle, layer=self.extra_layer)
+        self.settings_btn.move_behind(self.settings_zone.sail)
 
         # LANGUAGE
         lang_manager.game = self
-        def create_lang_choose_zone():
-            with bp.paint_lock:
-                translator.game = self
-                lang_choose_zone = BackgroundedZone(self, padding=(90, 60), spacing=20, sticky="center",
-                                                    layer=self.extra_layer)
-                PE_Button(lang_choose_zone, text="<", pos=(10, 10), layer_level=2, translatable=False, size=(40, 40),
-                          command=lang_choose_zone.hide)
-                PE_Button(lang_choose_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2,
-                          translatable=False, size=(40, 40), background_color=(150, 20, 20),
-                          command=bp.PackedFunctions(lang_choose_zone.hide, param_zone.hide))
-                self.lang_btn.command = lang_choose_zone.show
-                class LangBtn(PE_Button):
-                    def __init__(btn, id, text=None):
-                        if id not in dicts:
-                            dicts.create(id)
-                        if text is None:
-                            text = translator.translate(googletrans.LANGUAGES[id], src="en", dest=id).capitalize()
-                        PE_Button.__init__(btn, parent=lang_choose_zone, text=text, translatable=False)
-                        btn.id = id
-                    def handle_validate(btn):
-                        lang_manager.set_language(btn.id)
-                        if not self.connected_to_network:
-                            TmpMessage(self, text_id=34, explain_id=37)
-                        self.lang_btn.text_widget.set_text(btn.text)
-                        self.lang_btn.text_widget2.set_text(btn.text)
-
-                        memory_lang_id = btn.id
-                        import importlib
-                        try:
-                            importlib.import_module("language.dict_" + btn.id)
-                        except ModuleNotFoundError:
-                            memory_lang_id = lang_manager.ref_language
-                        self.memory.set_lang(memory_lang_id)
-
-                        lang_choose_zone.hide()
-                LangBtn(id="es", text="Español")
-                LangBtn(id="en", text="English")
-                fr = LangBtn(id="fr", text="Français")
-                LangBtn(id="it", text="Italiano")
-                LangBtn(id="la", text="Latinus")
-                fr.layer.pack()
-                lang_choose_zone.adapt()
-                lang_choose_zone.resize(width=max(lang_choose_zone.rect.width, param_zone.rect.width),
-                                        height=max(lang_choose_zone.rect.height, param_zone.rect.height))
-        self.lang_btn.command = create_lang_choose_zone
+        self.settings_zone.lang_btn.command = bp.PrefilledFunction(SettingsLanguageZone, self)
 
         # RESOLUTION
-        def create_resolution_choose_zone():
-            with bp.paint_lock:
-                resolution_choose_zone = BackgroundedZone(self, padding=(90, 60), spacing=20, sticky="center",
-                                                          layer=self.extra_layer)
-                PE_Button(resolution_choose_zone, text="<", pos=(10, 10), layer_level=2, translatable=False,
-                          size=(40, 40), command=resolution_choose_zone.hide)
-                PE_Button(resolution_choose_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2,
-                          translatable=False, size=(40, 40), background_color=(150, 20, 20),
-                          command=bp.PackedFunctions(resolution_choose_zone.hide, param_zone.hide))
-                class ResolutionBtn(PE_Button):
-                    def __init__(btn, resolution=None):
-                        if resolution is None:
-                            PE_Button.__init__(btn, resolution_choose_zone, text_id=47)
-                        else:
-                            PE_Button.__init__(btn, resolution_choose_zone, text=f"{resolution[0]} × {resolution[1]}",
-                                               translatable=False)
-                        btn.resolution = resolution
-                    def handle_validate(btn):
-                        if btn.resolution is None:
-                            self.application.set_default_size(screen_sizes[0])
-                            pygame.display.set_mode(screen_sizes[0], pygame.FULLSCREEN)
-                            self.resolution_btn.text_widget.set_text(btn.text)
-                            self.resolution_btn.text_widget2.set_text(btn.text)
-                        else:
-                            self.application.set_default_size(btn.resolution)
-                fullscreen_btn = ResolutionBtn()
-                for i in range(min(len(screen_sizes), 7)):
-                    ResolutionBtn(screen_sizes[i])
-                fullscreen_btn.layer.pack()
-                resolution_choose_zone.adapt()
-                resolution_choose_zone.resize(width=max(resolution_choose_zone.rect.width, param_zone.rect.width),
-                                              height=max(resolution_choose_zone.rect.height, param_zone.rect.height))
-            self.resolution_btn.command = resolution_choose_zone.show
-        self.resolution_btn.command = create_resolution_choose_zone
+        self.settings_zone.resolution_btn.command = bp.PrefilledFunction(SettingsResolutionZone, self)
 
         # PROGRESS TRACKER
         # self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
@@ -822,8 +674,8 @@ class Game(bp.Scene):
         # if self.resolution_btn.text_widget.has_locked("text"):
         #     return
         text = f"{self.rect.width} × {self.rect.height}"
-        self.resolution_btn.text_widget.set_text(text)
-        self.resolution_btn.text_widget2.set_text(text)
+        self.settings_zone.resolution_btn.text_widget.set_text(text)
+        self.settings_zone.resolution_btn.text_widget2.set_text(text)
 
     def next_player(self):
 

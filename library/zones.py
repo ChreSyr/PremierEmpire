@@ -1,7 +1,9 @@
 
 import baopig as bp
-from language import TranslatableText, PartiallyTranslatableText
-from library.loading import logo
+import pygame
+import googletrans
+from language import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
+from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button
 
 
@@ -58,6 +60,208 @@ class ProgressTracker(bp.Zone):
         assert 0 <= progress <= 1
         self.progress = progress
         self.progress_rect.resize_width(int(self.logo.rect.width * progress))
+
+
+class SettingsZone(BackgroundedZone):
+
+    def __init__(self, game, behind=None):
+
+        BackgroundedZone.__init__(self, game, padding=(90, 60), spacing=20, sticky="center",
+                                  layer=game.extra_layer)
+
+        self.game = game
+        self.behind = behind
+
+        if behind:
+            PE_Button(self, text="<", pos=(10, 10), layer_level=2, translatable=False, size=(40, 40),
+                      command=self.hide)
+
+        PE_Button(self, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False, size=(40, 40),
+                  background_color=(150, 20, 20), command=self.close_settings)
+
+        self.main_layer = bp.Layer(self)
+
+    def pack_and_adapt(self):
+
+        self.main_layer.pack()
+        self.adapt(self.main_layer)
+        if self.behind is not None:
+            self.resize(width=max(self.rect.width, self.behind.rect.width),
+                        height=max(self.rect.height, self.behind.rect.height))
+
+    def close_settings(self):
+        if self.behind is not None:
+            self.behind.close_settings()
+        self.hide()
+
+
+class SettingsMainZone(SettingsZone):
+
+    def __init__(self, game):
+
+        SettingsZone.__init__(self, game)
+
+        self.sail = bp.Circle(game, (0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
+        self.signal.HIDE.connect(self.close_sail, owner=self.sail)
+
+        def newgame():
+            self.hide()
+            self.game.set_todo(1)
+            self.newgame_btn.disable()
+        self.newgame_btn = PE_Button(parent=self, text_id=2, command=newgame)
+        self.newgame_btn.disable()
+
+        self.tuto_btn = PE_Button(parent=self, text_id=7)
+
+        connection_zone = bp.Zone(self)
+        self.connection_title = TranslatableText(connection_zone, text_id=9, sticky="midtop", align_mode="center")
+        def toggle_connection():
+            if self.connected_to_network:
+                self.connected_to_network = False
+                self.connection_btn.text_widget.set_ref_text(11)
+            else:
+                try:
+                    googletrans.Translator.translate(translator, "Bonjour", "fr", "en")
+                except Exception:
+                    return
+                self._connected_to_network = True
+                lang_manager.update_language()
+                self.connection_btn.text_widget.set_ref_text(10)
+        self.connection_btn = PE_Button(parent=connection_zone, text_id=10, command=toggle_connection,
+                                        pos=(0, self.connection_title.rect.bottom + 3))
+        connection_zone.adapt()
+
+        lang_zone = bp.Zone(self)
+        lang_title = TranslatableText(lang_zone, text_id=12, sticky="midtop")
+        self.lang_btn = PE_Button(parent=lang_zone, text=dicts.get(0, lang_manager.language),
+                                  pos=(0, lang_title.rect.bottom + 3), translatable=False)
+        lang_zone.adapt()
+
+        resolution_zone = bp.Zone(self)
+        resolution_title = TranslatableText(resolution_zone, text_id=46, sticky="midtop")
+        self.resolution_btn = PE_Button(parent=resolution_zone, text=f"{game.rect.width} × {game.rect.height}",
+                                        pos=(0, resolution_title.rect.bottom + 3), translatable=False)
+        resolution_zone.adapt()
+
+        PE_Button(parent=self, text_id=1, command=self.application.exit)
+        self.pack_and_adapt()
+
+        def sail_animate():
+            if self.is_visible:
+                if self.sail.radius < 480:
+                    self.sail.set_radius(self.sail.radius + 60)
+                else:
+                    self.sail.set_radius(sum(fullscreen_size) / 2)
+                    self.sail_animator.cancel()
+            else:
+                if self.sail.radius > 480:
+                    self.sail.set_radius(480)
+                else:
+                    self.sail.set_radius(self.sail.radius - 60)
+                if self.sail.radius <= 0:
+                    self.sail_animator.cancel()
+                    self.sail.hide()
+        self.sail_animator = bp.RepeatingTimer(.03, sail_animate)
+
+        self.hide()
+
+    def close_sail(self):
+        if not self.sail_animator.is_running:
+            self.sail_animator.start()
+
+    def toggle(self):
+
+        if self.is_visible:
+            self.hide()
+            self.close_sail()
+        else:
+            self.show()
+            self.sail.set_radius(120)
+            self.sail.show()
+            if not self.sail_animator.is_running:
+                self.sail_animator.start()
+
+
+class SettingsLanguageZone(SettingsZone):
+
+    def __init__(self, game):
+
+        SettingsZone.__init__(self, game, behind=game.settings_zone)
+
+        class LangBtn(PE_Button):
+
+            def __init__(btn, id, text=None):
+
+                if id not in dicts:
+                    dicts.create(id)
+                if text is None:
+                    text = translator.translate(googletrans.LANGUAGES[id], src="en", dest=id).capitalize()
+                PE_Button.__init__(btn, parent=self, text=text, translatable=False)
+                btn.id = id
+
+            def handle_validate(btn):
+
+                lang_manager.set_language(btn.id)
+                if not game.connected_to_network:
+                    TmpMessage(self, text_id=34, explain_id=37)
+                self.behind.lang_btn.text_widget.set_text(btn.text)
+                self.behind.lang_btn.text_widget2.set_text(btn.text)
+
+                memory_lang_id = btn.id
+                import importlib
+                try:
+                    importlib.import_module("language.dict_" + btn.id)
+                except ModuleNotFoundError:
+                    memory_lang_id = lang_manager.ref_language
+                game.memory.set_lang(memory_lang_id)
+
+                self.hide()
+
+        # LangBtn(id="es", text="Español")
+        LangBtn(id="en", text="English")
+        LangBtn(id="fr", text="Français")
+        # LangBtn(id="it", text="Italiano")
+        # LangBtn(id="la", text="Latinus")
+
+        self.pack_and_adapt()
+
+        self.behind.lang_btn.command = self.show
+
+
+class SettingsResolutionZone(SettingsZone):
+
+    def __init__(self, game):
+
+        SettingsZone.__init__(self, game, behind=game.settings_zone)
+
+        class ResolutionBtn(PE_Button):
+
+            def __init__(btn, resolution=None):
+
+                if resolution is None:
+                    PE_Button.__init__(btn, self, text_id=47)
+                else:
+                    PE_Button.__init__(btn, self, text=f"{resolution[0]} × {resolution[1]}",
+                                       translatable=False)
+                btn.resolution = resolution
+
+            def handle_validate(btn):
+
+                if btn.resolution is None:
+                    self.application.set_default_size(screen_sizes[0])
+                    pygame.display.set_mode(screen_sizes[0], pygame.FULLSCREEN)
+                    self.behind.resolution_btn.text_widget.set_text(btn.text)
+                    self.behind.resolution_btn.text_widget2.set_text(btn.text)
+                else:
+                    self.application.set_default_size(btn.resolution)
+
+        ResolutionBtn()
+        for i in range(min(len(screen_sizes), 7)):
+            ResolutionBtn(screen_sizes[i])
+
+        self.pack_and_adapt()
+
+        self.behind.resolution_btn.command = self.show
 
 
 class TmpMessage(BackgroundedZone, bp.LinkableByMouse):

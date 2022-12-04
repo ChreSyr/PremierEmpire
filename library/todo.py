@@ -17,7 +17,6 @@
 # TODO : Griser une étape lorsqu'elle est finie
 # TODO : Permettre de cliquer sur une étape pour la commencer
 # TODO : Remplacer "Étape suivante" par "Fin du tour"
-# TODO : Créer la classe GameStep pour remplacer les Todo
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables
 
 # NOUVEAUTÉS :
