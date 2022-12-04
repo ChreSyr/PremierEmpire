@@ -75,11 +75,11 @@ class LangManager:
     def remove_widget(self, widget):
         self._ref_texts.pop(widget)
         self._textid_by_widget.pop(widget)
-    def set_language(self, lang_id, progress_tracker=None):
+    def set_language(self, lang_id):
         if lang_id == self._language:
             return
         self._language = lang_id
-        self.update_language(progress_tracker=progress_tracker)
+        self.update_language()
     def set_ref_text(self, widget, text=None, text_id=None):
         assert (text is None) != (text_id is None)
         if text_id is None:
@@ -96,18 +96,10 @@ class LangManager:
         widget.text_id = text_id
         widget.set_text(dicts.get(widget.text_id, self._language))
         widget.fit()
-    def update_language(self, progress_tracker=None):
+    def update_language(self):
 
-        progress_tracker.set_progress(0)
-        progress_tracker.show()
-        def increase_progress():
-            progress = min(progress_tracker.progress + .01, 1)
-            progress_tracker.set_progress(progress)
-
-        for i in range(90):
-            increase_progress()
-            progress_tracker.application.painter._can_draw.set()
-            pygame.time.wait(1)
+        old_cursor = pygame.mouse.get_cursor()
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_WAIT)
 
         if self.game.connected_to_network is False:
 
@@ -156,12 +148,7 @@ class LangManager:
                     widget.set_text(text)
                     widget.fit()
 
-        for i in range(10):
-            increase_progress()
-            progress_tracker.application.painter._can_draw.set()
-            pygame.time.wait(1)
-
-        progress_tracker.hide()
+        pygame.mouse.set_cursor(old_cursor)
 
 
 class Translatable:

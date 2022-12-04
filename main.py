@@ -13,7 +13,6 @@
 # TODO : ref_texts is a .txt (ou un tableau ?)
 # TODO : Ajouter un équivalent de ref_texts pour l'anglais
 # TODO : Bouton "Autre langue" -> tableau des langues dispo -> ajout d'un nouveau dictionnaire
-# TODO : Remplacer le chargement de la langue avec le logo par la souris qui charge
 # TODO : Traduire Premier Empire ?
 # TODO : Retenir la langue sélectionnée quand on ferme le jeu
 
@@ -484,7 +483,7 @@ class Game(bp.Scene):
                 except Exception:
                     return
                 self._connected_to_network = True
-                lang_manager.update_language(progress_tracker=self.progress_tracker)
+                lang_manager.update_language()
                 self.connection_btn.text_widget.set_ref_text(10)
         self.connection_btn = PE_Button(parent=connection_zone, text_id=10, command=toggle_connection,
                                         pos=(0, self.connection_title.rect.bottom + 3))
@@ -543,7 +542,7 @@ class Game(bp.Scene):
                         btn.id = id
                     def handle_validate(btn):
                         load_hardtranslations(btn.id)
-                        lang_manager.set_language(btn.id, progress_tracker=self.progress_tracker)
+                        lang_manager.set_language(btn.id)
                         if not self.connected_to_network:
                             Game.TmpMessage(self, text_id=34, explain_id=37)
                         self.lang_btn.text_widget.set_text(btn.text)
@@ -597,8 +596,8 @@ class Game(bp.Scene):
         self.resolution_btn.command = create_resolution_choose_zone
 
         # PROGRESS TRACKER
-        self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
-        self.progress_tracker.hide()
+        # self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
+        # self.progress_tracker.hide()
 
         # MAP
         map = self.map = Map(self)
