@@ -10,11 +10,8 @@
 # BUGS :
 
 # LANGUES :
-# TODO : ref_texts is a .txt (ou un tableau ?)
-# TODO : Ajouter un équivalent de ref_texts pour l'anglais
 # TODO : Bouton "Autre langue" -> tableau des langues dispo -> ajout d'un nouveau dictionnaire
 # TODO : Traduire Premier Empire ?
-# TODO : Retenir la langue sélectionnée quand on ferme le jeu
 
 # DIVERS :
 # TODO : Mettre "Un jour, peut-être en bp.Indicator
@@ -22,6 +19,7 @@
 # TODO : Permettre de cliquer sur une étape pour la commencer
 # TODO : Remplacer "Étape suivante" par "Fin du tour"
 # TODO : Créer la classe GameStep pour remplacer les Todo
+# TODO : Quand on a des soldats en mais, faire briller les régions attaquables
 
 # NOUVEAUTÉS :
 # TODO : Permettre d'acheter une carte Région pour 3 or
@@ -94,8 +92,10 @@ load = bp.image.load
 if loading_screen:
     set_progression(.1)
 
-from languages import Dictionnary, Translatable, TranslatableText, PartiallyTranslatableText
-from languages import googletrans, load_hardtranslations, dicts, lang_manager, translator
+import googletrans
+from language import Translatable, TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
+from memory.memory import Memory
+
 
 if loading_screen:
     set_progression(.2)
@@ -115,6 +115,7 @@ class BackgroundedZone(bp.Zone):
         border_width=2,
         border_color="black"
     )
+
 
 class Player:
 
@@ -386,6 +387,12 @@ class Game(bp.Scene):
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
         self.last_selected_region = None
 
+        # MEMORY
+        self.memory = Memory()
+        if self.memory.lang_id != lang_manager.ref_language:
+            dicts.create(self.memory.lang_id)
+            lang_manager.set_language(self.memory.lang_id)
+
         # LAYERS
         self.game_layer = bp.Layer(self, level=1, weight=2)
         self.gameinfo_layer = bp.Layer(self, level=1, weight=3)
@@ -461,7 +468,6 @@ class Game(bp.Scene):
         param_zone.signal.HIDE.connect(close_paramsail, owner=self.paramsail)
         PE_Button(param_zone, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False,
                   command=param_zone.hide, size=(40, 40), background_color=(150, 20, 20))
-        PE_Button(parent=param_zone, text_id=1, command=param_zone.hide)
         def newgame():
             param_zone.hide()
             self.set_todo(1)
@@ -490,15 +496,15 @@ class Game(bp.Scene):
         connection_zone.adapt()
         lang_zone = bp.Zone(param_zone)
         lang_title = TranslatableText(lang_zone, text_id=12, sticky="midtop")
-        self.lang_btn = PE_Button(parent=lang_zone, text="Français", pos=(0, lang_title.rect.bottom + 3),
-                                  translatable=False)
+        self.lang_btn = PE_Button(parent=lang_zone, text=dicts.get(0, lang_manager.language),
+                                  pos=(0, lang_title.rect.bottom + 3), translatable=False)
         lang_zone.adapt()
         resolution_zone = bp.Zone(param_zone)
         resolution_title = TranslatableText(resolution_zone, text_id=46, sticky="midtop")
         self.resolution_btn = PE_Button(parent=resolution_zone, text=f"{self.rect.width} × {self.rect.height}",
                                         pos=(0, resolution_title.rect.bottom + 3), translatable=False)
         resolution_zone.adapt()
-        PE_Button(parent=param_zone, text_id=0, command=app.exit)
+        PE_Button(parent=param_zone, text_id=1, command=app.exit)
         param_zone.default_layer.pack()
         param_zone.adapt(param_zone.default_layer)
         def paramsail_animate():
@@ -521,6 +527,7 @@ class Game(bp.Scene):
         self.settings_btn.move_behind(self.paramsail)
 
         # LANGUAGE
+        lang_manager.game = self
         def create_lang_choose_zone():
             with bp.paint_lock:
                 translator.game = self
@@ -535,19 +542,27 @@ class Game(bp.Scene):
                 class LangBtn(PE_Button):
                     def __init__(btn, id, text=None):
                         if id not in dicts:
-                            dicts[id] = Dictionnary(id)
+                            dicts.create(id)
                         if text is None:
                             text = translator.translate(googletrans.LANGUAGES[id], src="en", dest=id).capitalize()
                         PE_Button.__init__(btn, parent=lang_choose_zone, text=text, translatable=False)
                         btn.id = id
                     def handle_validate(btn):
-                        load_hardtranslations(btn.id)
                         lang_manager.set_language(btn.id)
                         if not self.connected_to_network:
                             Game.TmpMessage(self, text_id=34, explain_id=37)
                         self.lang_btn.text_widget.set_text(btn.text)
                         self.lang_btn.text_widget2.set_text(btn.text)
-                # PE_Button(lang_choose_zone, text_id=14, command=lang_choose_zone.hide)
+
+                        memory_lang_id = btn.id
+                        import importlib
+                        try:
+                            importlib.import_module("language.dict_" + btn.id)
+                        except ModuleNotFoundError:
+                            memory_lang_id = lang_manager.ref_language
+                        game.memory.set_lang(memory_lang_id)
+
+                        lang_choose_zone.hide()
                 LangBtn(id="es", text="Español")
                 LangBtn(id="en", text="English")
                 fr = LangBtn(id="fr", text="Français")
@@ -1398,99 +1413,99 @@ class Map(bp.Zone, bp.LinkableByMouse):
     def _create_regions(self):
 
         # NORTH AMERICA
-        Region("alaska", self, center=(133, 103), flag_midbottom=(133, 77),
+        Region(48, self, center=(133, 103), flag_midbottom=(133, 77),
                neighbors=("territoires_du_nord_ouest", "alberta", "kamchatka"))
-        Region("territoires_du_nord_ouest", self, center=(231, 73), flag_midbottom=(271, 76),
+        Region(49, self, center=(231, 73), flag_midbottom=(271, 76),
                build_center=(220, 80), neighbors=("alaska", "alberta", "ontario", "groenland"))
-        Region("alberta", self, center=(207, 141), flag_midbottom=(190, 130), build_center=(220, 141),
+        Region(50, self, center=(207, 141), flag_midbottom=(190, 130), build_center=(220, 141),
                neighbors=("alaska", "territoires_du_nord_ouest", "ontario", "western"))
-        Region("quebec", self, center=(348, 158), flag_midbottom=(337, 132),
+        Region(51, self, center=(348, 158), flag_midbottom=(337, 132),
                neighbors=("groenland", "ontario", "etats_unis"))
-        Region("ontario", self, center=(290, 157), flag_midbottom=(273, 140),
+        Region(52, self, center=(290, 157), flag_midbottom=(273, 140),
                neighbors=("territoires_du_nord_ouest", "alberta", "western", "etats_unis", "quebec", "groenland"))
-        Region("groenland", self, center=(417, 71), flag_midbottom=(455, 63),
+        Region(53, self, center=(417, 71), flag_midbottom=(455, 63),
                neighbors=("territoires_du_nord_ouest", "ontario", "quebec", "islande"))
-        Region("western", self, center=(212, 225), flag_midbottom=(178, 237),
+        Region(54, self, center=(212, 225), flag_midbottom=(178, 237),
                neighbors=("alberta", "ontario", "etats_unis", "mexique"))
-        Region("etats_unis", self, center=(280, 235), flag_midbottom=(248, 259), build_center=(290, 235),
+        Region(55, self, center=(280, 235), flag_midbottom=(248, 259), build_center=(290, 235),
                neighbors=("western", "ontario", "quebec", "mexique"))
-        Region("mexique", self, center=(204, 327), flag_midbottom=(192, 300),
+        Region(56, self, center=(204, 327), flag_midbottom=(192, 300),
                neighbors=("western", "etats_unis", "venezuela"))
 
         # EUROPA
-        Region("islande", self, center=(568, 129), flag_midbottom=(569, 121), build_center=(549, 125),
+        Region(57, self, center=(568, 129), flag_midbottom=(569, 121), build_center=(549, 125),
                neighbors=("groenland", "scandinavie", "grande_bretagne"))
-        Region("scandinavie", self, center=(644, 121), flag_midbottom=(654, 90), build_center=(630, 115),
+        Region(58, self, center=(644, 121), flag_midbottom=(654, 90), build_center=(630, 115),
                neighbors=("islande", "europe_du_nord", "grande_bretagne", "russie"))
-        Region("grande_bretagne", self, center=(539, 206), flag_midbottom=(526, 204), build_center=None,
+        Region(59, self, center=(539, 206), flag_midbottom=(526, 204), build_center=None,
                neighbors=("scandinavie", "islande", "europe_du_nord", "europe_occidentale"))
-        Region("europe_occidentale", self, center=(561, 311), flag_midbottom=(570, 267), build_center=None,
+        Region(60, self, center=(561, 311), flag_midbottom=(570, 267), build_center=None,
                neighbors=("grande_bretagne", "europe_du_nord", "europe_meridionale", "afrique_subsaharienne"))
-        Region("europe_du_nord", self, center=(627, 219), flag_midbottom=(633, 220), build_center=(604, 238),
+        Region(61, self, center=(627, 219), flag_midbottom=(633, 220), build_center=(604, 238),
                neighbors=("europe_meridionale", "europe_occidentale", "grande_bretagne", "scandinavie", "russie"))
-        Region("europe_meridionale", self, center=(629, 308), flag_midbottom=(631, 289), build_center=None,
-               neighbors=("europe_du_nord", "europe_occidentale", "russie", "afrique_subsaharienne", "egypte", "moyen-orient"))
-        Region("russie", self, center=(750, 201), flag_midbottom=(748, 176), build_center=(728, 198),
-               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale", "moyen-orient", "afghanistan", "oural"))
+        Region(62, self, center=(629, 308), flag_midbottom=(631, 289), build_center=None,
+               neighbors=("europe_du_nord", "europe_occidentale", "russie", "afrique_subsaharienne", "egypte", "moyen_orient"))
+        Region(63, self, center=(750, 201), flag_midbottom=(748, 176), build_center=(728, 198),
+               neighbors=("scandinavie", "europe_du_nord", "europe_meridionale", "moyen_orient", "afghanistan", "oural"))
 
         # ASIA
-        Region("moyen-orient", self, center=(731, 409), flag_midbottom=(734, 389), build_center=(737, 422),
+        Region(64, self, center=(731, 409), flag_midbottom=(734, 389), build_center=(737, 422),
                neighbors=("europe_meridionale", "russie", "afghanistan", "inde", "egypte", "afrique_orientale"))
-        Region("afghanistan", self, center=(799, 282), flag_midbottom=(802, 278), build_center=(785, 287),
-               neighbors=("moyen-orient", "inde", "chine", "russie", "oural"))
-        Region("oural", self, center=(850, 162), flag_midbottom=(848, 176), build_center=(850, 200),
+        Region(65, self, center=(799, 282), flag_midbottom=(802, 278), build_center=(785, 287),
+               neighbors=("moyen_orient", "inde", "chine", "russie", "oural"))
+        Region(66, self, center=(850, 162), flag_midbottom=(848, 176), build_center=(850, 200),
                neighbors=("russie", "afghanistan", "siberie", "chine"))
-        Region("inde", self, center=(853, 410), flag_midbottom=(845, 399), build_center=(854, 428),
-               neighbors=("moyen-orient", "afghanistan", "chine", "siam"))
-        Region("chine", self, center=(924, 329), flag_midbottom=(927, 338), build_center=(974, 358),
+        Region(67, self, center=(853, 410), flag_midbottom=(845, 399), build_center=(854, 428),
+               neighbors=("moyen_orient", "afghanistan", "chine", "siam"))
+        Region(68, self, center=(924, 329), flag_midbottom=(927, 338), build_center=(974, 358),
                neighbors=("siam", "inde", "afghanistan", "oural", "siberie", "mongolie"))
-        Region("siberie", self, center=(902, 153), flag_midbottom=(908, 113), build_center=(909, 150),
+        Region(69, self, center=(902, 153), flag_midbottom=(908, 113), build_center=(909, 150),
                neighbors=("oural", "chine", "mongolie", "tchita", "yakoutie"))
-        Region("siam", self, center=(932, 440), flag_midbottom=(939, 428), build_center=None,
+        Region(70, self, center=(932, 440), flag_midbottom=(939, 428), build_center=None,
                neighbors=("inde", "chine", "indonesie"))
-        Region("mongolie", self, center=(965, 267), flag_midbottom=(954, 263), build_center=(974, 272),
+        Region(71, self, center=(965, 267), flag_midbottom=(954, 263), build_center=(974, 272),
                neighbors=("chine", "siberie", "tchita", "kamchatka", "japon"))
-        Region("japon", self, center=(1068, 263), flag_midbottom=(1078, 217), build_center=(1071, 266),
+        Region(72, self, center=(1068, 263), flag_midbottom=(1078, 217), build_center=(1071, 266),
                neighbors=("kamchatka", "mongolie"))
-        Region("tchita", self, center=(961, 198), flag_midbottom=(954, 190), build_center=(943, 207),
+        Region(73, self, center=(961, 198), flag_midbottom=(954, 190), build_center=(943, 207),
                neighbors=("siberie", "mongolie", "kamchatka", "yakoutie"))
-        Region("yakoutie", self, center=(976, 113), flag_midbottom=(986, 93), build_center=(964, 122),
+        Region(74, self, center=(976, 113), flag_midbottom=(986, 93), build_center=(964, 122),
                neighbors=("kamchatka", "tchita", "siberie"))
-        Region("kamchatka", self, center=(1059, 172), flag_midbottom=(1061, 115), build_center=(1091, 115),
+        Region(75, self, center=(1059, 172), flag_midbottom=(1061, 115), build_center=(1091, 115),
                neighbors=("yakoutie", "tchita", "mongolie", "japon", "alaska"))
 
         # SOUTH AMERICA
-        Region("venezuela", self, center=(290, 406), flag_midbottom=(292, 385), build_center=(260, 405),
+        Region(76, self, center=(290, 406), flag_midbottom=(292, 385), build_center=(260, 405),
                neighbors=("mexique", "perou", "bresil"))
-        Region("bresil", self, center=(341, 497), flag_midbottom=(367, 477), build_center=(396, 507),
+        Region(77, self, center=(341, 497), flag_midbottom=(367, 477), build_center=(396, 507),
                neighbors=("venezuela", "perou", "argentine", "afrique_subsaharienne"))
-        Region("perou", self, center=(282, 495), flag_midbottom=(261, 488), build_center=(299, 519),
+        Region(78, self, center=(282, 495), flag_midbottom=(261, 488), build_center=(299, 519),
                neighbors=("venezuela", "bresil", "argentine"))
-        Region("argentine", self, center=(315, 640), flag_midbottom=(304, 619), build_center=(301, 649),
+        Region(79, self, center=(315, 640), flag_midbottom=(304, 619), build_center=(301, 649),
                neighbors=("perou", "bresil"))
 
         # AFRICA
-        Region("afrique_subsaharienne", self, center=(580, 464), flag_midbottom=(571, 460), build_center=(544, 509),
+        Region(80, self, center=(580, 464), flag_midbottom=(571, 460), build_center=(544, 509),
                neighbors=("bresil", "europe_occidentale", "europe_meridionale", "egypte", "afrique_orientale", "afrique_centrale"))
-        Region("egypte", self, center=(648, 420), flag_midbottom=(657, 419), build_center=(665, 420),
-               neighbors=("afrique_subsaharienne", "afrique_orientale", "europe_meridionale", "moyen-orient"))
-        Region("afrique_centrale", self, center=(661, 587), flag_midbottom=(650, 575),
+        Region(81, self, center=(648, 420), flag_midbottom=(657, 419), build_center=(665, 420),
+               neighbors=("afrique_subsaharienne", "afrique_orientale", "europe_meridionale", "moyen_orient"))
+        Region(82, self, center=(661, 587), flag_midbottom=(650, 575),
                neighbors=("afrique_subsaharienne", "afrique_du_sud", "afrique_orientale"))
-        Region("afrique_orientale", self, center=(707, 554), flag_midbottom=(700, 519), build_center=(731, 540),
-               neighbors=("afrique_subsaharienne", "egypte", "afrique_centrale", "afrique_du_sud", "madacascar", "moyen-orient"))
-        Region("afrique_du_sud", self, center=(666, 677), flag_midbottom=(654, 683), build_center=(656, 712),
+        Region(83, self, center=(707, 554), flag_midbottom=(700, 519), build_center=(731, 540),
+               neighbors=("afrique_subsaharienne", "egypte", "afrique_centrale", "afrique_du_sud", "madacascar", "moyen_orient"))
+        Region(84, self, center=(666, 677), flag_midbottom=(654, 683), build_center=(656, 712),
                neighbors=("afrique_centrale", "afrique_orientale", "madacascar"))
-        Region("madacascar", self, center=(747, 682), flag_midbottom=(755, 666), build_center=(736, 690),
+        Region(85, self, center=(747, 682), flag_midbottom=(755, 666), build_center=(736, 690),
                neighbors=("afrique_orientale", "afrique_du_sud"))
 
         # SOUTH AMERICA
-        Region("indonesie", self, center=(922, 535), flag_midbottom=(930, 528), build_center=None,
+        Region(86, self, center=(922, 535), flag_midbottom=(930, 528), build_center=None,
                neighbors=("siam", "nouvelle_guinee", "australie_occidentale"))
-        Region("nouvelle_guinee", self, center=(1022, 516), flag_midbottom=(1009, 497), build_center=(1029, 513),
+        Region(87, self, center=(1022, 516), flag_midbottom=(1009, 497), build_center=(1029, 513),
                neighbors=("australie_occidentale", "australie_orientale", "indonesie"))
-        Region("australie_occidentale", self, center=(981, 647), flag_midbottom=(956, 636), build_center=None,
+        Region(88, self, center=(981, 647), flag_midbottom=(956, 636), build_center=None,
                neighbors=("nouvelle_guinee", "australie_orientale", "indonesie"))
-        Region("australie_orientale", self, center=(1048, 644), flag_midbottom=(1044, 624), build_center=(1074, 662),
+        Region(89, self, center=(1048, 644), flag_midbottom=(1044, 624), build_center=(1074, 662),
                neighbors=("nouvelle_guinee", "australie_occidentale"))
 
         self.parent.regions_list = list(self.parent.regions.values())
@@ -1538,7 +1553,11 @@ class Region(bp.Image):
     MINE = BUILDS.subsurface(0, 30, 30, 30)
     CAMP = BUILDS.subsurface(30, 30, 30, 30)
 
-    def __init__(self, name, parent, center, flag_midbottom=None, build_center=None, neighbors=()):
+    def __init__(self, name_id, parent, center, flag_midbottom=None, build_center=None, neighbors=()):
+
+        self.upper_name_id = name_id
+        self.upper_name = dicts["fr"][name_id]
+        name = self.upper_name.lower().replace(" ", "_").replace("-", "_").replace("é", "e")
 
         bp.Image.__init__(self, parent, load(f"images/{name}.png"), center=center, name=name,
                           visible=False, layer=parent.regions_layer)
@@ -1555,8 +1574,8 @@ class Region(bp.Image):
         self.neighbors = neighbors
         self.all_allied_neighbors = []
         self.flag = None
-        self.upper_name = self.name.upper().replace("_", " ")
-        self.upper_name_id = dicts.get_id(self.upper_name)
+        # self.upper_name = self.name.upper().replace("_", " ")
+        # self.upper_name_id = dicts.get_id(self.upper_name)
 
         parent.parent.regions[self.name] = self
 
@@ -2050,7 +2069,6 @@ if loading_screen:
     set_progression(.8)
 
 game = Game(app)
-lang_manager.game = game
 
 if loading_screen:
     set_progression(.9)

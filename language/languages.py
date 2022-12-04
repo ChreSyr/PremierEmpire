@@ -1,9 +1,6 @@
 
 import googletrans
 import baopig as bp
-import pygame.time
-
-from ref_texts import fr_dict
 
 
 class Dictionnaries(dict):
@@ -17,6 +14,18 @@ class Dictionnaries(dict):
         return self.highest_id
     def add_translation(self, text_id, lang, translation):
         self[lang][text_id] = translation
+    def create(self, lang_id):
+        assert isinstance(lang_id, str) and len(lang_id) == 2
+        assert lang_id not in self
+        self[lang_id] = Dictionnary(lang_id)
+        import importlib
+        try:
+            module = importlib.import_module("language.dict_" + lang_id)
+        except ModuleNotFoundError:
+            pass
+        else:
+            for text_id, text in enumerate(module.texts):
+                dicts.add_translation(text_id, lang_id, text)
     def get(self, text_id, lang):
         try:
             return self[lang][text_id]
@@ -98,20 +107,22 @@ class LangManager:
         widget.fit()
     def update_language(self):
 
-        old_cursor = pygame.mouse.get_cursor()
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_WAIT)
+        old_cursor = bp.pygame.mouse.get_cursor()
+        bp.pygame.mouse.set_cursor(bp.SYSTEM_CURSOR_WAIT)
 
-        if self.game.connected_to_network is False:
+        if self.game is None or self.game.connected_to_network is False:
 
             if self._language == self._ref_language:
-                for player in self.game.players.values():
-                    player.translated_name = player.name
+                if self.game is not None:
+                    for player in self.game.players.values():
+                        player.translated_name = player.name
                 for widget, text in self._ref_texts.items():
                     widget.set_text(text)
                     widget.fit()
             else:
-                for player in self.game.players.values():
-                    player.translated_name = dicts.get(player.name_id, self._language)
+                if self.game is not None:
+                    for player in self.game.players.values():
+                        player.translated_name = dicts.get(player.name_id, self._language)
                 for widget in self._ref_texts:
                     widget.set_text(dicts.get(widget.text_id, self._language))
                     widget.fit()
@@ -148,7 +159,7 @@ class LangManager:
                     widget.set_text(text)
                     widget.fit()
 
-        pygame.mouse.set_cursor(old_cursor)
+        bp.pygame.mouse.set_cursor(old_cursor)
 
 
 class Translatable:
@@ -205,22 +216,8 @@ class PartiallyTranslatableText(TranslatableText):
             super().set_text(text)
 
 
-def load_hardtranslations(lang_id):
-    if lang_id == "en":
-        dicts.add_translation(0, 'en', 'Exit')
-        dicts.add_translation(1, 'en', 'Hide')
-        dicts.add_translation(2, 'en', 'New game')
-        dicts.add_translation(3, 'en', 'PLAY')
-        dicts.add_translation(4, 'en', 'Invade')
-        dicts.add_translation(5, 'en', "{}'s turn")
-        dicts.add_translation(6, 'en', 'Congratulations everyone, great effort.')
-
-
+# TODO : remove SmartTranslator ?
 translator = SmartTranslator()
 lang_manager = LangManager()
 dicts = Dictionnaries()
-dicts["en"] = Dictionnary("en")
-dicts["fr"] = Dictionnary("fr")
-
-for text in fr_dict:
-    dicts.add("fr", text)
+dicts.create("fr")
