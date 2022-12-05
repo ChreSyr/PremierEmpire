@@ -72,6 +72,7 @@ class LangManager:
     def __init__(self):
         self.game = None
         self._ref_texts = {}
+        self._requests = []
         self._textid_by_widget = {}
         self._ref_language = self._language = "fr"
     language = property(lambda self: self._language)
@@ -84,6 +85,8 @@ class LangManager:
     def remove_widget(self, widget):
         self._ref_texts.pop(widget)
         self._textid_by_widget.pop(widget)
+    def request(self, obj, text, src, dest):
+        self._requests.append((obj, text, src, dest))
     def set_language(self, lang_id):
         if lang_id == self._language:
             return
@@ -130,6 +133,9 @@ class LangManager:
         else:
 
             if self._language != self._ref_language:
+
+                for request in self._requests:
+                    request[0].set_text(translator.translate(*request[1:]))
 
                 new_dict = dicts[self._language]
                 to_translate = {}

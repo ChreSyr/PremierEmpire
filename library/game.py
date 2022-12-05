@@ -58,8 +58,8 @@ class Game(bp.Scene):
         self.tuto_text = 38
         def create_tuto_zone():
             self.tutoring = True
-            self.tuto_btn.command = switch_tuto
-            self.tuto_btn.text_widget.set_ref_text(8)
+            self.settings_zone.tuto_btn.command = switch_tuto
+            self.settings_zone.tuto_btn.text_widget.set_ref_text(8)
             self.tuto_zone = hibou_zone = bp.Zone(self, size=(305, 500), sticky="bottomright",
                                                   layer=self.gametuto_layer)
             hibou1 = bp.Image(hibou_zone, load("images/hibou1.png"), sticky="bottomright", pos=(-30, 50))
@@ -89,17 +89,17 @@ class Game(bp.Scene):
             self.tuto_zone.signal.SHOW.connect(self.hibou_animator.start, owner=None)
         def switch_tuto():
             if self.tutoring is False:
-                self.tuto_btn.text_widget.set_ref_text(8)
+                self.settings_zone.tuto_btn.text_widget.set_ref_text(8)
                 self.hibou_animator.set_interval(.45)
                 self.tuto_zone.show()
                 self.tutoring = True
             else:
-                self.tuto_btn.text_widget.set_ref_text(7)
+                self.settings_zone.tuto_btn.text_widget.set_ref_text(7)
                 self.tuto_zone.hide()
                 self.tutoring = False
 
         # PARAMETERS
-        from library.zones import SettingsZone, SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone
+        from library.zones import SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone
         self.settings_zone = SettingsMainZone(self)
         self.settings_zone.tuto_btn.command = create_tuto_zone
         self.settings_btn = PE_Button(self, text_id=13, command=self.settings_zone.toggle, layer=self.extra_layer)
@@ -107,6 +107,7 @@ class Game(bp.Scene):
 
         # LANGUAGE
         lang_manager.game = self
+        translator.game = self
         self.settings_zone.lang_btn.command = bp.PrefilledFunction(SettingsLanguageZone, self)
 
         # RESOLUTION
@@ -479,8 +480,8 @@ class Game(bp.Scene):
         if self._connected_to_network is False:
             return
         self._connected_to_network = False
-        self.connection_btn.text_widget.set_ref_text(11)
-        self.connection_btn.enable()
+        self.settings_zone.connection_btn.text_widget.set_ref_text(11)
+        self.settings_zone.connection_btn.enable()
         TmpMessage(self, text_id=34)
     connected_to_network = property(lambda self: self._connected_to_network, _set_connected_to_network)
     current_player = property(lambda self: self.players[self.current_player_id])

@@ -200,6 +200,8 @@ class PE_Button_Text(bp.Button_Text, Translatable):
             self.font.config(height=self.font.height + 4)
         self.parent.text_widget2.set_text(self.text)
         self.parent.text_widget2.font.config(height=self.font.height)
+
+
 class PE_Button(bp.Button):
 
     class Button_HoverImage(bp.Image):
