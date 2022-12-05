@@ -10,9 +10,12 @@
 #
 
 # LANGUES :
-# TODO : Bouton "Autre langue" -> tableau des langues dispo -> ajout d'un nouveau dictionnaire
+# TODO : Lorsqu'on ajoute une langue : permettre de la supprimer
+# TODO : Lorsqu'on ajoute une langue : permettre de la garder en mémoire ?
+# TODO : Lorsqu'on ajoute une langue : créer le fichier dict_lg correspondant ?
 
 # DIVERS :
+# TODO : Agrandir les boutons < et +
 # TODO : Mettre "Un jour, peut-être en bp.Indicator
 # TODO : Griser une étape lorsqu'elle est finie
 # TODO : Permettre de cliquer sur une étape pour la commencer
