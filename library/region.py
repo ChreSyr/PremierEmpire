@@ -64,7 +64,7 @@ class Region(bp.Image):
 
         self.owner.soldiers_title.set_text(str(sum(len(s_list) for s_list in self.owner.regions.values())))
 
-    def destroy_construction(self):
+    def destroy_construction(self):  # TODO : remove ?
 
         if self.build is not None:
             self.build.kill()

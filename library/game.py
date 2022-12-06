@@ -160,9 +160,9 @@ class Game(bp.Scene):
         self.next_todo = PE_Button(self.info_left_zone, "Étape suivante", width="100%", sticky="midbottom",
                                    command=next_todo_command)
         def handle_timeout():
-            if self.todo.text == "build":
+            if self.todo.id == 20:
                 self.todo.end()
-            if self.todo.text == "attack":
+            if self.todo.id == 21:
                 self.todo.end()
             self.next_player()
             self.set_todo(20)
@@ -450,6 +450,9 @@ class Game(bp.Scene):
             self.nextsail_text.set_text(self.construction_label_zone.text.text)
             self.current_player.build_stuff()
         def end_build():
+            for region in self.current_player.regions:
+                if region.build_state == "empty":
+                    region.build_circle.hide()
             self.construction_label_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
         Step(self, 20, start=start_build, end=end_build)
 
@@ -795,7 +798,7 @@ class Game(bp.Scene):
                     self.transfert_title.set_text(str(self.transfert_amount))
                     self.transfert_zone.pack(axis="horizontal", adapt=True)
             else:
-                if self.todo.text == "troops movement":
+                if self.todo.id == 22:
                     self.temp_import_region = region
                     self.import_btn.validate()
         else:
