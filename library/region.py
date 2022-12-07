@@ -4,13 +4,66 @@ import baopig as bp
 from language import dicts
 
 
-class Region(bp.Image):
+class Structure(bp.Image):
 
     BUILDS = bp.image.load("images/builds.png")
-    DOTTED = BUILDS.subsurface(0, 0, 30, 30)
-    CIRCLE = BUILDS.subsurface(30, 0, 30, 30)
+    WIP = BUILDS.subsurface(0, 0, 30, 30)
+    DONE = BUILDS.subsurface(30, 0, 30, 30)
     MINE = BUILDS.subsurface(0, 30, 30, 30)
     CAMP = BUILDS.subsurface(30, 30, 30, 30)
+
+    def __init__(self, region, image, center):
+
+        bp.Image.__init__(self, region.parent, image=image, center=center, visible=False)
+
+        self.region = region
+        # State :
+        # 0 = empty
+        # 1 = under construction
+        # 2 = built
+        self._state = 0
+        self.icon = None
+
+    is_empty = property(lambda self: self._state == 0)
+    is_under_construction = property(lambda self: self._state == 1)
+    is_built = property(lambda self: self._state == 2)
+
+    def destroy(self):
+
+        if self.icon is not None:
+            self.icon.kill()
+        self.icon = None
+        
+        # self.set_lock(visibility=False)
+        self.hide()
+        self.set_surface(Structure.WIP)
+        self._state = 0
+    
+    def end_construction(self):
+        
+        if not self.is_under_construction:
+            raise PermissionError
+        
+        self.set_surface(Structure.DONE)
+        self._state = 2
+    
+    def produce(self):
+        
+        if self.icon.name == "mine":
+            self.region.owner.change_gold(+4)
+        elif self.icon.name == "camp":
+            self.region.add_soldiers(3)
+
+    def start_construction(self, build_name):
+
+        self._state = 1
+        self.show()
+        # self.set_lock(visibility=True)
+        self.icon = bp.Image(self.parent, getattr(Structure, build_name.upper()), name=build_name,
+                              center=self.rect.center)
+
+
+class Region(bp.Image):
 
     def __init__(self, name_id, parent, center, flag_midbottom=None, build_center=None, neighbors=()):
 
@@ -22,10 +75,10 @@ class Region(bp.Image):
                           visible=False, layer=parent.regions_layer)
 
         self.mask = bp.mask.from_surface(self.surface)
-        self.build_circle = bp.Image(parent, image=Region.DOTTED, visible=False,
-                                     center=build_center if build_center is not None else center)
+        self.structure = Structure(self, image=Structure.WIP,
+                                   center=build_center if build_center is not None else center)
         if flag_midbottom is None:
-            flag_midbottom = self.build_circle.rect.midtop
+            flag_midbottom = self.structure.rect.midtop
         self.flag_midbottom = flag_midbottom
         self.build = None
         self.build_state = "empty"
@@ -36,7 +89,7 @@ class Region(bp.Image):
 
         parent.parent.regions[self.name] = self
 
-        # self.build_rect = bp.Rectangle(parent, color="red", pos=self.build_circle.topleft, size=self.build_circle.size)
+        # self.build_rect = bp.Rectangle(parent, color="red", pos=self.structure.rect.topleft, size=self.structure.rect.size)
         # self.flag_rect = bp.Rectangle(parent, color="blue", midbottom=flag_midbottom, size=(36, 60))
 
     game = property(lambda self: self.scene)
@@ -64,23 +117,6 @@ class Region(bp.Image):
 
         self.owner.soldiers_title.set_text(str(sum(len(s_list) for s_list in self.owner.regions.values())))
 
-    def destroy_construction(self):  # TODO : remove ?
-
-        if self.build is not None:
-            self.build.kill()
-        self.build = None
-        self.build_circle.set_lock(visibility=False)
-        self.build_circle.hide()
-        self.build_circle.set_surface(Region.DOTTED)
-        self.build_state = "empty"
-
-    def end_construction(self):
-
-        if self.build_state != "construction":
-            raise PermissionError
-        self.build_circle.set_surface(Region.CIRCLE)
-        self.build_state = "producing"
-
     def get_hovered(self):
 
         try:
@@ -99,9 +135,9 @@ class Region(bp.Image):
                 s.swap_layer(self.parent.behind_regions_layer)
             if self.flag is not None:
                 self.flag.swap_layer(self.parent.behind_regions_layer)
-            self.build_circle.swap_layer(self.parent.behind_regions_layer)
-            if self.build is not None:
-                self.build.swap_layer(self.parent.behind_regions_layer)
+            self.structure.swap_layer(self.parent.behind_regions_layer)
+            if self.structure.icon is not None:
+                self.structure.icon.swap_layer(self.parent.behind_regions_layer)
 
     def rem_soldiers(self, amount):
 
@@ -129,26 +165,9 @@ class Region(bp.Image):
                 s.swap_layer(self.parent.frontof_regions_layer)
             if self.flag is not None:
                 self.flag.swap_layer(self.parent.frontof_regions_layer)
-            self.build_circle.swap_layer(self.parent.frontof_regions_layer)
-            if self.build is not None:
-                self.build.swap_layer(self.parent.frontof_regions_layer)
-
-    def start_construction(self, build_name):
-
-        self.build_state = "construction"
-        self.build_circle.show()
-        self.build_circle.set_lock(visibility=True)
-        self.build = bp.Image(self.parent, getattr(Region, build_name.upper()), name=build_name,
-                              center=self.build_circle.rect.center)
-
-    def produce(self):
-
-        if self.build_state != "producing":
-            return
-        if self.build.name == "mine":
-            self.owner.change_gold(+4)
-        elif self.build.name == "camp":
-            self.add_soldiers(3)
+            self.structure.swap_layer(self.parent.frontof_regions_layer)
+            if self.structure.icon is not None:
+                self.structure.icon.swap_layer(self.parent.frontof_regions_layer)
 
     def update_all_allied_neighbors(self, allied_neighbors=None):
 

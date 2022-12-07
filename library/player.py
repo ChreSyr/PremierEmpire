@@ -2,7 +2,7 @@
 import baopig as bp
 load = bp.image.load
 from language import dicts, lang_manager, TranslatableText
-from .region import Region
+from .region import Structure
 from .zones import BackgroundedZone
 
 
@@ -96,7 +96,7 @@ class Player:
         colored_rect = bp.Rectangle(z, size=(z.rect.w, 42), color=self.color, border_width=2, border_color="black")
         TranslatableText(z, text_id=self.name_id, ref=colored_rect, sticky="center")
         self.gold_tracker = bp.Text(z, str(self.gold), pos=(10, 50))
-        bp.Image(z, Region.MINE, ref=self.gold_tracker, pos=(-4, -8), refloc="topright")
+        bp.Image(z, Structure.MINE, ref=self.gold_tracker, pos=(-4, -8), refloc="topright")
         self.soldiers_title = bp.Text(z, "0", pos=(10, 75))
         bp.Image(z, self.soldier_icon, ref=self.soldiers_title, pos=(4, -4), refloc="topright",
                  name="soldier")
@@ -115,11 +115,12 @@ class Player:
     def build_stuff(self):
 
         for region in self.regions:
-            if region.build_state == "construction":
-                region.end_construction()
+            if region.structure.is_empty:
+                region.structure.show()
+            elif region.structure.is_under_construction:
+                region.structure.end_construction()
             else:
-                region.build_circle.show()
-            region.produce()
+                region.structure.produce()
 
         self.check_build()
 
@@ -146,8 +147,8 @@ class Player:
 
     def check_build(self):
 
-        has_fully_built = self.has_fully_built()
-        if has_fully_built or self.gold < 3:
+        assert self.game.todo.id == 20
+        if self.gold < 3 or self.has_fully_built():
 
             # self.game.TmpMessage(self.game, msg="Fin de l'étape : CONSTRUCTION", explain="Tous vos pays possèdent déjà "
             #     "un bâtiment" if has_fully_built else "Vous n'avez pas assez d'or (il en faut 3 au minimum)")
@@ -184,7 +185,7 @@ class Player:
                 self.game.winner_info_zone.title.complete_text()
                 self.game.winner_info_zone.panel.set_color(self.color)
                 self.game.winner_info_zone.show()
-                self.game.setttings_zone.newgame_btn.enable()
+                self.game.settings_zone.newgame_btn.enable()
                 if self.game.tutoring:
                     self.game.set_tuto_ref_text_id(45)
 
@@ -208,7 +209,7 @@ class Player:
     def has_fully_built(self):
 
         for r in self.regions:
-            if r.build_state == "empty":
+            if r.structure.is_empty:
                 return False
         return True
 

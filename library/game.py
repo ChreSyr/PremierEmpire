@@ -2,12 +2,10 @@
 import random
 
 import baopig as bp
-import pygame
 load = bp.image.load
 
-from library.loading import set_progression, screen_sizes
+from library.loading import set_progression
 
-import googletrans
 from language import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
 
 set_progression(.4)
@@ -17,7 +15,7 @@ from library.theme import set_cursor
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
 from library.zones import BackgroundedZone, PlayZone, TmpMessage, WinnerInfoZone
-from library.region import Region
+from library.region import Region, Structure
 from library.map import Map
 
 set_progression(.5)
@@ -362,24 +360,24 @@ class Game(bp.Scene):
         # CONFIRMATION
         self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
         bp.Button(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
-                  background_image=Region.BUILDS.subsurface(0, 60, 30, 30),
+                  background_image=Structure.BUILDS.subsurface(0, 60, 30, 30),
                   command=bp.PackedFunctions(lambda: self.todo.confirm(), self.map.region_unselect))
         bp.Button(self.confirm_zone, size=(30, 30), background_color="red4", focus=-1,
-                  background_image=Region.BUILDS.subsurface(30, 60, 30, 30), command=self.map.region_unselect)
+                  background_image=Structure.BUILDS.subsurface(30, 60, 30, 30), command=self.map.region_unselect)
         self.confirm_zone.pack(adapt=True)
 
         # CHOOSE BUILD
         self.choose_build_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
 
         def build(build_name):
-            self.last_selected_region.start_construction(build_name)
+            self.last_selected_region.structure.start_construction(build_name)
             self.current_player.change_gold(-3)
             self.current_player.check_build()
             self.map.region_unselect()
 
-        bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Region.MINE,
+        bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.MINE,
                   command=bp.PrefilledFunction(build, "mine"), background_color=(0, 0, 0, 0))
-        bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Region.CAMP,
+        bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.CAMP,
                   command=bp.PrefilledFunction(build, "camp"), background_color=(0, 0, 0, 0))
         self.choose_build_zone.pack(adapt=True)
 
@@ -448,11 +446,19 @@ class Game(bp.Scene):
             self.set_tuto_ref_text_id(31)
             self.construction_label_zone.set_background_color("orange")
             self.nextsail_text.set_text(self.construction_label_zone.text.text)
-            self.current_player.build_stuff()
+
+            for region in self.current_player.regions:
+                if region.structure.is_empty:
+                    region.structure.show()
+                else:
+                    if region.structure.is_under_construction:
+                        region.structure.end_construction()
+                    region.structure.produce()
+            self.current_player.check_build()
         def end_build():
             for region in self.current_player.regions:
-                if region.build_state == "empty":
-                    region.build_circle.hide()
+                if region.structure.is_empty:
+                    region.structure.hide()
             self.construction_label_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
         Step(self, 20, start=start_build, end=end_build)
 
@@ -562,7 +568,7 @@ class Game(bp.Scene):
                                 if region.owner is None:
                                     hoverable = True
                             if self.todo.id == 20:
-                                if region.owner is self.current_player and region.build_state == "empty":
+                                if region.owner is self.current_player and region.structure.is_empty:
                                     hoverable = True
                             elif self.todo.id == 21:
                                 if self.transferring:
@@ -652,7 +658,7 @@ class Game(bp.Scene):
             self.confirm_zone.show()
 
         if self.todo.id == 20:
-            if region in self.current_player.regions and region.build_state == "empty":
+            if region in self.current_player.regions and region.structure.is_empty:
                 self.choose_build_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
                 self.choose_build_zone.show()
             else:
@@ -716,7 +722,7 @@ class Game(bp.Scene):
 
         for r in self.regions.values():
             r.flag = None
-            r.destroy_construction()
+            r.structure.destroy()
 
         for p in self.players.values():
             for r in tuple(p.regions):
