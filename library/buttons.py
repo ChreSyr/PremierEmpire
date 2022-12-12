@@ -13,7 +13,7 @@ class BtnImg:
         self.window_topleft = (5, 5)
         self.default_color = (68, 76, 70)
         self.win_color = (255, 255, 255, 15)
-        self.hover_color = (68, 86, 70)
+        self.hover_color = (0, 20, 0, 128)
 
         self.raw_back = load("images/btn_back.png")
         self.raw_window = load("images/btn_window.png")
@@ -96,14 +96,9 @@ class BtnImg:
 
         return surf
 
-    def get_resized_hover(self, size, color=None):
+    def get_resized_hover(self, size):
 
-        if color is None:
-            color = self.hover_color
-        else:
-            color = bp.Color(color)
-            color.g += 10
-
+        color = self.hover_color
         surf = pygame.Surface(size, pygame.SRCALPHA)
 
         w, h = size
@@ -210,8 +205,7 @@ class PE_Button(bp.Button):
 
             surf = btnimg_manager.default_hover
             if surf.get_size() != textbutton.rect.size:
-                surf = btnimg_manager.get_resized_hover(textbutton.rect.size,
-                                                        color=textbutton.style["background_color"])
+                surf = btnimg_manager.get_resized_hover(textbutton.rect.size)
 
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.behind_content)
 
@@ -254,7 +248,7 @@ class PE_Button(bp.Button):
         if surf.get_size() != self.rect.size or self.background_color != btnimg_manager.default_color:
             surf = btnimg_manager.get_resized_background(self.rect.size, color=self.background_color)
         self.set_background_image(surf)
-        self.set_background_color((0, 0, 0, 0))
+        bp.Button.set_background_color(self, (0, 0, 0, 0))
 
         disable_surf = btnimg_manager.colored_back.copy()
         disable_surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
@@ -270,12 +264,6 @@ class PE_Button(bp.Button):
         self.text_widget2.move(-1, -1)
         self.original_font_height = self.text_widget.font.height
 
-        # def handle_new_surf():
-        #     self.text_widget2.set_text(self.text)
-        #     if self.is_hovered:
-        #         print(4)
-        # self.text_widget.signal.NEW_SURFACE.connect(handle_new_surf, owner=self.text_widget2)
-
     def handle_hover(self):
 
         with bp.paint_lock:
@@ -289,6 +277,10 @@ class PE_Button(bp.Button):
             self.hover_sail.hide()
             self.text_widget.font.config(height=self.original_font_height)
             self.text_widget2.font.config(height=self.original_font_height)
+
+    def set_background_color(self, background_color):
+
+        self.set_background_image(btnimg_manager.get_resized_background(self.rect.size, color=self.background_color))
 
 
 class RegionInfoButton(PE_Button):
