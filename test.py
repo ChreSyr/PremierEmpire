@@ -1,2 +1,3 @@
 
-print("t" > None)
+import baopig
+baopig.Application().launch()

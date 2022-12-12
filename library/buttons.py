@@ -248,7 +248,6 @@ class PE_Button(bp.Button):
         if surf.get_size() != self.rect.size or self.background_color != btnimg_manager.default_color:
             surf = btnimg_manager.get_resized_background(self.rect.size, color=self.background_color)
         self.set_background_image(surf)
-        bp.Button.set_background_color(self, (0, 0, 0, 0))
 
         disable_surf = btnimg_manager.colored_back.copy()
         disable_surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
@@ -258,29 +257,46 @@ class PE_Button(bp.Button):
         self._disable_sail_ref =bp.Image(self, disable_surf, visible=False,
                                          layer=self.above_content, name=self.name + ".disable_sail").get_weakref()
 
-        self.text_widget2 = bp.Button_Text(self, text=self.text, layer=self.content, font_color="white",
-                                           **self.style["text_style"])
-        self.text_widget.move(1, 1)
-        self.text_widget2.move(-1, -1)
         self.original_font_height = self.text_widget.font.height
+
+        self.middle_color = 128 * 3
+        self.text_widget2 = None
+        if sum(self.background_color[:3]) < self.middle_color:
+            self.text_widget2 = bp.Button_Text(self, text=self.text, layer=self.content, font_color="white",
+                                               **self.style["text_style"])
+            self.text_widget.move(1, 1)
+            self.text_widget2.move(-1, -1)
+
+        bp.Button.set_background_color(self, (0, 0, 0, 0))
 
     def handle_hover(self):
 
         with bp.paint_lock:
             self.hover_sail.show()
             self.text_widget.font.config(height=self.original_font_height + 4)
-            self.text_widget2.font.config(height=self.original_font_height + 4)
+            if self.text_widget2 is not None:
+                self.text_widget2.font.config(height=self.original_font_height + 4)
 
     def handle_unhover(self):
 
         with bp.paint_lock:
             self.hover_sail.hide()
             self.text_widget.font.config(height=self.original_font_height)
-            self.text_widget2.font.config(height=self.original_font_height)
+            if self.text_widget2 is not None:
+                self.text_widget2.font.config(height=self.original_font_height)
 
     def set_background_color(self, background_color):
 
-        self.set_background_image(btnimg_manager.get_resized_background(self.rect.size, color=self.background_color))
+        if (sum(background_color) < self.middle_color) != (sum(self.background_color) < self.middle_color):
+            bp.LOGGER.warning("A button changes its background_color too much ?")
+
+        self.set_background_image(btnimg_manager.get_resized_background(self.rect.size, color=background_color))
+
+    def set_text(self, text):
+
+        self.text_widget.set_text(text)
+        if self.text_widget2 is not None:
+            self.text_widget2.set_text(text)
 
 
 class RegionInfoButton(PE_Button):

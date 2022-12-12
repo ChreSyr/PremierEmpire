@@ -292,8 +292,7 @@ class SettingsLanguageZone(SettingsZone):
                 lang_manager.set_language(btn.id)
                 if not game.connected_to_network:
                     TmpMessage(game, text_id=34, explain_id=37)
-                self.behind.lang_btn.text_widget.set_text(btn.text)
-                self.behind.lang_btn.text_widget2.set_text(btn.text)
+                self.behind.lang_btn.set_text(btn.text)
 
                 memory_lang_id = btn.id
                 import importlib
@@ -307,12 +306,10 @@ class SettingsLanguageZone(SettingsZone):
 
             def set_text(btn, text):
 
-                btn.text_widget.set_text(text)
-                btn.text_widget2.set_text(text)
+                btn.set_text(text)
 
                 if lang_manager.language == btn.id:
-                    self.behind.lang_btn.text_widget.set_text(btn.text)
-                    self.behind.lang_btn.text_widget2.set_text(btn.text)
+                    self.behind.lang_btn.set_text(btn.text)
         self.langbtn_class = LangBtn
 
         self.scrollview = bp.ScrollView(self, size=(self.behind.content_rect.width + 40,
@@ -458,8 +455,7 @@ class SettingsResolutionZone(SettingsZone):
                 if btn.resolution is None:
                     self.application.set_default_size(screen_sizes[0])
                     pygame.display.set_mode(screen_sizes[0], pygame.FULLSCREEN)
-                    self.behind.resolution_btn.text_widget.set_text(btn.text)
-                    self.behind.resolution_btn.text_widget2.set_text(btn.text)
+                    self.behind.resolution_btn.set_text(btn.text)
                 else:
                     self.application.set_default_size(btn.resolution)
 
@@ -495,29 +491,104 @@ class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
         self.kill()
 
 
-class InfoLeftZone(bp.Zone):
+class InfoLeftZone(BackgroundedZone):
 
     def __init__(self, game):
 
-        BackgroundedZone.__init__(self, game, sticky="midleft", size=("10%", "60%"), visible=False,
-                                  layer=game.gameinfo_layer)
+        padding = 4
+        in_padding = 4 + 3
+        BackgroundedZone.__init__(self, game, sticky="midleft", visible=False, layer=game.gameinfo_layer)
 
-        self.next_step_btn = PE_Button(self, text_id=15, width="100%", sticky="midbottom", command=game.next_step)
-        order_zone = bp.Zone(self, size=("100%", self.next_step_btn.rect.top))
-        def handle_resize():
-            order_zone.resize(self.rect.width, self.next_step_btn.rect.top)
-            order_zone.pack()
-        self.signal.RESIZE.connect(handle_resize, owner=order_zone)
-        timer_zone = bp.Zone(order_zone, size=("100%", "10%"), background_color="black")
+        self.highlighted = None
+        self.highlighted_color = (201, 129, 0)
+        self.standard_color = (158, 106, 51)
+
+        timer_zone = bp.Zone(self, size=(140 + padding * 2 + 3 * 2, 40), background_color="black")
         bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),
                             sticky="center", align_mode="center", font_color="white")
-        self.construction = z1= BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        self.construction_text = TranslatableText(z1, text_id=16, sticky="center", align_mode="center")
-        self.attack = z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        self.attack_text = TranslatableText(z2, text_id=17, sticky="center", align_mode="center")
-        self.reorganisation = z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        self.reorganisation_text = TranslatableText(z3, text_id=18, sticky="center", align_mode="center")
-        order_zone.pack()
+
+        class InfoLeftButton(PE_Button):
+
+            STYLE = PE_Button.STYLE.substyle()
+            STYLE.modify(
+                text_style={"font_height": 18},
+            )
+
+            def __init__(btn, parent, text_id, step_id=None, command=None):
+
+                def set_step():
+
+                    return game.set_step(btn.step_id)
+
+                    player = game.current_player
+                    i = 0
+
+                    game.next_step()
+
+                    while game.current_player == player and game.step.id != btn.step_id:
+                        game.next_step()
+
+                        i += 1
+                        if i > 5:
+                            raise StopIteration
+
+                PE_Button.__init__(btn, parent, text_id=text_id, height=80, background_color=self.standard_color,
+                                   command=set_step if command is None else command)
+
+                btn.step_id = step_id
+                btn.highlighted = False
+
+            def set_highlighted(btn, highlighted):
+
+                btn.highlighted = highlighted
+
+                if highlighted:
+                    btn.set_background_color(self.highlighted_color)
+                    btn.disable()
+                    btn.disable_sail.hide()
+                else:
+                    btn.set_background_color(self.standard_color)
+                    if not btn.is_touchable_by_mouse:
+                        btn.disable_sail.show()
+
+        stepbtns_zone = bp.Zone(self, padding=(in_padding, padding, in_padding, in_padding), spacing=padding)
+        self.construction_btn = InfoLeftButton(stepbtns_zone, text_id=16, step_id=20)
+        self.construction_btn.disable()
+        self.attack_btn = InfoLeftButton(stepbtns_zone, text_id=17, step_id=21)
+        self.reorganisation_btn = InfoLeftButton(stepbtns_zone, text_id=18, step_id=22)
+        stepbtns_zone.pack()
+        stepbtns_zone.adapt()
+
+        nextstep_zone = bp.Zone(self, padding=(in_padding, 40, in_padding, in_padding))
+        self.next_step_btn = PE_Button(nextstep_zone, text_id=15, background_color=self.standard_color,
+                                       command=game.next_player)
+        nextstep_zone.pack()
+        nextstep_zone.adapt()
+
+        self.pack()
+        self.adapt()
+
+    def highlight(self, btn):
+
+        if btn == self.reorganisation_btn:
+            self.reorganisation_btn.disable()
+
+        if self.highlighted is not None:
+            self.highlighted.set_highlighted(False)
+
+        self.highlighted = btn
+        btn.set_highlighted(True)
+
+        if btn == self.construction_btn:
+            self.scene.nextsail_text.set_text(self.construction_btn.text)
+            self.attack_btn.enable()
+            self.reorganisation_btn.enable()
+        elif btn == self.attack_btn:
+            self.scene.nextsail_text.set_text(self.attack_btn.text)
+            self.reorganisation_btn.enable()
+        elif btn == self.reorganisation_btn:
+            self.scene.nextsail_text.set_text(self.reorganisation_btn.text)
+            self.attack_btn.disable()
 
 
 class WinnerInfoZone(bp.Zone):

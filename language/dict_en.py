@@ -12,7 +12,7 @@ texts = [
     "Language :",
     "Settings",
     "_",
-    "Next step",
+    "Next player",
     "CONSTRUCTION",
     "OFFENSIVE",
     "REORGANIZATION",

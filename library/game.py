@@ -150,26 +150,6 @@ class Game(bp.Scene):
         # INFORMATION AT LEFT
         self.time_left = bp.Timer(90, self.next_player)
         self.info_left_zone = InfoLeftZone(self)
-        if False:
-            self.info_left_zone = bp.Zone(self, sticky="midleft", size=("10%", "60%"), visible=False,
-                                          layer=self.gameinfo_layer)
-            self.next_step = PE_Button(self.info_left_zone, text_id=15, width="100%", sticky="midbottom",
-                                       command=self.next_step)
-            order_zone = bp.Zone(self.info_left_zone, size=("100%", self.next_step.rect.top))
-            def handle_ilz_resize():
-                order_zone.resize(self.info_left_zone.rect.width, self.next_step.rect.top)
-                order_zone.pack()
-            self.info_left_zone.signal.RESIZE.connect(handle_ilz_resize, owner=order_zone)
-            timer_zone = bp.Zone(order_zone, size=("100%", "10%"), background_color="black")
-            bp.DynamicText(timer_zone, lambda: bp.format_time(self.time_left.get_time_left(), formatter="%M:%S"),
-                                sticky="center", align_mode="center", font_color="white")
-            self.construction_label_zone = z1= BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-            self.construction_label_zone.text = TranslatableText(z1, text_id=16, sticky="center", align_mode="center")
-            self.attack_label_zone = z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-            self.attack_label_zone.text = TranslatableText(z2, text_id=17, sticky="center", align_mode="center")
-            self.reorganisation_label_zone = z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-            self.reorganisation_label_zone.text = TranslatableText(z3, text_id=18, sticky="center", align_mode="center")
-            order_zone.pack()
 
         # INFO COUNTRY
         self.info_country_on_hover = False
@@ -435,8 +415,7 @@ class Game(bp.Scene):
         def start_build():
             self.info_left_zone.show()
             self.set_tuto_ref_text_id(31)
-            self.info_left_zone.construction.set_background_color("orange")
-            self.nextsail_text.set_text(self.info_left_zone.construction_text.text)
+            self.info_left_zone.highlight(self.info_left_zone.construction_btn)
 
             for region in self.current_player.regions:
                 if region.structure.is_empty:
@@ -450,26 +429,19 @@ class Game(bp.Scene):
             for region in self.current_player.regions:
                 if region.structure.is_empty:
                     region.structure.hide()
-            self.info_left_zone.construction.set_background_color(BackgroundedZone.STYLE["background_color"])
         Step(self, 20, start=start_build, end=end_build)
 
         def start_attack():
             self.set_tuto_ref_text_id(32)
-            self.info_left_zone.attack.set_background_color("orange")
-            self.nextsail_text.set_text(self.info_left_zone.attack_text.text)
+            self.info_left_zone.highlight(self.info_left_zone.attack_btn)
             self.current_player.check_attack()
-        def end_attack():
-            self.info_left_zone.attack.set_background_color(BackgroundedZone.STYLE["background_color"])
-        Step(self, 21, start=start_attack, end=end_attack)
+        Step(self, 21, start=start_attack)
 
         def start_reorganization():
             self.set_tuto_ref_text_id(33)
-            self.info_left_zone.reorganisation.set_background_color("orange")
-            self.nextsail_text.set_text(self.info_left_zone.reorganisation_text.text)
+            self.info_left_zone.highlight(self.info_left_zone.reorganisation_btn)
             self.current_player.check_movement()
-        def end_reorganization():
-            self.info_left_zone.reorganisation.set_background_color(BackgroundedZone.STYLE["background_color"])
-        Step(self, 22, start=start_reorganization, end=end_reorganization)
+        Step(self, 22, start=start_reorganization)
 
         self.step = self.step_from_id[0]
         self.set_step(0)
@@ -665,9 +637,9 @@ class Game(bp.Scene):
         self.confirm_zone.hide()
         self.choose_build_zone.hide()
 
-        if self.step.id == 10:
-            flag = self.flags[self.current_player_id]
-            flag.hide()
+        # if self.step.id == 10:
+        #     flag = self.flags[self.current_player_id]
+        #     flag.hide()
 
     def handle_resize(self):
 
@@ -675,8 +647,7 @@ class Game(bp.Scene):
         # if self.resolution_btn.text_widget.has_locked("text"):
         #     return
         text = f"{self.rect.width} × {self.rect.height}"
-        self.settings_zone.resolution_btn.text_widget.set_text(text)
-        self.settings_zone.resolution_btn.text_widget2.set_text(text)
+        self.settings_zone.resolution_btn.set_text(text)
 
     def next_player(self):
 

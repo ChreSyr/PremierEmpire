@@ -12,7 +12,7 @@ texts = [
     "Langue :",
     "Paramètres",
     "",
-    "Étape suivante",
+    "Joueur suivant",
     "CONSTRUCTION",
     "ATTAQUE",
     "REORGANISATION",
