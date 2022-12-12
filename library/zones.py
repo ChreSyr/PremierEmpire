@@ -26,7 +26,7 @@ class PlayZone(bp.Zone):
         bp.Zone.__init__(self, game, size=logo.get_size(), sticky="center", layer=game.game_layer,
                          background_image=logo_filled)
         self.btn = play_btn = PE_Button(self, text_id=3, center=(0, -37), refloc="midbottom",
-                                                  command=bp.PrefilledFunction(game.set_todo, 1))
+                                                  command=bp.PrefilledFunction(game.set_step, 1))
         self.btn.original_size = play_btn.rect.size
         play_btn.growing = True
         def anim_play_zone():
@@ -106,7 +106,7 @@ class SettingsMainZone(SettingsZone):
 
         def newgame():
             self.hide()
-            self.game.set_todo(1)
+            self.game.set_step(1)
             self.newgame_btn.disable()
         self.newgame_btn = PE_Button(parent=self, text_id=2, command=newgame)
         self.newgame_btn.disable()
@@ -115,12 +115,12 @@ class SettingsMainZone(SettingsZone):
             qs_zone = SettingsZone(game, behind=self, size=self.rect.size)
             def quick_setup1():
                 with bp.paint_lock:
-                    if game.todo.id == 0:
-                        game.set_todo(1)
-                    if game.todo.id == 1:
+                    if game.step.id == 0:
+                        game.set_step(1)
+                    if game.step.id == 1:
                         game.nb_players = 2
-                        game.set_todo(10)
-                    if game.todo.id == 10:
+                        game.set_step(10)
+                    if game.step.id == 10:
                         game.flag_btns[0].validate()
                         game.map.region_select(game.regions_list[0])  # alaska
                         game.rc_yes.validate()
@@ -131,12 +131,12 @@ class SettingsMainZone(SettingsZone):
             PE_Button(qs_zone, text="1", translatable=False, command=quick_setup1)
             def quick_setup2():
                 with bp.paint_lock:
-                    if game.todo.id == 0:
-                        game.set_todo(1)
-                    if game.todo.id == 1:
+                    if game.step.id == 0:
+                        game.set_step(1)
+                    if game.step.id == 1:
                         game.nb_players = 3
-                        game.set_todo(10)
-                    if game.todo.id == 10:
+                        game.set_step(10)
+                    if game.step.id == 10:
                         game.flag_btns[2].validate()
                         game.map.region_select(game.regions_list[0])  # alaska
                         game.rc_yes.validate()
@@ -150,12 +150,12 @@ class SettingsMainZone(SettingsZone):
             PE_Button(qs_zone, text="2", translatable=False, command=quick_setup2)
             def quick_setup3():
                 with bp.paint_lock:
-                    if game.todo.id == 0:
-                        game.set_todo(1)
-                    if game.todo.id == 1:
+                    if game.step.id == 0:
+                        game.set_step(1)
+                    if game.step.id == 1:
                         game.nb_players = 2
-                        game.set_todo(10)
-                    if game.todo.id == 10:
+                        game.set_step(10)
+                    if game.step.id == 10:
 
                         qs_zone.close_settings()
 
@@ -172,17 +172,17 @@ class SettingsMainZone(SettingsZone):
 
                         game.map.region_select(alaska)
                         game.camp_btn.validate()
-                        game.next_todo.validate()
+                        game.next_step()
 
                         game.map.region_select(alberta)
                         game.camp_btn.validate()
                         game.transfert(alberta)
                         game.map.region_select(territoires)
                         game.invade_btn.validate()
-                        game.next_todo.validate()
+                        game.next_step()
                         game.transfert(alberta)
                         game.end_transfert(territoires)
-                        game.next_todo.validate()
+                        game.next_step()
 
                         game.map.region_select(alaska)
                         game.transfert(alaska)
@@ -368,7 +368,7 @@ class SettingsLangAddZone(SettingsZone):
             def handle_validate(btn):
 
                 if btn.id in dicts:
-                    for lang_btn in self.behind.default_layer:
+                    for lang_btn in self.behind.scrolled.default_layer:
                         if lang_btn.id == btn.id:
                             lang_btn.validate()
                             break
@@ -493,6 +493,31 @@ class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
 
         self.timer.cancel()
         self.kill()
+
+
+class InfoLeftZone(bp.Zone):
+
+    def __init__(self, game):
+
+        BackgroundedZone.__init__(self, game, sticky="midleft", size=("10%", "60%"), visible=False,
+                                  layer=game.gameinfo_layer)
+
+        self.next_step_btn = PE_Button(self, text_id=15, width="100%", sticky="midbottom", command=game.next_step)
+        order_zone = bp.Zone(self, size=("100%", self.next_step_btn.rect.top))
+        def handle_resize():
+            order_zone.resize(self.rect.width, self.next_step_btn.rect.top)
+            order_zone.pack()
+        self.signal.RESIZE.connect(handle_resize, owner=order_zone)
+        timer_zone = bp.Zone(order_zone, size=("100%", "10%"), background_color="black")
+        bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),
+                            sticky="center", align_mode="center", font_color="white")
+        self.construction = z1= BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
+        self.construction_text = TranslatableText(z1, text_id=16, sticky="center", align_mode="center")
+        self.attack = z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
+        self.attack_text = TranslatableText(z2, text_id=17, sticky="center", align_mode="center")
+        self.reorganisation = z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
+        self.reorganisation_text = TranslatableText(z3, text_id=18, sticky="center", align_mode="center")
+        order_zone.pack()
 
 
 class WinnerInfoZone(bp.Zone):

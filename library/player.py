@@ -143,16 +143,16 @@ class Player:
                 if can_attack:
                     break
         if can_attack is False:
-            self.game.set_todo(22)
+            self.game.set_step(22)
 
     def check_build(self):
 
-        assert self.game.todo.id == 20
+        assert self.game.step.id == 20
         if self.gold < 3 or self.has_fully_built():
 
             # self.game.TmpMessage(self.game, msg="Fin de l'étape : CONSTRUCTION", explain="Tous vos pays possèdent déjà "
             #     "un bâtiment" if has_fully_built else "Vous n'avez pas assez d'or (il en faut 3 au minimum)")
-            self.game.set_todo(21)
+            self.game.set_step(21)
 
     def check_movement(self):
 
@@ -162,7 +162,7 @@ class Player:
                 can_attack = True
                 break
         if can_attack is False:
-            self.game.next_todo.validate()
+            self.game.next_step()
 
     def conquer(self, region):
 

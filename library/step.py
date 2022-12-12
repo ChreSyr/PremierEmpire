@@ -13,7 +13,7 @@ class Step:
         if end:
             self.end = end
 
-        game.todo_from_id[id] = self
+        game.step_from_id[id] = self
 
     def start(self):
         """"""

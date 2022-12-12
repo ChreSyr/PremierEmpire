@@ -147,7 +147,7 @@ class Map(bp.Zone, bp.LinkableByMouse):
 
     def handle_link(self):
 
-        if self.parent.todo.id < 20:
+        if self.parent.step.id < 20:
             return
 
         for region in self.parent.regions.values():

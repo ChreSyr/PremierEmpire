@@ -14,8 +14,8 @@ from library.memory import Memory
 from library.theme import set_cursor
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
-from library.zones import BackgroundedZone, PlayZone, TmpMessage, WinnerInfoZone
-from library.region import Region, Structure
+from library.zones import BackgroundedZone, InfoLeftZone, PlayZone, TmpMessage, WinnerInfoZone
+from library.region import Structure
 from library.map import Map
 
 set_progression(.5)
@@ -148,38 +148,28 @@ class Game(bp.Scene):
                                                   get_args=(lambda : self.current_player.name_id,))
 
         # INFORMATION AT LEFT
-        self.info_left_zone = bp.Zone(self, sticky="midleft", size=("10%", "60%"), visible=False, layer=self.gameinfo_layer)
-        def next_todo_command():
-            if self.todo.id == 22:
-                self.next_player()
-                self.set_todo(20)
-            else:
-                self.set_todo(self.todo.id + 1)
-        self.next_todo = PE_Button(self.info_left_zone, "Étape suivante", width="100%", sticky="midbottom",
-                                   command=next_todo_command)
-        def handle_timeout():
-            if self.todo.id == 20:
-                self.todo.end()
-            if self.todo.id == 21:
-                self.todo.end()
-            self.next_player()
-            self.set_todo(20)
-        self.time_left = bp.Timer(90, handle_timeout)
-        order_zone = bp.Zone(self.info_left_zone, size=("100%", self.next_todo.rect.top))
-        def handle_ilz_resize():
-            order_zone.resize(self.info_left_zone.rect.width, self.next_todo.rect.top)
+        self.time_left = bp.Timer(90, self.next_player)
+        self.info_left_zone = InfoLeftZone(self)
+        if False:
+            self.info_left_zone = bp.Zone(self, sticky="midleft", size=("10%", "60%"), visible=False,
+                                          layer=self.gameinfo_layer)
+            self.next_step = PE_Button(self.info_left_zone, text_id=15, width="100%", sticky="midbottom",
+                                       command=self.next_step)
+            order_zone = bp.Zone(self.info_left_zone, size=("100%", self.next_step.rect.top))
+            def handle_ilz_resize():
+                order_zone.resize(self.info_left_zone.rect.width, self.next_step.rect.top)
+                order_zone.pack()
+            self.info_left_zone.signal.RESIZE.connect(handle_ilz_resize, owner=order_zone)
+            timer_zone = bp.Zone(order_zone, size=("100%", "10%"), background_color="black")
+            bp.DynamicText(timer_zone, lambda: bp.format_time(self.time_left.get_time_left(), formatter="%M:%S"),
+                                sticky="center", align_mode="center", font_color="white")
+            self.construction_label_zone = z1= BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
+            self.construction_label_zone.text = TranslatableText(z1, text_id=16, sticky="center", align_mode="center")
+            self.attack_label_zone = z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
+            self.attack_label_zone.text = TranslatableText(z2, text_id=17, sticky="center", align_mode="center")
+            self.reorganisation_label_zone = z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
+            self.reorganisation_label_zone.text = TranslatableText(z3, text_id=18, sticky="center", align_mode="center")
             order_zone.pack()
-        self.info_left_zone.signal.RESIZE.connect(handle_ilz_resize, owner=order_zone)
-        timer_zone = bp.Zone(order_zone, size=("100%", "10%"), background_color="black")
-        bp.DynamicText(timer_zone, lambda: bp.format_time(self.time_left.get_time_left(), formatter="%M:%S"),
-                            sticky="center", align_mode="center", font_color="white")
-        self.construction_label_zone = z1= BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        self.construction_label_zone.text = TranslatableText(z1, text_id=16, sticky="center", align_mode="center")
-        self.attack_label_zone = z2 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        self.attack_label_zone.text = TranslatableText(z2, text_id=17, sticky="center", align_mode="center")
-        self.reorganisation_label_zone = z3 = BackgroundedZone(order_zone, size=("100%", "30%"), padding=5)
-        self.reorganisation_label_zone.text = TranslatableText(z3, text_id=18, sticky="center", align_mode="center")
-        order_zone.pack()
 
         # INFO COUNTRY
         self.info_country_on_hover = False
@@ -220,12 +210,12 @@ class Game(bp.Scene):
             self.invade_btn.hide()
             self.back_btn.hide()
             self.import_btn.hide()
-            if self.todo.id == 21 and self.transferring:
+            if self.step.id == 21 and self.transferring:
                 if region.name in self.transfert_from.neighbors and region.owner != self.transfert_from.owner:
                     self.invade_btn.show()
                 elif region is self.transfert_from:
                     self.back_btn.show()
-            elif self.todo.id == 22 and self.transferring:
+            elif self.step.id == 22 and self.transferring:
                 if region is self.transfert_from:
                     self.back_btn.show()
                 elif region in self.transfert_from.all_allied_neighbors:
@@ -240,7 +230,7 @@ class Game(bp.Scene):
                 self.rc_yes.hide()
                 self.rc_no.hide()
                 set_cursor("default")
-                self.set_todo(10)
+                self.set_step(10)
             else:
                 self.next_player()
                 count = 0
@@ -249,11 +239,11 @@ class Game(bp.Scene):
                     count += 1
                     if count == self.nb_players:
                         self.current_player_id = -1
-                        self.next_player()  # set to player n°1
+                        self.next_player()  # set to player n°0
                         self.time_left.start()
                         self.rc_yes.hide()
                         self.rc_no.hide()
-                        return self.set_todo(20)
+                        return self.set_step(20)
                 self.pick_region()
         def yes():
             self.current_player.flag_region = self.last_selected_region
@@ -297,7 +287,7 @@ class Game(bp.Scene):
             def handle_unhover(btn):
                 btn.text_widget.font.config(height=btn.original_font_height)
             def validate(btn, *args, **kwargs):
-                self.set_todo(10)
+                self.set_step(10)
                 self.nb_players = int(btn.text)
 
         b1 = ClickableNb(1, pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
@@ -345,7 +335,7 @@ class Game(bp.Scene):
                 Player(self, btn.continent)
                 self.next_player()
                 self.flags.append(self.current_player.flag)
-                self.set_todo(11)
+                self.set_step(11)
                 btn.disable()
         self.flag_btns = (
             ClickableFlag("north_america", pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery)),
@@ -363,7 +353,7 @@ class Game(bp.Scene):
         self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
         bp.Button(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
                   background_image=Structure.BUILDS.subsurface(0, 60, 30, 30),
-                  command=bp.PackedFunctions(lambda: self.todo.confirm(), self.map.region_unselect))
+                  command=bp.PackedFunctions(lambda: self.step.confirm(), self.map.region_unselect))
         bp.Button(self.confirm_zone, size=(30, 30), background_color="red4", focus=-1,
                   background_image=Structure.BUILDS.subsurface(30, 60, 30, 30), command=self.map.region_unselect)
         self.confirm_zone.pack(adapt=True)
@@ -398,8 +388,8 @@ class Game(bp.Scene):
         self.step = None
         self.step_from_id = {}
 
-        self.todo = None
-        self.todo_from_id = {}
+        self.step = None
+        self.step_from_id = {}
         self._init_steps()
 
         # SETUP
@@ -443,11 +433,10 @@ class Game(bp.Scene):
         Step(self, 11, start=start_pickregion)
 
         def start_build():
-            self.next_todo.show()
             self.info_left_zone.show()
             self.set_tuto_ref_text_id(31)
-            self.construction_label_zone.set_background_color("orange")
-            self.nextsail_text.set_text(self.construction_label_zone.text.text)
+            self.info_left_zone.construction.set_background_color("orange")
+            self.nextsail_text.set_text(self.info_left_zone.construction_text.text)
 
             for region in self.current_player.regions:
                 if region.structure.is_empty:
@@ -461,29 +450,29 @@ class Game(bp.Scene):
             for region in self.current_player.regions:
                 if region.structure.is_empty:
                     region.structure.hide()
-            self.construction_label_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
+            self.info_left_zone.construction.set_background_color(BackgroundedZone.STYLE["background_color"])
         Step(self, 20, start=start_build, end=end_build)
 
         def start_attack():
             self.set_tuto_ref_text_id(32)
-            self.attack_label_zone.set_background_color("orange")
-            self.nextsail_text.set_text(self.attack_label_zone.text.text)
+            self.info_left_zone.attack.set_background_color("orange")
+            self.nextsail_text.set_text(self.info_left_zone.attack_text.text)
             self.current_player.check_attack()
         def end_attack():
-            self.attack_label_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
+            self.info_left_zone.attack.set_background_color(BackgroundedZone.STYLE["background_color"])
         Step(self, 21, start=start_attack, end=end_attack)
 
         def start_reorganization():
             self.set_tuto_ref_text_id(33)
-            self.reorganisation_label_zone.set_background_color("orange")
-            self.nextsail_text.set_text(self.reorganisation_label_zone.text.text)
+            self.info_left_zone.reorganisation.set_background_color("orange")
+            self.nextsail_text.set_text(self.info_left_zone.reorganisation_text.text)
             self.current_player.check_movement()
         def end_reorganization():
-            self.reorganisation_label_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
+            self.info_left_zone.reorganisation.set_background_color(BackgroundedZone.STYLE["background_color"])
         Step(self, 22, start=start_reorganization, end=end_reorganization)
 
-        self.todo = self.todo_from_id[0]
-        self.set_todo(0)
+        self.step = self.step_from_id[0]
+        self.set_step(0)
 
     def _set_connected_to_network(self, boolean):
         if boolean:
@@ -543,15 +532,15 @@ class Game(bp.Scene):
             self.back_btn.hide()
             self.import_btn.hide()
 
-        if self.todo.id == 21 and self.winner_info_zone.is_hidden:
+        if self.step.id == 21 and self.winner_info_zone.is_hidden:
             self.current_player.check_attack()
-        elif self.todo.id == 22:
+        elif self.step.id == 22:
             self.current_player.check_movement()
 
     def handle_event(self, event):
 
         # Region sail
-        if self.todo.id >= 20:
+        if self.step.id >= 20:
             if event.type == bp.MOUSEMOTION:
                 if self.map.selected_region is None and self.map.is_hovered:
                     hovered = ctrl_hovered = None
@@ -566,13 +555,13 @@ class Game(bp.Scene):
                                 self.region_info_zone.show()
 
                             hoverable = False
-                            if self.todo.id == 17:
+                            if self.step.id == 17:
                                 if region.owner is None:
                                     hoverable = True
-                            if self.todo.id == 20:
+                            if self.step.id == 20:
                                 if region.owner is self.current_player and region.structure.is_empty:
                                     hoverable = True
-                            elif self.todo.id == 21:
+                            elif self.step.id == 21:
                                 if self.transferring:
                                     if region is self.transfert_from:
                                         hoverable = True
@@ -581,7 +570,7 @@ class Game(bp.Scene):
                                         hoverable = True
                                 elif region in self.current_player.regions:
                                     hoverable = True
-                            if self.todo.id == 22:
+                            if self.step.id == 22:
                                 if self.transferring:
                                     if region is self.transfert_from:
                                         hoverable = True
@@ -608,19 +597,19 @@ class Game(bp.Scene):
                             self.map.hovered_region = None
 
             elif event.type == bp.KEYDOWN:
-                if self.todo.id > 2:
+                if self.step.id > 2:
                     if event.key == bp.K_LCTRL:
                         self.info_country_on_hover = True
 
             elif event.type == bp.KEYUP:
-                if self.todo.id > 2:
+                if self.step.id > 2:
                     if event.key == bp.K_LCTRL:
                         self.info_country_on_hover = False
                         if self.map.selected_region is None:
                             self.region_info_zone.hide()
 
             elif event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
-                if self.todo.id in (21, 22):
+                if self.step.id in (21, 22):
                     if self.map.is_hovered:
                         right_clicked = None
                         for region in self.current_player.regions:
@@ -648,7 +637,7 @@ class Game(bp.Scene):
 
         self.last_selected_region = region
 
-        if self.todo.id == 17:
+        if self.step.id == 17:
             flag = self.flags[self.current_player_id]
             if region.owner is not None:
                 flag.hide()
@@ -659,7 +648,7 @@ class Game(bp.Scene):
             self.confirm_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
             self.confirm_zone.show()
 
-        if self.todo.id == 20:
+        if self.step.id == 20:
             if region in self.current_player.regions and region.structure.is_empty:
                 self.choose_build_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
                 self.choose_build_zone.show()
@@ -676,7 +665,7 @@ class Game(bp.Scene):
         self.confirm_zone.hide()
         self.choose_build_zone.hide()
 
-        if self.todo.id == 10:
+        if self.step.id == 10:
             flag = self.flags[self.current_player_id]
             flag.hide()
 
@@ -691,7 +680,15 @@ class Game(bp.Scene):
 
     def next_player(self):
 
-        if self.todo.id >= 20:
+        set_build = False
+        if self.step.id >= 20:
+
+            set_build = True
+            if self.step.id == 20:
+                self.step.end()
+            if self.step.id == 21:
+                self.step.end()
+
             if self.turn_index > 0 and self.current_player_id == len(self.players) - 1:
                 self.turn_index += 1
 
@@ -699,26 +696,26 @@ class Game(bp.Scene):
         if not self.current_player.is_alive:
             self.next_player()
             return
+
+        if set_build:
+            self.set_step(20)
+
         self.au_tour_de.complete_text()
         self.info_top_zone.set_background_color(self.current_player.color)
 
         if self.time_left.is_running:
             self.time_left.cancel()
-        if self.todo.id >= 20:
+        if self.step.id >= 20:
             self.time_left.start()
 
         set_cursor(self.current_player.name)
 
-    def next_turn(self):
+    def next_step(self):
 
-        self.turn_index += 1
-        self.current_player_id = -1
-        self.next_player()
-        if self.todo.id >= 20:
-            self.time_left.start()
-        self.set_todo(20)
-        if self.map.selected_region is not None:
-            self.map.region_unselect()
+        if self.step.id == 22:
+            self.next_player()
+        else:
+            self.set_step(self.step.id + 1)
 
     def newgame_setup(self):
 
@@ -766,20 +763,20 @@ class Game(bp.Scene):
         else:
             self.rc_yes.command()
 
-    def set_todo(self, index):
+    def set_step(self, index):
 
         if self.transferring:
             self.end_transfert(self.transfert_from)
 
-        self.todo.end()
+        self.step.end()
 
-        self.todo = self.todo_from_id[index]
+        self.step = self.step_from_id[index]
 
         if self.map.selected_region is not None:
             self.map.region_unselect()
-        self.todo.start()
+        self.step.start()
 
-        if self.todo.id >= 20:
+        if self.step.id >= 20:
             self.next_sail.set_pos(right=0)
             if self.nextsail_animator.is_running:
                 self.nextsail_animator.cancel()
@@ -806,7 +803,7 @@ class Game(bp.Scene):
                     self.transfert_title.set_text(str(self.transfert_amount))
                     self.transfert_zone.pack(axis="horizontal", adapt=True)
             else:
-                if self.todo.id == 22:
+                if self.step.id == 22:
                     self.temp_import_region = region
                     self.import_btn.validate()
         else:
