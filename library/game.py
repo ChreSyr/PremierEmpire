@@ -637,10 +637,6 @@ class Game(bp.Scene):
         self.confirm_zone.hide()
         self.choose_build_zone.hide()
 
-        # if self.step.id == 10:
-        #     flag = self.flags[self.current_player_id]
-        #     flag.hide()
-
     def handle_resize(self):
 
         super().handle_resize()

@@ -168,6 +168,9 @@ class Player:
 
         if region.flag is not None:
             flag_owner = self.game.players[int(region.flag.name)]
+            gold_earned = flag_owner.gold
+            self.change_gold(+gold_earned)
+            flag_owner.change_gold(-gold_earned)
             if flag_owner is not self:  # else, the player conquers an empty region where he left his flag
                 flag_owner.die()
 
