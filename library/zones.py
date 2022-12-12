@@ -111,6 +111,89 @@ class SettingsMainZone(SettingsZone):
         self.newgame_btn = PE_Button(parent=self, text_id=2, command=newgame)
         self.newgame_btn.disable()
 
+        def init_qs():
+            qs_zone = SettingsZone(game, behind=self, size=self.rect.size)
+            def quick_setup1():
+                with bp.paint_lock:
+                    if game.todo.id == 0:
+                        game.set_todo(1)
+                    if game.todo.id == 1:
+                        game.nb_players = 2
+                        game.set_todo(10)
+                    if game.todo.id == 10:
+                        game.flag_btns[0].validate()
+                        game.map.region_select(game.regions_list[0])  # alaska
+                        game.rc_yes.validate()
+                        game.flag_btns[2].validate()
+                        game.map.region_select(game.regions_list[1])  # alberta
+                        game.rc_yes.validate()
+                        qs_zone.close_settings()
+            PE_Button(qs_zone, text="1", translatable=False, command=quick_setup1)
+            def quick_setup2():
+                with bp.paint_lock:
+                    if game.todo.id == 0:
+                        game.set_todo(1)
+                    if game.todo.id == 1:
+                        game.nb_players = 3
+                        game.set_todo(10)
+                    if game.todo.id == 10:
+                        game.flag_btns[2].validate()
+                        game.map.region_select(game.regions_list[0])  # alaska
+                        game.rc_yes.validate()
+                        game.flag_btns[3].validate()
+                        game.map.region_select(game.regions_list[4])  # ontario
+                        game.rc_yes.validate()
+                        game.flag_btns[4].validate()
+                        game.map.region_select(game.regions_list[8])  # mexique
+                        game.rc_yes.validate()
+                        qs_zone.close_settings()
+            PE_Button(qs_zone, text="2", translatable=False, command=quick_setup2)
+            def quick_setup3():
+                with bp.paint_lock:
+                    if game.todo.id == 0:
+                        game.set_todo(1)
+                    if game.todo.id == 1:
+                        game.nb_players = 2
+                        game.set_todo(10)
+                    if game.todo.id == 10:
+
+                        qs_zone.close_settings()
+
+                        alaska = game.regions_list[0]
+                        territoires = game.regions_list[1]
+                        alberta = game.regions_list[2]
+
+                        game.flag_btns[4].validate()  # gray
+                        game.map.region_select(alaska)
+                        game.rc_yes.validate()
+                        game.flag_btns[5].validate()  # purple
+                        game.map.region_select(alberta)
+                        game.rc_yes.validate()
+
+                        game.map.region_select(alaska)
+                        game.camp_btn.validate()
+                        game.next_todo.validate()
+
+                        game.map.region_select(alberta)
+                        game.camp_btn.validate()
+                        game.transfert(alberta)
+                        game.map.region_select(territoires)
+                        game.invade_btn.validate()
+                        game.next_todo.validate()
+                        game.transfert(alberta)
+                        game.end_transfert(territoires)
+                        game.next_todo.validate()
+
+                        game.map.region_select(alaska)
+                        game.transfert(alaska)
+                        game.transfert(alaska)
+                        game.map.region_select(alberta)
+                        game.invade_btn.validate()
+            PE_Button(qs_zone, text="3", translatable=False, command=quick_setup3)
+            qs_zone.pack_and_adapt()
+            self.qs_btn.command = qs_zone.show
+        self.qs_btn = PE_Button(parent=self, text="Quick setup", translatable=False, command=init_qs)
+
         self.tuto_btn = PE_Button(parent=self, text_id=7)
 
         connection_zone = bp.Zone(self)

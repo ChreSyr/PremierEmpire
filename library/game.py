@@ -347,12 +347,14 @@ class Game(bp.Scene):
                 self.flags.append(self.current_player.flag)
                 self.set_todo(11)
                 btn.disable()
-        ClickableFlag("north_america", pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery))
-        ClickableFlag("europa", pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery))
-        ClickableFlag("asia", pos=(centerx - btn_mid, centery))
-        ClickableFlag("south_america", pos=(centerx + btn_mid, centery))
-        ClickableFlag("africa", pos=(centerx + btn_w * 1 + btn_marg * 1 + btn_mid, centery))
-        ClickableFlag("oceania", pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery))
+        self.flag_btns = (
+            ClickableFlag("north_america", pos=(centerx - btn_w * 2 - btn_marg * 2 - btn_mid, centery)),
+            ClickableFlag("europa", pos=(centerx - btn_w * 1 - btn_marg * 1 - btn_mid, centery)),
+            ClickableFlag("asia", pos=(centerx - btn_mid, centery)),
+            ClickableFlag("south_america", pos=(centerx + btn_mid, centery)),
+            ClickableFlag("africa", pos=(centerx + btn_w * 1 + btn_marg * 1 + btn_mid, centery)),
+            ClickableFlag("oceania", pos=(centerx + btn_w * 2 + btn_marg * 2 + btn_mid, centery)),
+        )
 
         # CLICK TO START
         self.play_zone = PlayZone(self)
@@ -375,10 +377,10 @@ class Game(bp.Scene):
             self.current_player.check_build()
             self.map.region_unselect()
 
-        bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.MINE,
-                  command=bp.PrefilledFunction(build, "mine"), background_color=(0, 0, 0, 0))
-        bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.CAMP,
-                  command=bp.PrefilledFunction(build, "camp"), background_color=(0, 0, 0, 0))
+        self.mine_btn = bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.MINE,
+                                  command=bp.PrefilledFunction(build, "mine"), background_color=(0, 0, 0, 0))
+        self.camp_btn = bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.CAMP,
+                                  command=bp.PrefilledFunction(build, "camp"), background_color=(0, 0, 0, 0))
         self.choose_build_zone.pack(adapt=True)
 
         # SOLDIERS TRANSFERT
