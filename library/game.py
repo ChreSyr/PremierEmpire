@@ -251,6 +251,7 @@ class Game(bp.Scene):
         self.rc_no.command = rc_next
 
         # WINNER INFO
+        self.winner = None
         self.winner_info_zone = WinnerInfoZone(self)
 
         # NB PLAYERS CHOOSE
@@ -695,6 +696,8 @@ class Game(bp.Scene):
             self.set_step(self.step.id + 1)
 
     def newgame_setup(self):
+
+        self.winner = None
 
         for r in self.regions.values():
             r.flag = None

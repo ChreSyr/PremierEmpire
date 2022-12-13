@@ -374,7 +374,7 @@ class SettingsMainZone(SettingsZone):
         SettingsZone.__init__(self, game)
 
         def newgame():
-            if game.step.id > 1:
+            if game.step.id > 1 and game.winner is None:
                 def anyway():
                     self.hide()
                     game.set_step(1)

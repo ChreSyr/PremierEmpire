@@ -177,7 +177,7 @@ class Player:
                 self.game.winner_info_zone.title.complete_text()
                 self.game.winner_info_zone.panel.set_color(self.color)
                 self.game.winner_info_zone.show()
-                self.game.settings_zone.newgame_btn.enable()
+                self.game.winner = self
                 if self.game.tutoring:
                     self.game.set_tuto_ref_text_id(45)
 
