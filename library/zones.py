@@ -22,7 +22,8 @@ class GameSail(bp.Circle):
 
     def __init__(self, game):
 
-        bp.Circle.__init__(self, game, color=(0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
+        bp.Circle.__init__(self, game, color=(0, 0, 0, 63), radius=120, visible=False, sticky="center",
+                           layer=game.extra_layer)
 
         self.max_radius = sum(fullscreen_size) / 2
         self.animator = bp.RepeatingTimer(.03, self.animate)
@@ -66,6 +67,8 @@ class GameSail(bp.Circle):
 
     def handle_targetshow(self):
 
+        self.move_behind_main_target()
+
         if self.radius == self.max_radius:
             return
 
@@ -79,10 +82,24 @@ class GameSail(bp.Circle):
             return
 
         if self._needs_to_be_open():
-            return
+            return self.move_behind_main_target()
 
         if not self.animator.is_running:
             self.animator.start()
+
+    def move_behind_main_target(self):
+
+        main_target = None
+        for target in self._targets:
+            if target.is_visible:
+                main_target = target
+
+        assert main_target is not None
+
+        if main_target in self.layer:
+            self.move_behind(main_target)
+        else:
+            self.layer.move_on_top(self)
 
 
 class InfoLeftZone(BackgroundedZone):
@@ -317,9 +334,9 @@ class ProgressTracker(bp.Zone):
 
 class SettingsZone(BackgroundedZone):
 
-    def __init__(self, game, behind=None, **kwargs):
+    def __init__(self, game, behind=None, padding=(90, 60), **kwargs):
 
-        BackgroundedZone.__init__(self, game, padding=(90, 60), spacing=20, sticky="center",
+        BackgroundedZone.__init__(self, game, spacing=20, sticky="center", padding=padding,
                                   layer=game.extra_layer, **kwargs)
 
         self.game = game
@@ -333,6 +350,8 @@ class SettingsZone(BackgroundedZone):
                   background_color=(150, 20, 20), command=self.close_settings)
 
         self.main_layer = bp.Layer(self)
+
+        game.sail.add_target(self)
 
     def pack_and_adapt(self):
 
@@ -359,10 +378,7 @@ class SettingsMainZone(SettingsZone):
                 def anyway():
                     self.hide()
                     game.set_step(1)
-                def always():
-                    self.move_in_front_of(game.sail)
-                self.move_behind(game.sail)
-                Warning(game, msg_id=90, anyway=anyway, always=always)
+                Warning(game, msg_id=90, anyway=anyway)  # , always=always)
             else:
                 self.hide()
                 self.game.set_step(1)
@@ -500,7 +516,8 @@ class SettingsLanguageZone(SettingsZone):
 
     def __init__(self, game):
 
-        SettingsZone.__init__(self, game, behind=game.settings_zone, size=game.settings_zone.rect.size)
+        SettingsZone.__init__(self, game, behind=game.settings_zone, size=game.settings_zone.rect.size,
+                              padding=(90, 60, 90 - 40, 60))
 
         class LangBtn(PE_Button):
 
@@ -560,8 +577,9 @@ class SettingsLanguageZone(SettingsZone):
                                  topleft=(0, 20), ref=self.scrollview, refloc="bottomleft",
                                  command=bp.PrefilledFunction(SettingsLangAddZone, game, self))
 
+        self.adapt(self.main_layer)
+
         self.behind.lang_btn.command = self.show
-        self._flip()  # prevents a very strange bug, where the "Quitter" button is still visible
 
     def add_lan_btn(self, lang_id):
 
@@ -573,6 +591,7 @@ class SettingsLanguageZone(SettingsZone):
             self.scrolled.default_layer.pack(key=get_sortkey)
             self.scrolled.adapt()
             self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
+            self.adapt(self.main_layer)
             return new_btn
 
 

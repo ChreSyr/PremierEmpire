@@ -103,7 +103,6 @@ class Game(bp.Scene):
         # PARAMETERS
         from library.zones import SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone
         self.settings_zone = SettingsMainZone(self)
-        self.sail.add_target(self.settings_zone)
         self.settings_zone.tuto_btn.command = create_tuto_zone
         self.settings_btn = PE_Button(self, text_id=13, command=self.settings_zone.toggle, layer=self.extra_layer)
         self.settings_btn.move_behind(self.sail)
