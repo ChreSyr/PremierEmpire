@@ -87,4 +87,7 @@ texts = [
     "NOUVELLE GUINÉE",
     "AUSTRALIE OCCIDENTALE",
     "AUSTRALIE ORIENTALE",
+    "Une partie est en cours.\nVoulez-vous l'abandonner ?",
+    "Annuler",
+    "Valider",
 ]

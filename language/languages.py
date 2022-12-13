@@ -178,6 +178,10 @@ class Translatable:
         self.text_id = text_id
         lang_manager.set_ref_text(self, text_id=text_id)
 
+        def handle_kill():
+            lang_manager.remove_widget(self)
+        self.signal.KILL.connect(handle_kill, owner=self)
+
     def fit(self):
         """ Called each time the text has been translated, and need to be ajusted """
 
@@ -191,10 +195,6 @@ class TranslatableText(bp.Text, Translatable):
 
         bp.Text.__init__(self, parent=parent, text=dicts.get(text_id, lang_manager.ref_language), **kwargs)
         Translatable.__init__(self, text_id=text_id)
-
-        def handle_kill():
-            lang_manager.remove_widget(self)
-        self.signal.KILL.connect(handle_kill, owner=self)
 
 
 class PartiallyTranslatableText(TranslatableText):

@@ -87,4 +87,7 @@ texts = [
     "NEW GUINEA",
     "WESTERN AUSTRALIA",
     "EASTERN AUSTRALIA",
+    "A game is in progress.\nDo you want to abort it ?",
+    "Cancel",
+    "Confirm",
 ]

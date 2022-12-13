@@ -17,9 +17,6 @@
 # DIVERS :
 # TODO : Agrandir les boutons < et +
 # TODO : Mettre "Un jour, peut-être en bp.Indicator
-# TODO : Griser une étape lorsqu'elle est finie
-# TODO : Permettre de cliquer sur une étape pour la commencer
-# TODO : Remplacer "Étape suivante" par "Fin du tour"
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables
 
 # NOUVEAUTÉS :

@@ -18,6 +18,73 @@ class BackgroundedZone(bp.Zone):
     )
 
 
+class GameSail(bp.Circle):
+
+    def __init__(self, game):
+
+        bp.Circle.__init__(self, game, color=(0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
+
+        self.max_radius = sum(fullscreen_size) / 2
+        self.animator = bp.RepeatingTimer(.03, self.animate)
+
+        from baopig.pybao import WeakList
+        self._targets = WeakList()
+
+    def _needs_to_be_open(self):
+
+        for target in self._targets:
+            if target.is_visible:
+                return True
+        return False
+
+    def add_target(self, target):
+
+        self._targets.append(target)
+
+        target.signal.SHOW.connect(self.handle_targetshow, owner=self)
+        target.signal.HIDE.connect(self.handle_targethide, owner=self)
+
+        if target.is_visible:
+            self.handle_targetshow()
+
+    def animate(self):
+
+        if self._needs_to_be_open():
+            if self.radius < 480:
+                self.set_radius(self.radius + 60)
+            else:
+                self.set_radius(self.max_radius)
+                self.animator.cancel()
+        else:
+            if self.radius > 480:
+                self.set_radius(480)
+            else:
+                self.set_radius(self.radius - 60)
+            if self.radius == 0:
+                self.animator.cancel()
+                self.hide()
+
+    def handle_targetshow(self):
+
+        if self.radius == self.max_radius:
+            return
+
+        if not self.animator.is_running:
+            self.show()
+            self.animator.start()
+
+    def handle_targethide(self):
+
+        if self.radius == 0:
+            return
+
+        if self._needs_to_be_open():
+            return
+
+        if not self.animator.is_running:
+            self.animator.start()
+
+
 class InfoLeftZone(BackgroundedZone):
 
     def __init__(self, game):
@@ -287,15 +354,19 @@ class SettingsMainZone(SettingsZone):
 
         SettingsZone.__init__(self, game)
 
-        self.sail = bp.Circle(game, (0, 0, 0, 63), radius=120, visible=False, sticky="center", layer_level=2)
-        self.signal.HIDE.connect(self.close_sail, owner=self.sail)
-
         def newgame():
-            self.hide()
-            self.game.set_step(1)  # TODO : confirmation if game.step.id > 1
-            # self.newgame_btn.disable()
+            if game.step.id > 1:
+                def anyway():
+                    self.hide()
+                    game.set_step(1)
+                def always():
+                    self.move_in_front_of(game.sail)
+                self.move_behind(game.sail)
+                Warning(game, msg_id=90, anyway=anyway, always=always)
+            else:
+                self.hide()
+                self.game.set_step(1)
         self.newgame_btn = PE_Button(parent=self, text_id=2, command=newgame)
-        # self.newgame_btn.disable()
 
         def init_qs():
             qs_zone = SettingsZone(game, behind=self, size=self.rect.size)
@@ -415,40 +486,14 @@ class SettingsMainZone(SettingsZone):
         PE_Button(parent=self, text_id=1, command=self.application.exit)
         self.pack_and_adapt()
 
-        def sail_animate():
-            if self.is_visible:
-                if self.sail.radius < 480:
-                    self.sail.set_radius(self.sail.radius + 60)
-                else:
-                    self.sail.set_radius(sum(fullscreen_size) / 2)
-                    self.sail_animator.cancel()
-            else:
-                if self.sail.radius > 480:
-                    self.sail.set_radius(480)
-                else:
-                    self.sail.set_radius(self.sail.radius - 60)
-                if self.sail.radius <= 0:
-                    self.sail_animator.cancel()
-                    self.sail.hide()
-        self.sail_animator = bp.RepeatingTimer(.03, sail_animate)
-
         self.hide()
-
-    def close_sail(self):
-        if not self.sail_animator.is_running:
-            self.sail_animator.start()
 
     def toggle(self):
 
         if self.is_visible:
             self.hide()
-            self.close_sail()
         else:
             self.show()
-            self.sail.set_radius(120)
-            self.sail.show()
-            if not self.sail_animator.is_running:
-                self.sail_animator.start()
 
 
 class SettingsLanguageZone(SettingsZone):
@@ -675,6 +720,31 @@ class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
 
         self.timer.cancel()
         self.kill()
+
+
+class Warning(BackgroundedZone):
+
+    def __init__(self, game, msg_id, anyway, always=None):
+
+        BackgroundedZone.__init__(self, game, layer=game.extra_layer, size=(640, 400), sticky="center")
+        game.sail.add_target(self)
+
+        TranslatableText(self, text_id=msg_id, sticky="midtop", pos=(0, 40), font_height=35, align_mode="center")
+
+        btns_zone = bp.Zone(self, sticky="midbottom", pos=(0, -40), spacing=140 * 2)
+        def cancel():
+            self.kill()
+            if always is not None:
+                always()
+        PE_Button(btns_zone, text_id=91, command=cancel)
+        def confirm():
+            self.kill()
+            anyway()
+            if always is not None:
+                always()
+        PE_Button(btns_zone, text_id=92, command=confirm)
+        btns_zone.default_layer.pack(axis="horizontal")
+        btns_zone.adapt()
 
 
 class WinnerInfoZone(bp.Zone):

@@ -15,7 +15,7 @@ from library.theme import set_cursor
 from library.images import FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
-from library.zones import BackgroundedZone, InfoLeftZone, PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, GameSail, InfoLeftZone, PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
 from library.region import Structure
 from library.map import Map
 
@@ -97,12 +97,16 @@ class Game(bp.Scene):
                 self.tuto_zone.hide()
                 self.tutoring = False
 
+        # SAIL
+        self.sail = GameSail(self)
+
         # PARAMETERS
         from library.zones import SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone
         self.settings_zone = SettingsMainZone(self)
+        self.sail.add_target(self.settings_zone)
         self.settings_zone.tuto_btn.command = create_tuto_zone
         self.settings_btn = PE_Button(self, text_id=13, command=self.settings_zone.toggle, layer=self.extra_layer)
-        self.settings_btn.move_behind(self.settings_zone.sail)
+        self.settings_btn.move_behind(self.sail)
 
         # LANGUAGE
         lang_manager.game = self
