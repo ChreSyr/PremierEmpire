@@ -12,9 +12,10 @@ set_progression(.4)
 
 from library.memory import Memory
 from library.theme import set_cursor
+from library.images import FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
-from library.zones import BackgroundedZone, InfoLeftZone, PlayZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, InfoLeftZone, PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
 from library.region import Structure
 from library.map import Map
 
@@ -151,6 +152,9 @@ class Game(bp.Scene):
         self.time_left = bp.Timer(90, self.next_player)
         self.info_left_zone = InfoLeftZone(self)
 
+        # PLAYER TURN
+        self.playerturn_zone = None
+
         # INFO COUNTRY
         self.info_country_on_hover = False
         self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False, layer=self.game_layer)
@@ -223,7 +227,9 @@ class Game(bp.Scene):
                         self.time_left.start()
                         self.rc_yes.hide()
                         self.rc_no.hide()
-                        return self.set_step(20)
+                        self.set_step(20)
+                        self.playerturn_zone = PlayerTurnZone(self)
+                        return
                 self.pick_region()
         def yes():
             self.current_player.flag_region = self.last_selected_region
@@ -295,7 +301,7 @@ class Game(bp.Scene):
                 bp.Button.__init__(btn, self.choose_color_zone, center=pos)
                 btn.continent = continent
                 btn.flag = bp.Image(btn, Player.FLAGS[continent], sticky="center")
-                btn.flag2 = bp.Image(btn, Player.FLAGS_BIG[continent], sticky="center", visible=False)
+                btn.flag2 = bp.Image(btn, FLAGS_BIG[continent], sticky="center", visible=False)
                 btn.flag2.resize(int(btn.flag.rect.width * 1.5), int(btn.flag.rect.height * 1.5))
             def disable(btn):
                 btn.set_background_color((0, 0, 0, 0))
@@ -666,6 +672,7 @@ class Game(bp.Scene):
 
         if set_build:
             self.set_step(20)
+            self.playerturn_zone.show()
 
         self.au_tour_de.complete_text()
         self.info_top_zone.set_background_color(self.current_player.color)
@@ -703,6 +710,9 @@ class Game(bp.Scene):
 
         for z in tuple(self.info_right_zone.children):
             z.kill()
+        if self.playerturn_zone is not None:
+            self.playerturn_zone.kill()
+            self.playerturn_zone = None
         self.info_top_zone.hide()
         self.info_left_zone.hide()
         self.winner_info_zone.hide()

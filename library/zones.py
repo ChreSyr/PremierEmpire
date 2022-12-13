@@ -1,7 +1,9 @@
 
+import math
 import baopig as bp
 import pygame
 import googletrans
+from library.images import FLAGS_BIG
 from language import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
 from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button
@@ -14,6 +16,190 @@ class BackgroundedZone(bp.Zone):
         border_width=2,
         border_color="black"
     )
+
+
+class InfoLeftZone(BackgroundedZone):
+
+    def __init__(self, game):
+
+        padding = 4
+        in_padding = 4 + 3
+        BackgroundedZone.__init__(self, game, sticky="midleft", visible=False, layer=game.gameinfo_layer)
+
+        self.highlighted = None
+        self.highlighted_color = (201, 129, 0)
+        self.standard_color = (158, 106, 51)
+
+        timer_zone = bp.Zone(self, size=(140 + padding * 2 + 3 * 2, 40), background_color="black")
+        bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),
+                            sticky="center", align_mode="center", font_color="white")
+
+        class InfoLeftButton(PE_Button):
+
+            STYLE = PE_Button.STYLE.substyle()
+            STYLE.modify(
+                text_style={"font_height": 18},
+            )
+
+            def __init__(btn, parent, text_id, step_id=None, command=None):
+
+                def set_step():
+
+                    return game.set_step(btn.step_id)
+
+                    player = game.current_player
+                    i = 0
+
+                    game.next_step()
+
+                    while game.current_player == player and game.step.id != btn.step_id:
+                        game.next_step()
+
+                        i += 1
+                        if i > 5:
+                            raise StopIteration
+
+                PE_Button.__init__(btn, parent, text_id=text_id, height=80, background_color=self.standard_color,
+                                   command=set_step if command is None else command)
+
+                btn.step_id = step_id
+                btn.highlighted = False
+
+            def set_highlighted(btn, highlighted):
+
+                btn.highlighted = highlighted
+
+                if highlighted:
+                    btn.set_background_color(self.highlighted_color)
+                    btn.disable()
+                    btn.disable_sail.hide()
+                else:
+                    btn.set_background_color(self.standard_color)
+                    if not btn.is_touchable_by_mouse:
+                        btn.disable_sail.show()
+
+        stepbtns_zone = bp.Zone(self, padding=(in_padding, padding, in_padding, in_padding), spacing=padding)
+        self.construction_btn = InfoLeftButton(stepbtns_zone, text_id=16, step_id=20)
+        self.construction_btn.disable()
+        self.attack_btn = InfoLeftButton(stepbtns_zone, text_id=17, step_id=21)
+        self.reorganisation_btn = InfoLeftButton(stepbtns_zone, text_id=18, step_id=22)
+        stepbtns_zone.pack()
+        stepbtns_zone.adapt()
+
+        nextstep_zone = bp.Zone(self, padding=(in_padding, 40, in_padding, in_padding))
+        self.next_step_btn = PE_Button(nextstep_zone, text_id=15, background_color=self.standard_color,
+                                       command=game.next_player)
+        nextstep_zone.pack()
+        nextstep_zone.adapt()
+
+        self.pack()
+        self.adapt()
+
+    def highlight(self, btn):
+
+        if btn == self.reorganisation_btn:
+            self.reorganisation_btn.disable()
+
+        if self.highlighted is not None:
+            self.highlighted.set_highlighted(False)
+
+        self.highlighted = btn
+        btn.set_highlighted(True)
+
+        if btn == self.construction_btn:
+            self.scene.nextsail_text.set_text(self.construction_btn.text)
+            self.attack_btn.enable()
+            self.reorganisation_btn.enable()
+        elif btn == self.attack_btn:
+            self.scene.nextsail_text.set_text(self.attack_btn.text)
+            self.reorganisation_btn.enable()
+        elif btn == self.reorganisation_btn:
+            self.scene.nextsail_text.set_text(self.reorganisation_btn.text)
+            self.attack_btn.disable()
+
+
+class PlayerTurnZone(BackgroundedZone):
+
+    def __init__(self, game):
+
+        BackgroundedZone.__init__(self, game, size=(650, 650), sticky="center")
+
+        self.flags = {}
+
+        i_delta = 0 if game.nb_players % 2 == 0 else math.radians(-90)
+
+        radius = 200
+        for id, player in game.players.items():
+
+            i2 = id / game.nb_players * math.pi * 2 + i_delta
+            x_rel = math.cos(i2) * radius
+            y_rel = math.sin(i2) * radius
+
+            flag = FLAGS_BIG[player.continent]
+            self.flags[player.id] = bp.Image(self, image=flag,
+                                             center=(x_rel + self.rect.width / 2, y_rel + self.rect.height / 2))
+
+        flag = self.flags[game.current_player.id]
+        self.select_movement = None
+        self.select_travel = None
+        self.select_origin = None
+        self.select_dest = None
+        self.select_color_travel = None
+        self.select_color_origin = game.current_player.color
+        self.select_color_dest = None
+        self.select = bp.Rectangle(self, size=(flag.rect.width + 30, flag.rect.height + 30),
+                                   center=self.auto_rect.center,
+                                   color=(0, 0, 0, 0), border_width=5, border_color=game.current_player.color)
+
+        def move_select():
+            self.select_movement += .07
+            if self.select_movement < 0:
+                return
+            color = self.select_color_origin + self.select_color_travel * self.select_movement
+            pos = self.select_origin + self.select_travel * self.select_movement
+            if self.select_movement >= 1:
+                pos = self.select_dest
+                color = self.select_color_dest
+                self.select_animator.cancel()
+                self.select_color_origin = self.select_color_dest
+            self.select.set_border_color(color)
+            self.select.set_pos(center=pos)
+        self.select_animator = bp.RepeatingTimer(.05, move_select)
+
+        self.hide_timer = bp.Timer(1.5, self.hide)
+
+        self.show()  # start animations
+
+    def show(self):
+
+        super().show()
+
+        self.select_origin = self.select.rect.center
+        self.select_dest = self.flags[self.scene.current_player.id].rect.center
+        self.select_travel = pygame.Vector2(self.select_dest) - self.select_origin
+        self.select_movement = -.3
+        if self.select_animator.is_running:
+            self.select_animator.cancel()
+            self.select_color_origin = self.select_color_dest
+            self.select.set_border_color(self.select_color_origin)
+        self.select_color_dest = self.scene.current_player.color
+        self.select_color_travel = pygame.Vector3(self.select_color_dest) - self.select_color_origin
+        self.select_animator.start()
+
+        if self.hide_timer.is_running:
+            self.hide_timer.cancel()
+        self.hide_timer.start()
+
+        self.scene.nextsail_animator.pause()
+
+    def hide(self):
+
+        super().hide()
+
+        if self.hide_timer.is_running:
+            self.hide_timer.cancel()
+
+        self.scene.nextsail_animator.resume()
 
 
 class PlayZone(bp.Zone):
@@ -106,10 +292,10 @@ class SettingsMainZone(SettingsZone):
 
         def newgame():
             self.hide()
-            self.game.set_step(1)
-            self.newgame_btn.disable()
+            self.game.set_step(1)  # TODO : confirmation if game.step.id > 1
+            # self.newgame_btn.disable()
         self.newgame_btn = PE_Button(parent=self, text_id=2, command=newgame)
-        self.newgame_btn.disable()
+        # self.newgame_btn.disable()
 
         def init_qs():
             qs_zone = SettingsZone(game, behind=self, size=self.rect.size)
@@ -489,106 +675,6 @@ class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
 
         self.timer.cancel()
         self.kill()
-
-
-class InfoLeftZone(BackgroundedZone):
-
-    def __init__(self, game):
-
-        padding = 4
-        in_padding = 4 + 3
-        BackgroundedZone.__init__(self, game, sticky="midleft", visible=False, layer=game.gameinfo_layer)
-
-        self.highlighted = None
-        self.highlighted_color = (201, 129, 0)
-        self.standard_color = (158, 106, 51)
-
-        timer_zone = bp.Zone(self, size=(140 + padding * 2 + 3 * 2, 40), background_color="black")
-        bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),
-                            sticky="center", align_mode="center", font_color="white")
-
-        class InfoLeftButton(PE_Button):
-
-            STYLE = PE_Button.STYLE.substyle()
-            STYLE.modify(
-                text_style={"font_height": 18},
-            )
-
-            def __init__(btn, parent, text_id, step_id=None, command=None):
-
-                def set_step():
-
-                    return game.set_step(btn.step_id)
-
-                    player = game.current_player
-                    i = 0
-
-                    game.next_step()
-
-                    while game.current_player == player and game.step.id != btn.step_id:
-                        game.next_step()
-
-                        i += 1
-                        if i > 5:
-                            raise StopIteration
-
-                PE_Button.__init__(btn, parent, text_id=text_id, height=80, background_color=self.standard_color,
-                                   command=set_step if command is None else command)
-
-                btn.step_id = step_id
-                btn.highlighted = False
-
-            def set_highlighted(btn, highlighted):
-
-                btn.highlighted = highlighted
-
-                if highlighted:
-                    btn.set_background_color(self.highlighted_color)
-                    btn.disable()
-                    btn.disable_sail.hide()
-                else:
-                    btn.set_background_color(self.standard_color)
-                    if not btn.is_touchable_by_mouse:
-                        btn.disable_sail.show()
-
-        stepbtns_zone = bp.Zone(self, padding=(in_padding, padding, in_padding, in_padding), spacing=padding)
-        self.construction_btn = InfoLeftButton(stepbtns_zone, text_id=16, step_id=20)
-        self.construction_btn.disable()
-        self.attack_btn = InfoLeftButton(stepbtns_zone, text_id=17, step_id=21)
-        self.reorganisation_btn = InfoLeftButton(stepbtns_zone, text_id=18, step_id=22)
-        stepbtns_zone.pack()
-        stepbtns_zone.adapt()
-
-        nextstep_zone = bp.Zone(self, padding=(in_padding, 40, in_padding, in_padding))
-        self.next_step_btn = PE_Button(nextstep_zone, text_id=15, background_color=self.standard_color,
-                                       command=game.next_player)
-        nextstep_zone.pack()
-        nextstep_zone.adapt()
-
-        self.pack()
-        self.adapt()
-
-    def highlight(self, btn):
-
-        if btn == self.reorganisation_btn:
-            self.reorganisation_btn.disable()
-
-        if self.highlighted is not None:
-            self.highlighted.set_highlighted(False)
-
-        self.highlighted = btn
-        btn.set_highlighted(True)
-
-        if btn == self.construction_btn:
-            self.scene.nextsail_text.set_text(self.construction_btn.text)
-            self.attack_btn.enable()
-            self.reorganisation_btn.enable()
-        elif btn == self.attack_btn:
-            self.scene.nextsail_text.set_text(self.attack_btn.text)
-            self.reorganisation_btn.enable()
-        elif btn == self.reorganisation_btn:
-            self.scene.nextsail_text.set_text(self.reorganisation_btn.text)
-            self.attack_btn.disable()
 
 
 class WinnerInfoZone(bp.Zone):

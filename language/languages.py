@@ -167,7 +167,7 @@ class LangManager:
 
         bp.pygame.mouse.set_cursor(old_cursor)
 
-        if not "×" in self.game.settings_zone.resolution_btn.text:
+        if self.game is not None and not "×" in self.game.settings_zone.resolution_btn.text:
             self.game.settings_zone.resolution_btn.set_text(dicts.get(text_id=47, lang=self.language))
 
 

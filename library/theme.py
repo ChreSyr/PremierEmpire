@@ -1,5 +1,6 @@
 
 import baopig as bp
+import pygame
 from baopig.prefabs.themes import DarkTheme
 
 
@@ -16,7 +17,10 @@ class MyTheme(DarkTheme):
         self.set_style_for(bp.Text, font_file="kirsty-bold", font_height=18)
 
 def set_cursor(cursor_name):
-    bp.pygame.mouse.set_cursor((5, 0), mouses[cursor_name])
+    try:
+        bp.pygame.mouse.set_cursor((5, 0), mouses[cursor_name])
+    except pygame.error as e:
+        bp.LOGGER.warning(e)
 
 
 mouses_full = bp.image.load("images/hands.png")
