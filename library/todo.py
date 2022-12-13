@@ -15,7 +15,6 @@
 # TODO : Lorsqu'on ajoute une langue : créer le fichier dict_lg correspondant ?
 
 # DIVERS :
-# TODO : Agrandir les boutons < et +
 # TODO : Mettre "Un jour, peut-être en bp.Indicator
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables
 

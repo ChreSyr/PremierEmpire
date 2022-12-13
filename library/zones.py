@@ -344,7 +344,7 @@ class SettingsZone(BackgroundedZone):
 
         if behind:
             PE_Button(self, text="<", pos=(10, 10), layer_level=2, translatable=False, size=(40, 40),
-                      command=self.hide)
+                      command=self.hide, text_style={"font_height": 35}, padding=0)
 
         PE_Button(self, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False, size=(40, 40),
                   background_color=(150, 20, 20), command=self.close_settings)
@@ -573,7 +573,7 @@ class SettingsLanguageZone(SettingsZone):
         self.scrolled.adapt()
         self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
 
-        self.add_btn = PE_Button(self, text="+", translatable=False,
+        self.add_btn = PE_Button(self, text="+", translatable=False, text_style={"font_height": 35}, padding=0,
                                  topleft=(0, 20), ref=self.scrollview, refloc="bottomleft",
                                  command=bp.PrefilledFunction(SettingsLangAddZone, game, self))
 
