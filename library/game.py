@@ -6,7 +6,7 @@ load = bp.image.load
 
 from library.loading import set_progression
 
-from language import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
+from baopig.googletrans import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
 
 set_progression(.4)
 
@@ -28,7 +28,6 @@ class Game(bp.Scene):
 
         bp.Scene.__init__(self, app, background_color=(96, 163, 150))
 
-        self.players = {}
         self.regions = {}
         self.regions_list = None
         self.flags = []
@@ -36,11 +35,18 @@ class Game(bp.Scene):
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
         self.last_selected_region = None
 
+        # PlAYERS
+        self.players = {}
+        self.nb_players = None
+        def handle_update_language():
+            for player in self.players.values():
+                player.translated_name = lang_manager.get_text_from_id(player.name_id)
+        lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self)
+
         # MEMORY
         self.memory = Memory()
-        if self.memory.lang_id != lang_manager.ref_language:
-            dicts.create(self.memory.lang_id)
-            lang_manager.set_language(self.memory.lang_id)
+        lang_manager.set_ref_language("fr")
+        lang_manager.set_language(self.memory.lang_id)
 
         # LAYERS
         self.game_layer = bp.Layer(self, level=1, weight=2)
@@ -48,9 +54,6 @@ class Game(bp.Scene):
         self.gametuto_layer = bp.Layer(self, level=1, weight=4)
         self.extra_layer = bp.Layer(self, level=2, weight=2)
         # self.progress_layer = bp.Layer(self, level=2, weight=3)
-
-        # NETWORK
-        self._connected_to_network = True
 
         # TUTORIAL
         self.tutoring = False
@@ -168,7 +171,7 @@ class Game(bp.Scene):
         self.import_btn = RegionInfoButton(self, text_id=20)
         class InfoCountryTitle(TranslatableText):
             def __init__(txt, *args, **kwargs):
-                TranslatableText.__init__(txt, *args, text_id=0, **kwargs)
+                TranslatableText.__init__(txt, *args, text_id=1, **kwargs)
             def set_region(self, region):
                 if region.upper_name == self.text:
                     return
@@ -255,7 +258,6 @@ class Game(bp.Scene):
         self.winner_info_zone = WinnerInfoZone(self)
 
         # NB PLAYERS CHOOSE
-        self.nb_players = None
         self.choose_nb_players_zone = BackgroundedZone(self, size=(992, 400), sticky="center", visible=False,
                                                        layer=self.gameinfo_layer)
         r2 = bp.Rectangle(self.choose_nb_players_zone, size=("100%", 50), color="black")
@@ -459,13 +461,13 @@ class Game(bp.Scene):
     def _set_connected_to_network(self, boolean):
         if boolean:
             raise PermissionError("Can only set game.connected_to_network to False")
-        if self._connected_to_network is False:
+        if lang_manager.is_connected_to_network is False:
             return
-        self._connected_to_network = False
+        lang_manager._is_connected_to_network = False
         self.settings_zone.connection_btn.text_widget.set_ref_text(11)
-        self.settings_zone.connection_btn.enable()
+        # self.settings_zone.connection_btn.enable()
         TmpMessage(self, text_id=34)
-    connected_to_network = property(lambda self: self._connected_to_network, _set_connected_to_network)
+    connected_to_network = property(lambda self: lang_manager.is_connected_to_network, _set_connected_to_network)
     current_player = property(lambda self: self.players[self.current_player_id])
     transferring = property(lambda self: self.transfert_from is not None)
 

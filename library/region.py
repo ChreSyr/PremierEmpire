@@ -1,7 +1,7 @@
 
 import random
 import baopig as bp
-from language import dicts
+from baopig.googletrans import dicts
 
 
 class Structure(bp.Image):

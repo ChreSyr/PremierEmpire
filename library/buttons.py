@@ -2,7 +2,7 @@
 import baopig as bp
 import pygame
 load = pygame.image.load
-from language import Translatable, dicts, lang_manager
+from baopig.googletrans import Translatable, dicts, lang_manager
 
 
 class BtnImg:
@@ -171,11 +171,8 @@ class PE_Button_Text(bp.Button_Text, Translatable):
     def __init__(self, *args, **kwargs):
         bp.Button_Text.__init__(self, *args, **kwargs)
         if self.parent.is_translatable:
-            if self.parent.text_id is None:
-                # Translatable.__init__(self, text=self.text)
-                Translatable.__init__(self, text_id=dicts.get_id(self.text))
-            else:
-                Translatable.__init__(self, text_id=self.parent.text_id)
+            assert self.parent.text_id is not None, "A translatable widget needs a text_id instead of a text"
+            Translatable.__init__(self, self.parent, text_id=self.parent.text_id)
 
     def fit(self):
         if not hasattr(self.parent, "text_widget2"):
@@ -237,7 +234,7 @@ class PE_Button(bp.Button):
     def __init__(self, parent, *args, translatable=True, text_id=None, **kwargs):
 
         if text_id is not None:
-            kwargs["text"] = dicts.get(text_id, lang_manager.language)
+            kwargs["text"] = lang_manager.get_text_from_id(text_id)
 
         self.text_id = text_id
         self.is_translatable = translatable
@@ -292,7 +289,7 @@ class PE_Button(bp.Button):
 
         self.set_background_image(btnimg_manager.get_resized_background(self.rect.size, color=background_color))
 
-    def set_text(self, text):
+    def set_text(self, text):  # TODO : resize font_height if needed
 
         self.text_widget.set_text(text)
         if self.text_widget2 is not None:

@@ -1,10 +1,10 @@
 
 import math
 import baopig as bp
+from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
+    translator, LANGUAGES
 import pygame
-import googletrans
 from library.images import FLAGS_BIG
-from language import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
 from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button
 
@@ -371,8 +371,9 @@ class SettingsMainZone(SettingsZone):
 
     def __init__(self, game):
 
-        SettingsZone.__init__(self, game)
+        SettingsZone.__init__(self, game, visible=False)
 
+        # NEW GAME
         def newgame():
             if game.step.id > 1 and game.winner is None:
                 def anyway():
@@ -384,6 +385,7 @@ class SettingsMainZone(SettingsZone):
                 self.game.set_step(1)
         self.newgame_btn = PE_Button(parent=self, text_id=2, command=newgame)
 
+        # QUICK SETTUP
         def init_qs():
             qs_zone = SettingsZone(game, behind=self, size=self.rect.size)
             def quick_setup1():
@@ -467,42 +469,47 @@ class SettingsMainZone(SettingsZone):
             self.qs_btn.command = qs_zone.show
         self.qs_btn = PE_Button(parent=self, text="Quick setup", translatable=False, command=init_qs)
 
+        # TUTORIAL
         self.tuto_btn = PE_Button(parent=self, text_id=7)
 
+        # CONNECTION
         connection_zone = bp.Zone(self)
         self.connection_title = TranslatableText(connection_zone, text_id=9, sticky="midtop", align_mode="center")
         def toggle_connection():
-            if self.game.connected_to_network:
-                self.game.connected_to_network = False
-                self.connection_btn.text_widget.set_ref_text(11)
-            else:
-                try:
-                    googletrans.Translator.translate(translator, "Bonjour", "fr", "en")
-                except Exception:
-                    return
-                self.game._connected_to_network = True
-                lang_manager.update_language()
-                self.connection_btn.text_widget.set_ref_text(10)
+            lang_manager.set_connected(not lang_manager.is_connected_to_network)
         self.connection_btn = PE_Button(parent=connection_zone, text_id=10, command=toggle_connection,
                                         pos=(0, self.connection_title.rect.bottom + 3))
+        def handle_update_connection():
+            if lang_manager.is_connected_to_network:
+                self.connection_btn.text_widget.set_ref_text(10)
+            else:
+                self.connection_btn.text_widget.set_ref_text(11)
+                TmpMessage(self.scene, text_id=34)
+        lang_manager.signal.NEW_CONNECTION_STATE.connect(handle_update_connection, owner=self)
         connection_zone.adapt()
 
+        # LANGUAGE
         lang_zone = bp.Zone(self)
         lang_title = TranslatableText(lang_zone, text_id=12, sticky="midtop")
-        self.lang_btn = PE_Button(parent=lang_zone, text=dicts.get(0, lang_manager.language),
+        self.lang_btn = PE_Button(parent=lang_zone, text=dicts[lang_manager.language].translated_lang_name.capitalize(),
                                   pos=(0, lang_title.rect.bottom + 3), translatable=False)
         lang_zone.adapt()
 
+        # RESOLUTION
         resolution_zone = bp.Zone(self)
         resolution_title = TranslatableText(resolution_zone, text_id=46, sticky="midtop")
         self.resolution_btn = PE_Button(parent=resolution_zone, text=f"{game.rect.width} × {game.rect.height}",
                                         pos=(0, resolution_title.rect.bottom + 3), translatable=False)
+        def handle_update_language():
+            if "×"  not in self.resolution_btn.text:
+                self.resolution_btn.set_text(lang_manager.get_text_from_id(text_id=47))
+        lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self.resolution_btn)
         resolution_zone.adapt()
 
+        # EXIT
         PE_Button(parent=self, text_id=1, command=self.application.exit)
-        self.pack_and_adapt()
 
-        self.hide()
+        self.pack_and_adapt()
 
     def toggle(self):
 
@@ -521,42 +528,57 @@ class SettingsLanguageZone(SettingsZone):
 
         class LangBtn(PE_Button):
 
-            def __init__(btn, id, text=None):
+            def __init__(btn, lang_id, translated_lang_name=None):
 
-                if id not in dicts:
-                    dicts.create(id)
+                if lang_id not in dicts:
+                    raise AssertionError
+                    # Dictionnary(lang_id, translated_lang_name=translated_lang_name)
+                else:
+                    if translated_lang_name is not None:
+                        dicts[lang_id].translated_lang_name = translated_lang_name
+
+                matching_dict = dicts[lang_id]
+
+                text = matching_dict.translated_lang_name
                 if text is None:
-                    if game.connected_to_network:
-                        # text = googletrans.LANGUAGES[id].capitalize()
-                        text = translator.translate(googletrans.LANGUAGES[id], src="en", dest=id).capitalize()
-                    else:
-                        text = googletrans.LANGUAGES[id].capitalize()
-                        lang_manager.request(btn, text, src="en", dest=id)
-                PE_Button.__init__(btn, parent=self.scrolled, text=text, translatable=False)
-                btn.id = id
+                    text = matching_dict.lang_name_in_english
+
+                PE_Button.__init__(btn, parent=self.scrolled, text=text.capitalize(), translatable=False)
+
+                btn.lang_id = lang_id
+
+                if matching_dict.translated_lang_name is None:
+
+                    def handle_new_connection_state():
+
+                        if lang_manager.is_connected_to_network:
+                            correctly_translated_lang_name = translator.optimized_translate(matching_dict.lang_name_in_english,
+                                                                                            src="en", dest=lang_id)
+                            if correctly_translated_lang_name is not None:
+                                matching_dict.translated_lang_name = correctly_translated_lang_name
+                                lang_manager.signal.NEW_CONNECTION_STATE.disconnect(handle_new_connection_state)
+
+                                btn.set_text(correctly_translated_lang_name.capitalize())
+                                self.sort_btns()
+
+                    lang_manager.signal.NEW_CONNECTION_STATE.connect(handle_new_connection_state, owner=btn)
 
             def handle_validate(btn):
 
-                lang_manager.set_language(btn.id)
-                if not game.connected_to_network:
-                    TmpMessage(game, text_id=34, explain_id=37)
+                lang_manager.set_language(btn.lang_id)
+                # if not game.connected_to_network:
+                #     TmpMessage(game, text_id=34, explain_id=37)
                 self.behind.lang_btn.set_text(btn.text)
 
-                memory_lang_id = btn.id
-                import importlib
-                try:
-                    importlib.import_module("language.dict_" + btn.id)
-                except ModuleNotFoundError:
-                    memory_lang_id = lang_manager.ref_language
-                game.memory.set_lang(memory_lang_id)
+                game.memory.set_lang(btn.lang_id)
 
                 self.hide()
 
             def set_text(btn, text):
 
-                btn.set_text(text)
+                super().set_text(text)
 
-                if lang_manager.language == btn.id:
+                if lang_manager.language == btn.lang_id:
                     self.behind.lang_btn.set_text(btn.text)
         self.langbtn_class = LangBtn
 
@@ -565,9 +587,21 @@ class SettingsLanguageZone(SettingsZone):
                                         pos=(self.padding.left, self.padding.top))
         self.scrolled = bp.Zone(self.scrollview, spacing=20)
 
-        LangBtn(id="es", text="Español")
-        LangBtn(id="en", text="English")
-        LangBtn(id="fr", text="Français")
+        # LangBtn(lang_id="es", translated_lang_name="Español")
+        # LangBtn(lang_id="en")
+
+        import os
+        import sys
+        directory = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}{os.sep}lang"
+        for root, dirs, files in os.walk(directory):
+            for file_name in files:
+                if file_name.endswith(".py") and file_name.startswith("dict_") and len(file_name) == 10:
+                    lang_id = file_name[5:-3]  # discard 'lang_' and '.py'
+                    if lang_id not in dicts:
+                        Dictionnary(lang_id)
+                    LangBtn(lang_id=lang_id)
+
+        # LangBtn(lang_id="fr")
 
         self.scrolled.pack()
         self.scrolled.adapt()
@@ -581,14 +615,17 @@ class SettingsLanguageZone(SettingsZone):
 
         self.behind.lang_btn.command = self.show
 
-    def add_lan_btn(self, lang_id):
+    def sort_btns(self):
 
         def get_sortkey(btn):
             return btn.text
+        self.scrolled.default_layer.pack(key=get_sortkey)
+
+    def add_lan_btn(self, lang_id):
 
         with bp.paint_lock:
-            new_btn = self.langbtn_class(id=lang_id)
-            self.scrolled.default_layer.pack(key=get_sortkey)
+            new_btn = self.langbtn_class(lang_id=lang_id)
+            self.sort_btns()
             self.scrolled.adapt()
             self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
             self.adapt(self.main_layer)
@@ -621,8 +658,20 @@ class SettingsLangAddZone(SettingsZone):
                             break
                     return self.hide()
 
+                if not lang_manager.is_connected_to_network:
+                    return TmpMessage(game, text_id=37, explain_id=34)
+
+                # try:
+                lang_manager.set_language(btn.id)
+                # except Exception as e:
+                #     return TmpMessage(game, text_id=37, explain=str(e))
+
+                dicts[btn.id].save()
+
                 new_btn = self.behind.add_lan_btn(btn.id)
                 new_btn.validate()
+                dicts[new_btn.lang_id].save()
+
                 self.hide()
                 self.behind.hide()
 
@@ -659,14 +708,14 @@ class SettingsLangAddZone(SettingsZone):
                 self.scrolled.adapt()
 
         SettingsZone.__init__(self, game, behind)
-        self.resize(*behind.rect.size)
+        self.resize(*behind.behind.rect.size)
 
         self.search = SearchEntry(self, entry_type=str, width=140, padding=7)
-        self.scrollview = bp.ScrollView(self, size=(behind.content_rect.width + 40, behind.content_rect.height - 40))
+        self.scrollview = bp.ScrollView(self, size=(self.content_rect.width + 40, self.content_rect.height - 40))
         self.scrolled = bp.Zone(self.scrollview)
 
         self.langbtns = []
-        for lang_id, lang in googletrans.LANGUAGES.items():
+        for lang_id, lang in LANGUAGES.items():
             self.langbtns.append(AddLangBtn(self.scrolled, lang_id, lang))
 
         self.scrolled.pack()
@@ -720,9 +769,9 @@ class SettingsResolutionZone(SettingsZone):
 
 class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
 
-    def __init__(self, game, text_id, explain_id=None):
+    def __init__(self, game, text_id, explain_id=None, explain=None):
 
-        BackgroundedZone.__init__(self, game, size=(300, 100), sticky="midtop", layer_level=2)
+        BackgroundedZone.__init__(self, game, size=(400, 150), sticky="midtop", layer_level=2)
         bp.LinkableByMouse.__init__(self, game)
 
         msg_w = TranslatableText(self, text_id=text_id, max_width=self.rect.w - 10, align_mode="center", pos=(0, 5),
@@ -731,11 +780,13 @@ class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
         if explain_id:
             TranslatableText(self, text_id=explain_id, max_width=self.rect.w - 10,
                              pos=(5, 5), ref=r2, refloc="bottomleft")
+        elif explain:
+            bp.Text(self, text=explain, max_width=self.rect.w - 10, pos=(5, 5), ref=r2, refloc="bottomleft")
 
         self.timer = bp.Timer(3, command=self.kill)
         self.timer.start()
 
-    def handle_linkm(self):
+    def handle_link(self):
 
         self.timer.cancel()
         self.kill()
@@ -783,4 +834,4 @@ class WinnerInfoZone(bp.Zone):
                            pos=rw1.rect.topleft, color=(0, 0, 0, 0), border_width=2, border_color="black")  # border
         self.subtitle = TranslatableText(self, text_id=6, max_width=rw1.rect.w - 10, pos=(5, 5),
                                          ref=rw2, refloc="bottomleft")
-        PE_Button(self, "OK", midbottom=(rw1.rect.centerx, rw1.rect.bottom - 5), command=self.hide)
+        PE_Button(self, text_id=24, midbottom=(rw1.rect.centerx, rw1.rect.bottom - 5), command=self.hide)

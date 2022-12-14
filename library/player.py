@@ -1,9 +1,9 @@
 
 import baopig as bp
 load = bp.image.load
-from language import dicts, lang_manager, TranslatableText
-from .region import Structure
-from .zones import BackgroundedZone
+from baopig.googletrans import dicts, lang_manager, TranslatableText
+from library.region import Structure
+from library.zones import BackgroundedZone
 
 
 class Player:
@@ -61,14 +61,11 @@ class Player:
         # self.continent = continent.upper().replace("_", " ")
         self.continent = continent
         self.name_id = Player.NAMES[continent]
-        self.name = dicts.get(self.name_id, "fr")
+        self.name = dicts["fr"][self.name_id]
         if lang_manager.ref_language == lang_manager.language:
             self.translated_name = self.name
         else:
-            # self.translated_name = translator.translate(self.name, src=lang_manager.ref_language,
-            #                                             dest=lang_manager.language)
-            self.translated_name = dicts.get(self.name_id, lang_manager.language)
-            # self.translated_name = dicts[lang_manager.language][self.name_id]
+            self.translated_name = lang_manager.get_text_from_id(self.name_id)
 
         self.color = Player.COLORS[continent]
         self.soldier_icon = Player.SOLDIERS[continent]

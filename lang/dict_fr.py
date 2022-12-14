@@ -1,5 +1,5 @@
 texts = [
-    "Français", "Quitter", "Nouvelle partie",
+    "", "Quitter", "Nouvelle partie",
     "JOUER",
     "Envahir",
     "Au tour de {}",
@@ -21,7 +21,7 @@ texts = [
     "Sélectionner",
     "Passer",
     "{} a gagné !",
-    "OK",
+    "Fermer",
     "Nombre de joueurs",
     "Choisis ton drapeau",
     "Combien de joueurs participeront à cette partie ?",
@@ -34,7 +34,7 @@ texts = [
     "Aucune connection internet",
     "{}",
     "Un jour\npeut-être ?",
-    "Certaines traductions pourraient ne pas fonctionner",
+    "Impossible de charger la langue désirée.",
     "Salut !\nMoi c'est Pony la chouette !\nOn me paie pour que je te fasse le tuto !",
     "Jaune",
     "Bleu",
@@ -91,3 +91,5 @@ texts = [
     "Annuler",
     "Valider",
 ]
+translated_lang_name = "français"
+
