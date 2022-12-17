@@ -13,7 +13,6 @@
 # TODO : drapeau emoji
 
 # DIVERS :
-# TODO : quand on ouvre la zone de choix d'une langue, la barre de recherche est focused
 # TODO : mettre "Tester" au lancement du jeu sur le bouton de connexion
 # TODO : Mettre "Un jour, peut-être" en bp.Indicator
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables

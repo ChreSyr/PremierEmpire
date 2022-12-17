@@ -683,7 +683,7 @@ class SettingsLangAddZone(SettingsZone):
 
                 if btn.id in dicts:
                     for lang_btn in self.behind.scrolled.default_layer:
-                        if lang_btn.id == btn.id:
+                        if lang_btn.lang_id == btn.id:
                             lang_btn.validate()
                             break
                     return self.hide()
@@ -764,6 +764,12 @@ class SettingsLangAddZone(SettingsZone):
         self.default_layer.pack(spacing=0)
 
         self.behind.add_btn.command = self.show
+        self.scene.focus(self.search)
+
+    def show(self):
+
+        super().show()
+        self.scene.focus(self.search)
 
     def hide(self):
 
