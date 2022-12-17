@@ -6,7 +6,7 @@ from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslata
 import pygame
 from library.images import FLAGS_BIG
 from library.loading import logo, fullscreen_size, screen_sizes
-from library.buttons import PE_Button
+from library.buttons import PE_Button, PE_Button_Text
 
 
 class BackgroundedZone(bp.Zone):
@@ -100,6 +100,52 @@ class GameSail(bp.Circle):
             self.move_behind(main_target)
         else:
             self.layer.move_on_top(self)
+
+
+class RightClickZone(BackgroundedZone, bp.Focusable):
+
+    def __init__(self, game, mouse_event, **kwargs):
+
+        BackgroundedZone.__init__(self, game, layer=game.extra_layer, pos=mouse_event.pos,
+                                  padding=(2, 6), **kwargs)
+        bp.Focusable.__init__(self, game)
+
+        game.focus(self)
+
+    def add_btn(self, btn_text_id, btn_command):
+
+        class RightClickButton(bp.Button):
+
+            STYLE = bp.Button.STYLE.substyle()
+            STYLE.modify(
+                text_class=PE_Button_Text,
+            )
+
+            def __init__(btn, *args, text_id=None, **kwargs):
+
+                if text_id is not None:
+                    kwargs["text"] = lang_manager.get_text_from_id(text_id)
+
+                btn.is_translatable = True
+                btn.text_id = text_id
+
+                bp.Button.__init__(btn, *args, **kwargs)
+
+            def handle_validate(btn):
+
+                super().handle_validate()
+                btn.parent.kill()
+
+        RightClickButton(self, text_id=btn_text_id, command=btn_command, pos=(0, 10000),
+                         background_color=(0, 0, 0, 0), size=(140, 32), padding=2,
+                         text_style={"font_height":20})
+        self.pack()
+        self.adapt()
+
+    def handle_defocus(self):
+
+        if self.scene.focused_widget.parent is not self:
+            self.kill()
 
 
 class InfoLeftZone(BackgroundedZone):
@@ -538,6 +584,28 @@ class SettingsLanguageZone(SettingsZone):
 
                 btn.lang_id = lang_id
 
+            def handle_mousebuttondown(btn, event):
+
+                if btn.lang_id == lang_manager.ref_language:
+                    return  # can't delete the ref language
+
+                if btn.lang_id == lang_manager.language:
+                    return  # can't delete the current language
+
+                if event.button == 3:
+
+                    def delete():
+                        dict_path = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}{os.sep}lang{os.sep}" \
+                                    f"dict_{btn.lang_id}.py"
+                        assert os.path.exists(dict_path), f"Where is the dict file for {btn.lang_id} ?"
+                        os.remove(dict_path)
+                        dicts.pop(btn.lang_id)
+                        btn.kill()
+                        self.pack_and_adapt()
+
+                    rightclick_zone = RightClickZone(game, event)
+                    rightclick_zone.add_btn(btn_text_id=14, btn_command=delete)
+
             def handle_validate(btn):
 
                 lang_manager.set_language(btn.lang_id)
@@ -569,35 +637,29 @@ class SettingsLanguageZone(SettingsZone):
                         Dictionnary(lang_id)
                     LangBtn(lang_id=lang_id)
 
-        # LangBtn(lang_id="fr")
-
-        self.sort_btns()
-        self.scrolled.adapt()
-        self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
-
         self.add_btn = PE_Button(self, text="+", translatable=False, text_style={"font_height": 35}, padding=0,
                                  topleft=(0, 20), ref=self.scrollview, refloc="bottomleft",
                                  command=bp.PrefilledFunction(SettingsLangAddZone, game, self))
 
-        self.adapt(self.main_layer)
+        self.pack_and_adapt()
 
         self.behind.lang_btn.command = self.show
-
-    def sort_btns(self):
-
-        def get_sortkey(btn):
-            return btn.text
-        self.scrolled.default_layer.pack(key=get_sortkey)
 
     def add_lan_btn(self, lang_id):
 
         with bp.paint_lock:
             new_btn = self.langbtn_class(lang_id=lang_id)
-            self.sort_btns()
-            self.scrolled.adapt()
-            self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
-            self.adapt(self.main_layer)
+            self.pack_and_adapt()
             return new_btn
+
+    def pack_and_adapt(self):
+
+        def get_sortkey(btn):
+            return btn.text
+        self.scrolled.default_layer.pack(key=get_sortkey)
+        self.scrolled.adapt()
+        self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
+        self.adapt(self.main_layer)
 
 
 class SettingsLangAddZone(SettingsZone):
@@ -675,7 +737,7 @@ class SettingsLangAddZone(SettingsZone):
 
                 search_text = entry.text
                 for btn in self.langbtns:
-                    if not btn.text.startswith(search_text):
+                    if not btn.text.lower().startswith(search_text):
                         btn.sleep()
                     else:
                         btn.wake()

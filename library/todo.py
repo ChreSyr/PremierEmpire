@@ -10,9 +10,7 @@
 # TODO : Solve : when scrolled languages the tiped a research, the result languages are too high, need to scroll back
 
 # LANGUES :
-# TODO : Lorsqu'on ajoute une langue : permettre de la supprimer
 # TODO : drapeau emoji
-# TODO : LANGUAGES_TRANSLATED
 
 # DIVERS :
 # TODO : quand on ouvre la zone de choix d'une langue, la barre de recherche est focused

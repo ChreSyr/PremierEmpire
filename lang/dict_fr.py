@@ -11,7 +11,7 @@ texts = [
     "Déconnecté",
     "Langue :",
     "Paramètres",
-    "",
+    "Supprimer",
     "Joueur suivant",
     "CONSTRUCTION",
     "ATTAQUE",
@@ -91,5 +91,4 @@ texts = [
     "Annuler",
     "Valider",
 ]
-translated_lang_name = "français"
 

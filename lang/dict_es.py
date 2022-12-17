@@ -11,7 +11,7 @@ texts = [
     "Desconectado",
     "Lengua :",
     "Configuraciones",
-    "",
+    "Borrar",
     "Siguiente jugador",
     "CONSTRUCCIÓN",
     "OFENSIVO",
@@ -91,4 +91,3 @@ texts = [
     "anular",
     "Validar",
 ]
-translated_lang_name = "español"
