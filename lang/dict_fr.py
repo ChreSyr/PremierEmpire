@@ -1,5 +1,5 @@
 texts = [
-    "", "Quitter", "Nouvelle partie",
+    "Premier Empire", "Quitter", "Nouvelle partie",
     "JOUER",
     "Envahir",
     "Au tour de {}",

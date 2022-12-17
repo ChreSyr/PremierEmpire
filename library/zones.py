@@ -2,7 +2,7 @@
 import math
 import baopig as bp
 from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
-    translator, LANGUAGES
+    translator, LANGUAGES, LANGUAGES_TRANSLATED
 import pygame
 from library.images import FLAGS_BIG
 from library.loading import logo, fullscreen_size, screen_sizes
@@ -491,7 +491,7 @@ class SettingsMainZone(SettingsZone):
         # LANGUAGE
         lang_zone = bp.Zone(self)
         lang_title = TranslatableText(lang_zone, text_id=12, sticky="midtop")
-        self.lang_btn = PE_Button(parent=lang_zone, text=dicts[lang_manager.language].translated_lang_name.capitalize(),
+        self.lang_btn = PE_Button(parent=lang_zone, text=LANGUAGES_TRANSLATED[lang_manager.language].capitalize(),
                                   pos=(0, lang_title.rect.bottom + 3), translatable=False)
         lang_zone.adapt()
 
@@ -528,50 +528,21 @@ class SettingsLanguageZone(SettingsZone):
 
         class LangBtn(PE_Button):
 
-            def __init__(btn, lang_id, translated_lang_name=None):
+            def __init__(btn, lang_id):
 
                 if lang_id not in dicts:
                     raise AssertionError
-                    # Dictionnary(lang_id, translated_lang_name=translated_lang_name)
-                else:
-                    if translated_lang_name is not None:
-                        dicts[lang_id].translated_lang_name = translated_lang_name
 
-                matching_dict = dicts[lang_id]
-
-                text = matching_dict.translated_lang_name
-                if text is None:
-                    text = matching_dict.lang_name_in_english
-
-                PE_Button.__init__(btn, parent=self.scrolled, text=text.capitalize(), translatable=False)
+                PE_Button.__init__(btn, parent=self.scrolled,
+                                   text=LANGUAGES_TRANSLATED[lang_id].capitalize(), translatable=False)
 
                 btn.lang_id = lang_id
-
-                if matching_dict.translated_lang_name is None:
-
-                    def handle_new_connection_state():
-
-                        if lang_manager.is_connected_to_network:
-                            correctly_translated_lang_name = translator.optimized_translate(matching_dict.lang_name_in_english,
-                                                                                            src="en", dest=lang_id)
-                            if correctly_translated_lang_name is not None:
-                                matching_dict.translated_lang_name = correctly_translated_lang_name
-                                lang_manager.signal.NEW_CONNECTION_STATE.disconnect(handle_new_connection_state)
-
-                                btn.set_text(correctly_translated_lang_name.capitalize())
-                                self.sort_btns()
-
-                    lang_manager.signal.NEW_CONNECTION_STATE.connect(handle_new_connection_state, owner=btn)
 
             def handle_validate(btn):
 
                 lang_manager.set_language(btn.lang_id)
-                # if not game.connected_to_network:
-                #     TmpMessage(game, text_id=34, explain_id=37)
                 self.behind.lang_btn.set_text(btn.text)
-
                 game.memory.set_lang(btn.lang_id)
-
                 self.hide()
 
             def set_text(btn, text):
@@ -587,15 +558,12 @@ class SettingsLanguageZone(SettingsZone):
                                         pos=(self.padding.left, self.padding.top))
         self.scrolled = bp.Zone(self.scrollview, spacing=20)
 
-        # LangBtn(lang_id="es", translated_lang_name="Español")
-        # LangBtn(lang_id="en")
-
         import os
         import sys
         directory = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}{os.sep}lang"
         for root, dirs, files in os.walk(directory):
             for file_name in files:
-                if file_name.endswith(".py") and file_name.startswith("dict_") and len(file_name) == 10:
+                if file_name.endswith(".py") and file_name.startswith("dict_"):
                     lang_id = file_name[5:-3]  # discard 'lang_' and '.py'
                     if lang_id not in dicts:
                         Dictionnary(lang_id)
@@ -715,8 +683,11 @@ class SettingsLangAddZone(SettingsZone):
         self.scrolled = bp.Zone(self.scrollview)
 
         self.langbtns = []
-        for lang_id, lang in LANGUAGES.items():
-            self.langbtns.append(AddLangBtn(self.scrolled, lang_id, lang))
+        inversed_languages_translated = dict(map(reversed, LANGUAGES_TRANSLATED.items()))
+        sorted_languages_translated = sorted(inversed_languages_translated)
+        for lang in sorted_languages_translated:
+            lang_id = inversed_languages_translated[lang]
+            self.langbtns.append(AddLangBtn(self.scrolled, lang_id, lang.capitalize()))
 
         self.scrolled.pack()
         self.scrolled.adapt()

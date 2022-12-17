@@ -1,8 +1,8 @@
 texts = [
-    "", "Quit", "New game",
+    "First Empire", "Quit", "New game",
     "PLAY",
     "Invade",
-    "It's {}",
+    "It's {}'s turn",
     "Congratulations everyone, great effort.",
     "Tutorial: OFF",
     "Tutorial: ON",

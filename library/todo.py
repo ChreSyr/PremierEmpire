@@ -11,21 +11,11 @@
 
 # LANGUES :
 # TODO : Lorsqu'on ajoute une langue : permettre de la supprimer
-# TODO : Lorsqu'on ajoute une langue : permettre de la garder en mémoire ?
-# TODO : Lorsqu'on ajoute une langue : créer le fichier dict_lg correspondant ?
 # TODO : drapeau emoji
-# TODO : quand on demande une traduction :
-#           si problème de connection :
-#               message d'alerte, fermer ou réessayer
-#               si fermer :
-#                   bouton réessayer
-#                   tant qu'on a pas réessayer, les traductions ne marchent pas
-#                       -> demander régulièrement si le réseau est dispo mais sans ralentir le jeu
+# TODO : LANGUAGES_TRANSLATED
 
 # DIVERS :
-# TODO : agrandir la zone de choix d'une nouvelle langue
 # TODO : quand on ouvre la zone de choix d'une langue, la barre de recherche est focused
-# TODO : quand on passe de english à espanol, le bouton de langue reste noté english
 # TODO : mettre "Tester" au lancement du jeu sur le bouton de connexion
 # TODO : Mettre "Un jour, peut-être" en bp.Indicator
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables
