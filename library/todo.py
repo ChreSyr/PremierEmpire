@@ -8,9 +8,6 @@
 
 # BUGS :
 
-# LANGUES :
-# TODO : drapeau emoji
-
 # DIVERS :
 # TODO : mettre "Tester" au lancement du jeu sur le bouton de connexion
 # TODO : Mettre "Un jour, peut-être" en bp.Indicator
