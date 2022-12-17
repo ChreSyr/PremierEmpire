@@ -7,7 +7,6 @@
 # TODO : Tester le jeu sur un Chromebook (si possible)
 
 # BUGS :
-# TODO : Solve : when scrolled languages the tiped a research, the result languages are too high, need to scroll back
 
 # LANGUES :
 # TODO : drapeau emoji

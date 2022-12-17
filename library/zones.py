@@ -743,6 +743,7 @@ class SettingsLangAddZone(SettingsZone):
                         btn.wake()
                 self.scrolled.pack(key=lambda widget: widget.text)
                 self.scrolled.adapt()
+                self.scrollview.y_scroller.set_val(0)
 
         SettingsZone.__init__(self, game, behind)
         self.resize(*behind.behind.rect.size)
