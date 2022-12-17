@@ -571,7 +571,7 @@ class SettingsLanguageZone(SettingsZone):
 
         # LangBtn(lang_id="fr")
 
-        self.scrolled.pack()
+        self.sort_btns()
         self.scrolled.adapt()
         self.scrollview.resize_height(min(self.scrolled.rect.height, self.behind.content_rect.height - 60))
 
