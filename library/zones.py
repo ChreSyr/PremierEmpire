@@ -629,10 +629,17 @@ class SettingsLangAddZone(SettingsZone):
                 if not lang_manager.is_connected_to_network:
                     return TmpMessage(game, text_id=37, explain_id=34)
 
-                # try:
-                lang_manager.set_language(btn.id)
-                # except Exception as e:
-                #     return TmpMessage(game, text_id=37, explain=str(e))
+                old_cursor = bp.pygame.mouse.get_cursor()
+                bp.pygame.mouse.set_cursor(bp.SYSTEM_CURSOR_WAIT)
+
+                try:
+                    lang_manager.set_language(btn.id)
+
+                except Exception as e:
+                    return TmpMessage(game, text_id=37, explain=str(e))
+
+                finally:
+                    bp.pygame.mouse.set_cursor(old_cursor)
 
                 dicts[btn.id].save()
 
