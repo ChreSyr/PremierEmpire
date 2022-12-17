@@ -6,7 +6,7 @@ class Memory:
         with open('library\memory.txt', 'r') as reader:
             lines = reader.readlines()
 
-        self.lang_id = lines[0][5:7]
+        self.lang_id = lines[0][5:-1]
 
     def set_lang(self, lang_id):
 
