@@ -447,13 +447,19 @@ class Game(bp.Scene):
             self.set_tuto_ref_text_id(32)
             self.info_left_zone.highlight(self.info_left_zone.attack_btn)
             self.current_player.check_attack()
-        Step(self, 21, start=start_attack)
+        def end_attack():
+            if self.transferring:
+                self.end_transfert(self.transfert_from)
+        Step(self, 21, start=start_attack, end=end_attack)
 
         def start_reorganization():
             self.set_tuto_ref_text_id(33)
             self.info_left_zone.highlight(self.info_left_zone.reorganisation_btn)
             self.current_player.check_movement()
-        Step(self, 22, start=start_reorganization)
+        def end_reorganization():
+            if self.transferring:
+                self.end_transfert(self.transfert_from)
+        Step(self, 22, start=start_reorganization, end=end_reorganization)
 
         self.step = self.step_from_id[0]
         self.set_step(0)
@@ -582,11 +588,13 @@ class Game(bp.Scene):
 
             elif event.type == bp.KEYDOWN:
                 if self.step.id > 2:
+
                     if bp.keyboard.mod.ctrl:
                         self.info_country_on_hover = True
 
             elif event.type == bp.KEYUP:
                 if self.step.id > 2:
+
                     if not bp.keyboard.mod.ctrl:
                         self.info_country_on_hover = False
                         if self.map.selected_region is None:
@@ -663,10 +671,7 @@ class Game(bp.Scene):
         if self.step.id >= 20:
 
             set_build = True
-            if self.step.id == 20:
-                self.step.end()
-            if self.step.id == 21:
-                self.step.end()
+            self.step.end()
 
             if self.turn_index > 0 and self.current_player_id == len(self.players) - 1:
                 self.turn_index += 1
@@ -750,10 +755,10 @@ class Game(bp.Scene):
 
     def set_step(self, index):
 
+        self.step.end()
+
         if self.transferring:
             self.end_transfert(self.transfert_from)
-
-        self.step.end()
 
         self.step = self.step_from_id[index]
 
