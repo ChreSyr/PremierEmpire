@@ -1,7 +1,5 @@
 
 # PORTABILITÉ :
-# TODO : Update baopig, puis tester sans la ligne :
-#  sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\python\\baopig')
 # TODO : Tester le jeu sur un PC Windows sans pygame
 # TODO : Tester le jeu sur un MAC
 # TODO : Tester le jeu sur un Chromebook (si possible)
@@ -9,8 +7,6 @@
 # BUGS :
 
 # DIVERS :
-# TODO : mettre "Tester" au lancement du jeu sur le bouton de connexion
-# TODO : Mettre "Un jour, peut-être" en bp.Indicator
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables
 # TODO : quand on clique sur une notif ou l'écran de changement de joueur, il disparait
 

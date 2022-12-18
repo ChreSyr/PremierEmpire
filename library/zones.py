@@ -2,7 +2,7 @@
 import math
 import baopig as bp
 from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
-    translator, LANGUAGES, LANGUAGES_TRANSLATED
+    LANGUAGES_TRANSLATED
 import pygame
 from library.images import FLAGS_BIG
 from library.loading import logo, fullscreen_size, screen_sizes
@@ -17,6 +17,20 @@ class BackgroundedZone(bp.Zone):
         border_color="black"
     )
 
+
+class KillOnClick(bp.LinkableByMouse):
+
+    def __init__(self, parent, lifetime=3, **kwargs):
+
+        bp.LinkableByMouse.__init__(self, parent, **kwargs)
+
+        self.timer = bp.Timer(lifetime, command=self.kill)
+        self.timer.start()
+
+    def handle_link(self):
+
+        self.timer.cancel()
+        self.kill()
 
 class GameSail(bp.Circle):
 
@@ -814,12 +828,12 @@ class SettingsResolutionZone(SettingsZone):
         self.behind.resolution_btn.command = self.show
 
 
-class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
+class TmpMessage(BackgroundedZone, KillOnClick):
 
     def __init__(self, game, text_id, explain_id=None, explain=None):
 
         BackgroundedZone.__init__(self, game, size=(400, 150), sticky="midtop", layer_level=2)
-        bp.LinkableByMouse.__init__(self, game)
+        KillOnClick.__init__(self, game)
 
         msg_w = TranslatableText(self, text_id=text_id, max_width=self.rect.w - 10, align_mode="center", pos=(0, 5),
                                  sticky="midtop", font_height=self.get_style_for(bp.Text)["font_height"] + 4)
@@ -829,14 +843,6 @@ class TmpMessage(BackgroundedZone, bp.LinkableByMouse):
                              pos=(5, 5), ref=r2, refloc="bottomleft")
         elif explain:
             bp.Text(self, text=explain, max_width=self.rect.w - 10, pos=(5, 5), ref=r2, refloc="bottomleft")
-
-        self.timer = bp.Timer(3, command=self.kill)
-        self.timer.start()
-
-    def handle_link(self):
-
-        self.timer.cancel()
-        self.kill()
 
 
 class Warning(BackgroundedZone):
