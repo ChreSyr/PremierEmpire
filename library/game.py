@@ -582,12 +582,12 @@ class Game(bp.Scene):
 
             elif event.type == bp.KEYDOWN:
                 if self.step.id > 2:
-                    if event.key == bp.K_LCTRL:
+                    if bp.keyboard.mod.ctrl:
                         self.info_country_on_hover = True
 
             elif event.type == bp.KEYUP:
                 if self.step.id > 2:
-                    if event.key == bp.K_LCTRL:
+                    if not bp.keyboard.mod.ctrl:
                         self.info_country_on_hover = False
                         if self.map.selected_region is None:
                             self.region_info_zone.hide()
