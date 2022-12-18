@@ -32,6 +32,7 @@ class KillOnClick(bp.LinkableByMouse):
         self.timer.cancel()
         self.kill()
 
+
 class GameSail(bp.Circle):
 
     def __init__(self, game):
@@ -262,11 +263,12 @@ class InfoLeftZone(BackgroundedZone):
             self.attack_btn.disable()
 
 
-class PlayerTurnZone(BackgroundedZone):
+class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
 
     def __init__(self, game):
 
         BackgroundedZone.__init__(self, game, size=(650, 650), sticky="center")
+        bp.LinkableByMouse.__init__(self, game)
 
         self.flags = {}
 
@@ -314,6 +316,19 @@ class PlayerTurnZone(BackgroundedZone):
 
         self.show()  # start animations
 
+    def handle_link(self):
+
+        self.hide()
+
+    def hide(self):
+
+        super().hide()
+
+        if self.hide_timer.is_running:
+            self.hide_timer.cancel()
+
+        self.scene.nextsail_animator.resume()
+
     def show(self):
 
         super().show()
@@ -335,15 +350,6 @@ class PlayerTurnZone(BackgroundedZone):
         self.hide_timer.start()
 
         self.scene.nextsail_animator.pause()
-
-    def hide(self):
-
-        super().hide()
-
-        if self.hide_timer.is_running:
-            self.hide_timer.cancel()
-
-        self.scene.nextsail_animator.resume()
 
 
 class PlayZone(bp.Zone):

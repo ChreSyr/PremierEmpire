@@ -8,7 +8,6 @@
 
 # DIVERS :
 # TODO : Quand on a des soldats en mais, faire briller les régions attaquables
-# TODO : quand on clique sur une notif ou l'écran de changement de joueur, il disparait
 
 # NOUVEAUTÉS :
 # TODO : Permettre d'acheter une carte Région pour 3 or
