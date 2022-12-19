@@ -139,15 +139,17 @@ class Game(bp.Scene):
         self.mapsail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
 
         # NEXT_TODO ANIMATION
-        self.next_sail = bp.Zone(map, pos=(-map.rect.h, 0), size=(map.rect.h, "100%"), layer_level=2)
+        self.nextsail_zone = bp.Zone(self, pos=(-self.rect.h, 0), size=(self.rect.h, "100%"), layer=self.gameinfo_layer)
         def nextsail_animate():
-            self.next_sail.move(dx=max(abs(self.next_sail.rect.centerx - map.auto_rect.centerx) / 5, 20))
-            if self.next_sail.rect.left >= self.map.rect.width:
+            self.nextsail_zone.move(dx=max(abs(self.nextsail_zone.rect.centerx - self.auto_rect.centerx) / 5, 20))
+            if self.nextsail_zone.rect.left >= self.rect.width:
                 self.nextsail_animator.cancel()
+                self.nextsail_zone.hide()
         self.nextsail_animator = bp.RepeatingTimer(.04, nextsail_animate)
-        bp.Circle(self.next_sail, (0, 0, 0, 63), radius=map.auto_rect.centery, center=("50%", "50%"))
-        self.nextsail_text = bp.Text(self.next_sail, "HELLO !!", font_height=50, font_color="orange", font_bold=True,
-                                     sticky="center", ref=map)
+        self.nextsail_circle = bp.Circle(self.nextsail_zone, (0, 0, 0, 63), radius=self.auto_rect.centery,
+                                         sticky="center")
+        self.nextsail_text = bp.Text(self.nextsail_zone, "HELLO !!", font_height=50, font_color="orange",
+                                     font_bold=True, sticky="center", ref=map)
 
         # INFORMATION ON TOP & RIGHT
         self.info_right_zone = bp.Zone(self, sticky="midright", size=("10%", 0), spacing=-3, layer=self.gameinfo_layer)
@@ -666,10 +668,12 @@ class Game(bp.Scene):
     def handle_resize(self):
 
         super().handle_resize()
-        # if self.resolution_btn.text_widget.has_locked("text"):
-        #     return
+
         text = f"{self.rect.width} × {self.rect.height}"
         self.settings_zone.resolution_btn.set_text(text)
+
+        self.nextsail_zone.resize_width(self.rect.height)
+        self.nextsail_circle.set_radius(self.auto_rect.centery)
 
     def next_player(self):
 
@@ -776,10 +780,12 @@ class Game(bp.Scene):
         self.step.start()
 
         if self.step.id >= 20:
-            self.next_sail.set_pos(right=0)
             if self.nextsail_animator.is_running:
                 self.nextsail_animator.cancel()
-            self.nextsail_animator.start()
+            if not self.nextsail_animator.is_paused:  # can be paused by PlayerTurnZone
+                self.nextsail_animator.start()
+            self.nextsail_zone.set_pos(right=0)
+            self.nextsail_zone.show()
 
     def set_tuto_ref_text_id(self, text_id):
         self.tuto_ref_text_id = text_id
