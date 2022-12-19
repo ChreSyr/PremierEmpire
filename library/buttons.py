@@ -206,6 +206,12 @@ class PE_Button(bp.Button):
 
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.behind_content)
 
+        def _update_surface_from_resize(self, asked_size):
+
+            self.set_surface(btnimg_manager.get_resized_hover(asked_size))
+            self.send_paint_request()
+
+
     class Button_LinkImage(bp.Image):
 
         def __init__(self, textbutton):
@@ -264,7 +270,10 @@ class PE_Button(bp.Button):
             self.text_widget.move(1, 1)
             self.text_widget2.move(-1, -1)
 
+        self.true_background_color = self.background_color
         bp.Button.set_background_color(self, (0, 0, 0, 0))
+
+        self.signal.RESIZE.connect(self.handle_resize, owner=self)
 
     def handle_hover(self):
 
@@ -273,6 +282,11 @@ class PE_Button(bp.Button):
             self.text_widget.font.config(height=self.original_font_height + 4)
             if self.text_widget2 is not None:
                 self.text_widget2.font.config(height=self.original_font_height + 4)
+
+    def handle_resize(self):
+
+        self.set_background_image(btnimg_manager.get_resized_background(self.rect.size,
+                                                                        color=self.true_background_color))
 
     def handle_unhover(self):
 
@@ -287,6 +301,7 @@ class PE_Button(bp.Button):
         if (sum(background_color) < self.middle_color) != (sum(self.background_color) < self.middle_color):
             bp.LOGGER.warning("A button changes its background_color too much ?")
 
+        self.true_background_color = background_color
         self.set_background_image(btnimg_manager.get_resized_background(self.rect.size, color=background_color))
 
     def set_text(self, text):  # TODO : resize font_height if needed
