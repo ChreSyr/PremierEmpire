@@ -14,7 +14,7 @@ class Structure(bp.Image):
 
     def __init__(self, region, image, center):
 
-        bp.Image.__init__(self, region.parent, image=image, center=center, visible=False)
+        bp.Image.__init__(self, region.parent, image=image, center=center, visible=False, ref=region.parent.map_image)
 
         self.region = region
         # State :
@@ -33,8 +33,7 @@ class Structure(bp.Image):
         if self.icon is not None:
             self.icon.kill()
         self.icon = None
-        
-        # self.set_lock(visibility=False)
+
         self.hide()
         self.set_surface(Structure.WIP)
         self._state = 0
@@ -58,9 +57,9 @@ class Structure(bp.Image):
 
         self._state = 1
         self.show()
-        # self.set_lock(visibility=True)
         self.icon = bp.Image(self.parent, getattr(Structure, build_name.upper()), name=build_name,
-                              center=self.rect.center)
+                             center=self.rect.center - bp.Vector2(self.parent.map_image.rect.topleft),
+                             ref=self.parent.map_image)
 
 
 class Region(bp.Image):
@@ -72,7 +71,7 @@ class Region(bp.Image):
         name = self.upper_name.lower().replace(" ", "_").replace("-", "_").replace("é", "e")
 
         bp.Image.__init__(self, parent, bp.image.load(f"images/{name}.png"), center=center, name=name,
-                          visible=False, layer=parent.regions_layer)
+                          visible=False, layer=parent.regions_layer, ref=parent.map_image)
 
         self.mask = bp.mask.from_surface(self.surface)
         self.structure = Structure(self, image=Structure.WIP,
@@ -100,6 +99,7 @@ class Region(bp.Image):
         if self.owner is None:
             raise PermissionError("This country is unoccupied")
 
+        ref = self.parent.map_image
         padding = 5
         for i in range(amount):
             ok = x = y = 0
@@ -112,8 +112,10 @@ class Region(bp.Image):
                         ok = 0
             layer = self.parent.frontof_regions_layer if self is self.parent.hovered_region else \
                 self.parent.behind_regions_layer
-            self.owner.regions[self].append(bp.Image(self.parent, self.owner.soldier_icon,
-                                            center=(x + self.rect.left, y + self.rect.top), layer=layer))
+            self.owner.regions[self].append(
+                bp.Image(self.parent, self.owner.soldier_icon, layer=layer, ref=ref,
+                         center=(x + self.rect.left - ref.rect.left, y + self.rect.top - ref.rect.top))
+            )
 
         self.owner.soldiers_title.set_text(str(sum(len(s_list) for s_list in self.owner.regions.values())))
 

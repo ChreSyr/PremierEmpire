@@ -90,4 +90,5 @@ texts = [
     "A game is in progress.\nDo you want to abandon it?",
     "Cancel",
     "Validate",
+    "Recenter the map",
 ]

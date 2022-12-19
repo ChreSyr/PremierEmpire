@@ -90,5 +90,6 @@ texts = [
     "Une partie est en cours.\nVoulez-vous l'abandonner ?",
     "Annuler",
     "Valider",
+    "Recentrer la carte",
 ]
 

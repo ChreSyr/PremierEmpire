@@ -1,5 +1,6 @@
 
 import baopig as bp
+from library.zones import RightClickZone
 from library.region import Region
 
 
@@ -9,12 +10,13 @@ class Map(bp.Zone, bp.LinkableByMouse):
 
     def __init__(self, parent):
 
-        bp.Zone.__init__(self, parent, size=Map.IMAGE.get_size(), background_image=Map.IMAGE, sticky="center")
+        bp.Zone.__init__(self, parent, size=bp.pygame.display.list_modes()[0], sticky="center")
         bp.LinkableByMouse.__init__(self, parent)
 
         self.selected_region = None
         self.hovered_region = None
 
+        self.background_layer = bp.Layer(self, bp.Image, name="background_layer", level=self.layers_manager.BACKGROUND)
         self.behind_regions_layer = bp.Layer(self, weight=0, name="0",
                                              default_sortkey=lambda w: (w.rect.bottom, w.rect.centerx))
         self.regions_layer = bp.Layer(self, weight=1, name="1")
@@ -24,8 +26,9 @@ class Map(bp.Zone, bp.LinkableByMouse):
         self.create_signal("REGION_SELECT")
         self.create_signal("REGION_UNSELECT")
 
+        self.map_image = bp.Image(self, Map.IMAGE, sticky="center", layer=self.background_layer)
         self.sail = bp.Circle(self, (0, 0, 0, 63), radius=0, center=(0, 0), visible=False,
-                              layer=self.regions_layer)
+                              layer=self.regions_layer, ref=self.map_image)
         self._create_regions()
 
     def _create_regions(self):
@@ -158,3 +161,28 @@ class Map(bp.Zone, bp.LinkableByMouse):
                     self.region_select(region)
                 return
         self.region_unselect()
+
+    def handle_link_motion(self, rel):
+
+        if self.scene.step.id >= 11:
+
+            self.map_image.move(*rel)
+
+    def handle_mousebuttondown(self, event):
+
+        if event.button == 3 and not self.scene.transferring:
+
+            if self.scene.step.id in (21, 22):
+                if self.is_hovered:
+                    for region in self.scene.current_player.regions:
+                        if region.get_hovered():
+                            return  # a transfert will start
+
+
+            with bp.paint_lock:
+
+                def recenter():
+                    self.map_image.pos_manager.config(pos=(0, 0))
+
+                rightclick_zone = RightClickZone(self.scene, event)
+                rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)

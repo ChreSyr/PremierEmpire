@@ -90,4 +90,5 @@ texts = [
     "Hay un juego en curso.\n¿Quieres abandonarlo?",
     "anular",
     "Validar",
+    "Centrar el mapa",
 ]

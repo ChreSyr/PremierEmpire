@@ -152,7 +152,7 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
                 btn.parent.kill()
 
         RightClickButton(self, text_id=btn_text_id, command=btn_command, pos=(0, 10000),
-                         background_color=(0, 0, 0, 0), size=(140, 32), padding=2,
+                         background_color=(0, 0, 0, 0), size=(220, 32), padding=2,
                          text_style={"font_height":20})
         self.pack()
         self.adapt()

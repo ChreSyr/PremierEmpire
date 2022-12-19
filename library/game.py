@@ -164,7 +164,8 @@ class Game(bp.Scene):
 
         # INFO COUNTRY
         self.info_country_on_hover = False
-        self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False, layer=self.game_layer)
+        self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False, layer=self.game_layer,
+                                                 ref=self.map.map_image)
         r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 40),
                           color=(0, 0, 0, 0), border_width=2, border_color="black")
         self.invade_btn = RegionInfoButton(self, text_id=4)
@@ -186,7 +187,6 @@ class Game(bp.Scene):
             region = self.map.selected_region if region is None else region
 
             self.region_info_zone.set_pos(midleft=(region.abs_rect.right + 5, region.abs_rect.centery))
-            # info_country_title.set_text(region.name.upper().replace("_", " "))
             info_country_title.set_region(region)
             if region.owner is None:
                 self.info_csi.hide()
@@ -242,7 +242,8 @@ class Game(bp.Scene):
             self.current_player.flag_region = self.last_selected_region
             flag = self.flags[self.current_player_id]
             flag.swap_layer(map.behind_regions_layer)
-            flag.set_pos(midbottom=self.last_selected_region.flag_midbottom)
+            flag.set_pos(midbottom=self.last_selected_region.flag_midbottom +
+                                   bp.Vector2(self.map.map_image.rect.topleft))
             flag.show()
             self.current_player.conquer(self.last_selected_region)
             self.current_player.move_flag(self.last_selected_region)
@@ -279,7 +280,7 @@ class Game(bp.Scene):
                 btn.text_widget.font.config(height=int(btn.original_font_height * 1.5))
             def handle_unhover(btn):
                 btn.text_widget.font.config(height=btn.original_font_height)
-            def validate(btn, *args, **kwargs):
+            def handle_validate(btn):
                 self.set_step(10)
                 self.nb_players = int(btn.text)
 
@@ -324,7 +325,7 @@ class Game(bp.Scene):
                 with bp.paint_lock:
                     btn.flag.show()
                     btn.flag2.hide()
-            def validate(btn, *args, **kwargs):
+            def handle_validate(btn):
                 Player(self, btn.continent)
                 self.next_player()
                 self.flags.append(self.current_player.flag)
@@ -377,7 +378,8 @@ class Game(bp.Scene):
         self.transfert_title = bp.Text(self.transfert_zone, "")
         self.transfert_icon = bp.Image(self.transfert_zone, Player.SOLDIERS["asia"])
         def handle_mouse_motion():
-            self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
+            if self.transferring:
+                self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
         bp.mouse.signal.MOUSEMOTION.connect(handle_mouse_motion, owner=None)
 
         # TODOS
@@ -534,7 +536,6 @@ class Game(bp.Scene):
 
     def handle_event(self, event):
 
-        # Region sail
         if self.step.id >= 20:
             if event.type == bp.MOUSEMOTION:
                 if self.map.selected_region is None and self.map.is_hovered:
@@ -740,6 +741,8 @@ class Game(bp.Scene):
 
         self.picked_regions.clear()
 
+        self.map.map_image.pos_manager.config(pos=(0, 0))
+
         set_cursor("default")
 
     def pick_region(self):
@@ -814,4 +817,5 @@ class Game(bp.Scene):
             self.transfert_icon.set_surface(region.owner.soldier_icon)
             self.transfert_title.set_text(str(self.transfert_amount))
             self.transfert_zone.pack(axis="horizontal", adapt=True)
+            self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
             self.transfert_zone.show()

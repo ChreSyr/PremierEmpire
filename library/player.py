@@ -70,7 +70,7 @@ class Player:
         self.color = Player.COLORS[continent]
         self.soldier_icon = Player.SOLDIERS[continent]
         self.flag = bp.Image(game.map, Player.FLAGS[continent], name=str(self.id),
-                             visible=False, layer=game.map.frontof_regions_layer)
+                             visible=False, layer=game.map.frontof_regions_layer, ref=game.map.map_image)
         self.flag_region = None
         self.choose_region_attemps = 0
 
