@@ -316,3 +316,9 @@ class RegionInfoButton(PE_Button):
     def __init__(self, game, **kwargs):
 
         PE_Button.__init__(self, game.region_info_zone, midbottom=(75, 145), command=game.end_transfert, **kwargs)
+
+    def handle_validate(self):
+
+        super().handle_validate()
+
+        self.scene.map.region_unselect()
