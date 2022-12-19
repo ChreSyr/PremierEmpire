@@ -6,7 +6,7 @@ load = bp.image.load
 
 from library.loading import set_progression
 
-from baopig.googletrans import TranslatableText, PartiallyTranslatableText, dicts, lang_manager, translator
+from baopig.googletrans import TranslatableText, PartiallyTranslatableText, lang_manager, translator
 
 set_progression(.4)
 
@@ -15,7 +15,8 @@ from library.theme import set_cursor
 from library.images import FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
-from library.zones import BackgroundedZone, GameSail, InfoLeftZone, PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, CardsZone, GameSail, InfoLeftZone, PlayerTurnZone, PlayZone, \
+    TmpMessage, WinnerInfoZone
 from library.region import Structure
 from library.map import Map
 
@@ -350,6 +351,9 @@ class Game(bp.Scene):
                   background_image=Structure.BUILDS.subsurface(30, 60, 30, 30), command=self.map.region_unselect)
         self.confirm_zone.pack(adapt=True)
 
+        # CARDS
+        self.cards_zone = CardsZone(self)
+
         # CHOOSE BUILD
         self.choose_build_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
 
@@ -426,6 +430,7 @@ class Game(bp.Scene):
 
         def start_build():
             self.info_left_zone.show()
+            self.cards_zone.show()
             self.set_tuto_ref_text_id(31)
             self.info_left_zone.highlight(self.info_left_zone.construction_btn)
 
@@ -728,6 +733,7 @@ class Game(bp.Scene):
             self.playerturn_zone = None
         self.info_top_zone.hide()
         self.info_left_zone.hide()
+        self.cards_zone.hide()
         self.winner_info_zone.hide()
         if self.time_left.is_running:
             self.time_left.cancel()
@@ -758,7 +764,7 @@ class Game(bp.Scene):
         self.step.end()
 
         if self.transferring:
-            self.end_transfert(self.transfert_from)
+            raise AssertionError
 
         self.step = self.step_from_id[index]
 

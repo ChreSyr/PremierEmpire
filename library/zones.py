@@ -163,19 +163,114 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
             self.kill()
 
 
+class TmpMessage(BackgroundedZone, KillOnClick):
+
+    def __init__(self, game, text_id, explain_id=None, explain=None):
+
+        BackgroundedZone.__init__(self, game, size=(400, 150), sticky="midtop", layer_level=2)
+        KillOnClick.__init__(self, game)
+
+        msg_w = TranslatableText(self, text_id=text_id, max_width=self.rect.w - 10, align_mode="center", pos=(0, 5),
+                                 sticky="midtop", font_height=self.get_style_for(bp.Text)["font_height"] + 4)
+        r2 = bp.Rectangle(self, size=(self.rect.w, msg_w.rect.h + 10), color=(0, 0, 0, 0), border_width=2)
+        if explain_id:
+            TranslatableText(self, text_id=explain_id, max_width=self.rect.w - 10,
+                             pos=(5, 5), ref=r2, refloc="bottomleft")
+        elif explain:
+            bp.Text(self, text=explain, max_width=self.rect.w - 10, pos=(5, 5), ref=r2, refloc="bottomleft")
+
+
+class Warning(BackgroundedZone):
+
+    def __init__(self, game, msg_id, anyway, always=None):
+
+        BackgroundedZone.__init__(self, game, layer=game.extra_layer, size=(640, 400), sticky="center")
+        game.sail.add_target(self)
+
+        TranslatableText(self, text_id=msg_id, sticky="midtop", pos=(0, 40), font_height=35, align_mode="center")
+
+        btns_zone = bp.Zone(self, sticky="midbottom", pos=(0, -40), spacing=140 * 2)
+        def cancel():
+            self.kill()
+            if always is not None:
+                always()
+        PE_Button(btns_zone, text_id=91, command=cancel)
+        def confirm():
+            self.kill()
+            anyway()
+            if always is not None:
+                always()
+        PE_Button(btns_zone, text_id=92, command=confirm)
+        btns_zone.default_layer.pack(axis="horizontal")
+        btns_zone.adapt()
+
+
+# --
+
+
+class CardsZone(BackgroundedZone):
+
+    def __init__(self, game):
+
+        spacing = 4
+        padding = 4 + 3  # 3 for the border
+        BackgroundedZone.__init__(self, game, sticky="midbottom", pos=(0, 2), visible=False,
+                                  padding=padding, spacing=spacing)
+
+        self.set_style_for(
+            PE_Button,
+            text_style={"font_height": 35},
+            padding=0,
+        )
+
+        self.toggler = PE_Button(self, text="^", translatable=False, size=(40, 40), command=self.increase)
+        self.add1 = PE_Button(self, text="+", translatable=False, width=150)
+        self.add2 = PE_Button(self, text="+", translatable=False, width=150)
+        self.add3 = PE_Button(self, text="+", translatable=False, width=150)
+
+        self.slots = [self.add1, self.add2, self.add3]
+
+        self.default_layer.pack(axis="horizontal")
+        self.adapt()
+
+    def increase(self):
+
+
+        for slot in self.slots:
+            slot.resize_height(int(150 * 1.6))
+
+        self.default_layer.pack(axis="horizontal")
+        self.adapt()
+
+        self.toggler.set_text("-")
+        self.toggler.command = self.decrease
+
+    def decrease(self):
+
+        for slot in self.slots:
+            slot.resize_height(40)
+
+        self.default_layer.pack(axis="horizontal")
+        self.adapt()
+
+        self.toggler.set_text("^")
+        self.toggler.command = self.increase
+
+
+
 class InfoLeftZone(BackgroundedZone):
 
     def __init__(self, game):
 
-        padding = 4
-        in_padding = 4 + 3
+        spacing = 4
+        padding = 4 + 3  # 3 for the border
         BackgroundedZone.__init__(self, game, sticky="midleft", visible=False, layer=game.gameinfo_layer)
 
         self.highlighted = None
         self.highlighted_color = (201, 129, 0)
         self.standard_color = (158, 106, 51)
 
-        timer_zone = bp.Zone(self, size=(140 + padding * 2 + 3 * 2, 40), background_color="black")
+        timer_zone = bp.Zone(self, size=(140 + spacing * 2 + 3 * 2, 40), background_color="black")
         bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),
                             sticky="center", align_mode="center", font_color="white")
 
@@ -223,7 +318,7 @@ class InfoLeftZone(BackgroundedZone):
                     if not btn.is_touchable_by_mouse:
                         btn.disable_sail.show()
 
-        stepbtns_zone = bp.Zone(self, padding=(in_padding, padding, in_padding, in_padding), spacing=padding)
+        stepbtns_zone = bp.Zone(self, padding=(padding, spacing, padding, padding), spacing=spacing)
         self.construction_btn = InfoLeftButton(stepbtns_zone, text_id=16, step_id=20)
         self.construction_btn.disable()
         self.attack_btn = InfoLeftButton(stepbtns_zone, text_id=17, step_id=21)
@@ -231,7 +326,7 @@ class InfoLeftZone(BackgroundedZone):
         stepbtns_zone.pack()
         stepbtns_zone.adapt()
 
-        nextstep_zone = bp.Zone(self, padding=(in_padding, 40, in_padding, in_padding))
+        nextstep_zone = bp.Zone(self, padding=(padding, 40, padding, padding))
         self.next_step_btn = PE_Button(nextstep_zone, text_id=15, background_color=self.standard_color,
                                        command=game.next_player)
         nextstep_zone.pack()
@@ -832,48 +927,6 @@ class SettingsResolutionZone(SettingsZone):
         self.pack_and_adapt()
 
         self.behind.resolution_btn.command = self.show
-
-
-class TmpMessage(BackgroundedZone, KillOnClick):
-
-    def __init__(self, game, text_id, explain_id=None, explain=None):
-
-        BackgroundedZone.__init__(self, game, size=(400, 150), sticky="midtop", layer_level=2)
-        KillOnClick.__init__(self, game)
-
-        msg_w = TranslatableText(self, text_id=text_id, max_width=self.rect.w - 10, align_mode="center", pos=(0, 5),
-                                 sticky="midtop", font_height=self.get_style_for(bp.Text)["font_height"] + 4)
-        r2 = bp.Rectangle(self, size=(self.rect.w, msg_w.rect.h + 10), color=(0, 0, 0, 0), border_width=2)
-        if explain_id:
-            TranslatableText(self, text_id=explain_id, max_width=self.rect.w - 10,
-                             pos=(5, 5), ref=r2, refloc="bottomleft")
-        elif explain:
-            bp.Text(self, text=explain, max_width=self.rect.w - 10, pos=(5, 5), ref=r2, refloc="bottomleft")
-
-
-class Warning(BackgroundedZone):
-
-    def __init__(self, game, msg_id, anyway, always=None):
-
-        BackgroundedZone.__init__(self, game, layer=game.extra_layer, size=(640, 400), sticky="center")
-        game.sail.add_target(self)
-
-        TranslatableText(self, text_id=msg_id, sticky="midtop", pos=(0, 40), font_height=35, align_mode="center")
-
-        btns_zone = bp.Zone(self, sticky="midbottom", pos=(0, -40), spacing=140 * 2)
-        def cancel():
-            self.kill()
-            if always is not None:
-                always()
-        PE_Button(btns_zone, text_id=91, command=cancel)
-        def confirm():
-            self.kill()
-            anyway()
-            if always is not None:
-                always()
-        PE_Button(btns_zone, text_id=92, command=confirm)
-        btns_zone.default_layer.pack(axis="horizontal")
-        btns_zone.adapt()
 
 
 class WinnerInfoZone(bp.Zone):
