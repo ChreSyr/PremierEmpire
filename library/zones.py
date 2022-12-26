@@ -243,10 +243,10 @@ class CardsZone(BackgroundedZone):
             padding=0,
         )
 
-        self.little_slot_size = (150, 40)
-        self.big_slot_size = (150, int(150 * 1.6))
+        self.little_slot_size = (152, 44)
+        self.big_slot_size = (152, int(152 * 1.6))
 
-        self.toggler = PE_Button(self, text="^", translatable=False, size=(40, 40), command=self.increase)
+        self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase)
 
         class AddCardButton(PE_Button):
             def __init__(btn, slot_id):
@@ -317,7 +317,6 @@ class CardsZone(BackgroundedZone):
             for widget in slots:
                 if not isinstance(widget, PE_Button):
                     widget.kill()
-
 
 
 class InfoLeftZone(BackgroundedZone):

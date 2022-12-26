@@ -171,9 +171,9 @@ class Game(bp.Scene):
 
         # INFO COUNTRY
         self.info_country_on_hover = False
-        self.region_info_zone = BackgroundedZone(self, size=(150, 150), visible=False, layer=self.game_layer,
+        self.region_info_zone = BackgroundedZone(self, size=(152, 152), visible=False, layer=self.game_layer,
                                                  ref=self.map.map_image)
-        r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 40),
+        r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 44),
                           color=(0, 0, 0, 0), border_width=2, border_color="black")
         self.invade_btn = TransfertButton(self, text_id=4)
         self.back_btn = TransfertButton(self, text_id=19)
@@ -258,7 +258,7 @@ class Game(bp.Scene):
             rc_next()
         self.rc_yes = RegionInfoButton(self, text_id=21, command=yes)
         self.rc_no = RegionInfoButton(self, text_id=22, command=no)
-        self.rc_yes.set_pos(midbottom=(75, 103))
+        self.rc_yes.set_pos(midbottom=(76, 103))
 
         # WINNER INFO
         self.winner = None
@@ -762,7 +762,16 @@ class Game(bp.Scene):
 
     def pick_region(self):
 
-        self.map.region_select(self.draw_pile.pop())
+        try:
+            picked = self.draw_pile.pop()
+
+        except IndexError:
+            assert len(self.draw_pile) == 0
+            self.draw_pile, self.discard_pile = self.discard_pile, self.draw_pile
+            random.shuffle(self.draw_pile)
+            picked = self.draw_pile.pop()
+
+        self.map.region_select(picked)
 
         player = self.current_player
         player.choose_region_attemps += 1

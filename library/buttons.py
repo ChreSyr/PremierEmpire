@@ -340,7 +340,7 @@ class RegionInfoButton(PE_Button):
 
     def __init__(self, game, **kwargs):
 
-        PE_Button.__init__(self, game.region_info_zone, midbottom=(75, 145), **kwargs)
+        PE_Button.__init__(self, game.region_info_zone, midbottom=(76, 146), **kwargs)
 
 
 class TransfertButton(RegionInfoButton):
