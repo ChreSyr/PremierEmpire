@@ -229,6 +229,8 @@ class Game(bp.Scene):
                 set_cursor("default")
                 self.set_step(10)
             else:
+                if self.playerturn_zone is None:
+                    self.playerturn_zone = PlayerTurnZone(self)
                 self.next_player()
                 count = 0
                 while self.current_player.flag_region is not None:
@@ -237,10 +239,10 @@ class Game(bp.Scene):
                     if count == self.nb_players:
                         self.rc_yes.hide()
                         self.rc_no.hide()
-                        self.playerturn_zone = PlayerTurnZone(self)
                         self.current_player_id = -1
                         self.next_player()
                         return
+                self.playerturn_zone.show()
                 self.pick_region()
         def no():
             self.discard_pile.append(self.last_selected_region)

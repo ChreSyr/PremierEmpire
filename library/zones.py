@@ -492,7 +492,8 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
         if self.hide_timer.is_running:
             self.hide_timer.cancel()
 
-        self.scene.nextsail_animator.resume()
+        if self.scene.step.id >= 20:
+            self.scene.nextsail_animator.resume()
 
     def show(self):
 
@@ -514,7 +515,8 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
             self.hide_timer.cancel()
         self.hide_timer.start()
 
-        self.scene.nextsail_animator.pause()
+        if self.scene.step.id >= 20:
+            self.scene.nextsail_animator.pause()
 
 
 class PlayZone(bp.Zone):
