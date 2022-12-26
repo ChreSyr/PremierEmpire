@@ -226,11 +226,21 @@ class CardsZone(BackgroundedZone):
             self.slot_id = slot_id
 
         def decrease(self):
-
             self.resize(*self.parent.little_slot_size)
 
         def increase(self):
+            self.resize(*self.parent.big_slot_size)
 
+    class AddCardButton(PE_Button):
+
+        def __init__(self, cards_zone, slot_id):
+            PE_Button.__init__(self, cards_zone, text="+", translatable=False, size=cards_zone.little_slot_size)
+            self.slot_id = slot_id
+
+        def decrease(self):
+            self.resize(*self.parent.little_slot_size)
+
+        def increase(self):
             self.resize(*self.parent.big_slot_size)
 
     def __init__(self, game):
@@ -247,18 +257,9 @@ class CardsZone(BackgroundedZone):
         self.big_slot_size = (152, int(152 * 1.6))
 
         self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase)
-
-        class AddCardButton(PE_Button):
-            def __init__(btn, slot_id):
-                PE_Button.__init__(btn, self, text="+", translatable=False, size=self.little_slot_size)
-                self.slot_id = slot_id
-            def decrease(btn):
-                btn.resize(*self.little_slot_size)
-            def increase(btn):
-                btn.resize(*self.big_slot_size)
-        self.add1 = AddCardButton(slot_id=0)
-        self.add2 = AddCardButton(slot_id=1)
-        self.add3 = AddCardButton(slot_id=2)
+        self.add1 = self.AddCardButton(self, slot_id=0)
+        self.add2 = self.AddCardButton(self, slot_id=1)
+        self.add3 = self.AddCardButton(self, slot_id=2)
         self.add_buttons = [self.add1, self.add2, self.add3]
 
         self.hands = {}  # self.hands[a_player] -> 3 widgets (Card or AddCardButton)
@@ -277,7 +278,7 @@ class CardsZone(BackgroundedZone):
         for slot in self.current_hand:
             slot.decrease()
 
-        self.adapt()
+        self.resize_height(44 + self.padding.top * 2)
 
         self.toggler.set_text("^")
         self.toggler.command = self.increase
@@ -287,7 +288,7 @@ class CardsZone(BackgroundedZone):
         for slot in self.current_hand:
             slot.increase()
 
-        self.adapt()
+        self.resize_height(self.big_slot_size[1] + self.padding.top * 2)
 
         self.toggler.set_text("-")
         self.toggler.command = self.decrease
