@@ -139,7 +139,8 @@ class Game(bp.Scene):
         self.mapsail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
 
         # NEXT_TODO ANIMATION
-        self.nextsail_zone = bp.Zone(self, pos=(-self.rect.h, 0), size=(self.rect.h, "100%"), layer=self.gameinfo_layer)
+        self.nextsail_zone = bp.Zone(self, pos=(-self.rect.h, 0), size=(self.rect.h, "100%"), layer=self.gameinfo_layer,
+                                     touchable=False)
         def nextsail_animate():
             self.nextsail_zone.move(dx=max(abs(self.nextsail_zone.rect.centerx - self.auto_rect.centerx) / 5, 20))
             if self.nextsail_zone.rect.left >= self.rect.width:
