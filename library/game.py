@@ -232,13 +232,11 @@ class Game(bp.Scene):
                     self.next_player()
                     count += 1
                     if count == self.nb_players:
-                        self.current_player_id = -1
-                        self.next_player()  # set to player n°0
-                        self.time_left.start()
                         self.rc_yes.hide()
                         self.rc_no.hide()
-                        self.set_step(20)
                         self.playerturn_zone = PlayerTurnZone(self)
+                        self.current_player_id = -1
+                        self.next_player()
                         return
                 self.pick_region()
         def yes():
@@ -677,7 +675,12 @@ class Game(bp.Scene):
     def next_player(self):
 
         set_build = False
-        if self.step.id >= 20:
+
+        if self.current_player_id == -1:
+            # start of the game
+            set_build = True
+
+        elif self.step.id >= 20:
 
             set_build = True
             self.step.end()
@@ -736,6 +739,7 @@ class Game(bp.Scene):
             self.playerturn_zone = None
         self.info_left_zone.hide()
         self.cards_zone.hide()
+        self.cards_zone.reset()
         self.winner_info_zone.hide()
         if self.time_left.is_running:
             self.time_left.cancel()

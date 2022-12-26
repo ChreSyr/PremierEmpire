@@ -77,6 +77,7 @@ class Player:
         self.gold = 6
         self.regions = {}  # ex: {Region("alaska"): (Soldier1, Soldier2, Soldier3)}
         self.neighboring_regions = set()
+        self.cards = [None] * 3
 
         z = BackgroundedZone(game.info_right_zone, size=("100%", 104), pos=(0, 1000))
         colored_rect = bp.Rectangle(z, size=(z.rect.w, 42), color=self.color, border_width=2, border_color="black")

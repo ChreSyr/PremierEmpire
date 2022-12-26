@@ -211,12 +211,31 @@ class Warning(BackgroundedZone):
 
 class CardsZone(BackgroundedZone):
 
+    class Card(BackgroundedZone):
+
+        def __init__(self, cards_zone, region, slot_id):
+
+            BackgroundedZone.__init__(self, cards_zone, size=cards_zone.current_slot_size,
+                                      pos=cards_zone.add_buttons[slot_id].rect.topleft)
+
+            title_zone = BackgroundedZone(self, size=cards_zone.little_slot_size)
+            TranslatableText(title_zone, text_id=region.upper_name_id, sticky="center",
+                             max_width=self.content_rect.w - 6, align_mode="center", selectable=False)
+
+            self.region = region
+            self.slot_id = slot_id
+
+        def decrease(self):
+
+            self.resize(*self.parent.little_slot_size)
+
+        def increase(self):
+
+            self.resize(*self.parent.big_slot_size)
+
     def __init__(self, game):
 
-        spacing = 4
-        padding = 4 + 3  # 3 for the border
-        BackgroundedZone.__init__(self, game, sticky="midbottom", pos=(0, 2), visible=False,
-                                  padding=padding, spacing=spacing)
+        BackgroundedZone.__init__(self, game, sticky="midbottom", pos=(0, 2), visible=False, padding=8, spacing=4)
 
         self.set_style_for(
             PE_Button,
@@ -224,38 +243,81 @@ class CardsZone(BackgroundedZone):
             padding=0,
         )
 
-        self.toggler = PE_Button(self, text="^", translatable=False, size=(40, 40), command=self.increase)
-        self.add1 = PE_Button(self, text="+", translatable=False, width=150)
-        self.add2 = PE_Button(self, text="+", translatable=False, width=150)
-        self.add3 = PE_Button(self, text="+", translatable=False, width=150)
+        self.little_slot_size = (150, 40)
+        self.big_slot_size = (150, int(150 * 1.6))
 
-        self.slots = [self.add1, self.add2, self.add3]
+        self.toggler = PE_Button(self, text="^", translatable=False, size=(40, 40), command=self.increase)
+
+        class AddCardButton(PE_Button):
+            def __init__(btn, slot_id):
+                PE_Button.__init__(btn, self, text="+", translatable=False, size=self.little_slot_size)
+                self.slot_id = slot_id
+            def decrease(btn):
+                btn.resize(*self.little_slot_size)
+            def increase(btn):
+                btn.resize(*self.big_slot_size)
+        self.add1 = AddCardButton(slot_id=0)
+        self.add2 = AddCardButton(slot_id=1)
+        self.add3 = AddCardButton(slot_id=2)
+        self.add_buttons = [self.add1, self.add2, self.add3]
+
+        self.hands = {}  # self.hands[a_player] -> 3 widgets (Card or AddCardButton)
+        self.current_hand = [self.add1, self.add2, self.add3]
 
         self.default_layer.pack(axis="horizontal")
         self.adapt()
 
+        game.signal.PLAYER_TURN.connect(self.handle_player_turn, owner=self)
+
+    current_slot_size = property(lambda self: self.big_slot_size if self.is_open else self.little_slot_size)
+    is_open = property(lambda self: self.rect.height > 150)
+
+    def decrease(self):
+
+        for slot in self.current_hand:
+            slot.decrease()
+
+        self.adapt()
+
+        self.toggler.set_text("^")
+        self.toggler.command = self.increase
+
     def increase(self):
 
+        for slot in self.current_hand:
+            slot.increase()
 
-        for slot in self.slots:
-            slot.resize_height(int(150 * 1.6))
-
-        self.default_layer.pack(axis="horizontal")
         self.adapt()
 
         self.toggler.set_text("-")
         self.toggler.command = self.decrease
 
-    def decrease(self):
+    def handle_player_turn(self):
 
-        for slot in self.slots:
-            slot.resize_height(40)
+        if self.scene.step.id < 20:
+            return
 
-        self.default_layer.pack(axis="horizontal")
-        self.adapt()
+        for slot in self.current_hand:
+            slot.hide()
 
-        self.toggler.set_text("^")
-        self.toggler.command = self.increase
+        try:
+            self.current_hand = self.hands[self.scene.current_player]
+
+        except KeyError:
+            flag_region_card = self.Card(self, region=self.scene.current_player.flag_region, slot_id=0)
+            self.current_hand = [flag_region_card, self.add2, self.add3]
+            self.hands[self.scene.current_player] = self.current_hand
+
+        for slot in self.current_hand:
+            slot.show()
+
+    def reset(self):
+
+        for slots in self.hands.values():
+            for widget in slots:
+                if not isinstance(widget, PE_Button):
+                    widget.kill()
+
 
 
 class InfoLeftZone(BackgroundedZone):
