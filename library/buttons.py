@@ -18,6 +18,10 @@ class BtnImg:
         self.raw_back = load("images/btn_back.png")
         self.raw_window = load("images/btn_window.png")
 
+        self.hover_dict = {}  # from size to colored hover
+        self.rawback_dict = {self.raw_back.get_size(): self.raw_back}  # from size to raw background
+        self.rawwin_dict = {self.raw_window.get_size(): self.raw_window}  # from size to raw window
+
         self.colored_back = self.raw_back.copy()
         self.colored_win = self.raw_window.copy()
         self.colored_back.fill(self.default_color, special_flags=pygame.BLEND_RGBA_MIN)  # flag for transparency
@@ -50,6 +54,7 @@ class BtnImg:
         self.win_hover = self.raw_window.copy()
         self.win_hover.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
         self.default_hover.blit(self.win_hover, self.window_topleft)
+        self.hover_dict[self.raw_back.get_size()] = self.default_hover
 
     def get_resized_background(self, size, color=None):
 
@@ -58,20 +63,27 @@ class BtnImg:
         else:
             color = bp.Color(color)
 
-        surf = pygame.Surface(size, pygame.SRCALPHA)
-
         w, h = size
-        surf.blit(self.raw_back_corners[0], (0, 0))
-        surf.blit(self.raw_back_corners[1], (w - 6, 0))
-        surf.blit(self.raw_back_corners[2], (w - 6, h - 6))
-        surf.blit(self.raw_back_corners[3], (0, h - 6))
+
+        try:
+            surf = self.rawback_dict[size].copy()
+
+        except KeyError:
+            surf = pygame.Surface(size, pygame.SRCALPHA)
+
+            surf.blit(self.raw_back_corners[0], (0, 0))
+            surf.blit(self.raw_back_corners[1], (w - 6, 0))
+            surf.blit(self.raw_back_corners[2], (w - 6, h - 6))
+            surf.blit(self.raw_back_corners[3], (0, h - 6))
+
+            self.rawback_dict[size] = surf.copy()
+
+        surf.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
 
         if w > 12:
             pygame.draw.rect(surf, color, (6, 0, w - 12, h))
         if h > 12:
             pygame.draw.rect(surf, color, (0, 6, w, h - 12))
-
-        surf.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
 
         win_width = int(w * 13 / 14)
         if win_width % 2 == 1:
@@ -97,6 +109,9 @@ class BtnImg:
         return surf
 
     def get_resized_hover(self, size):
+
+        if size in self.hover_dict:
+            return self.hover_dict[size]
 
         color = self.hover_color
         surf = pygame.Surface(size, pygame.SRCALPHA)
@@ -135,6 +150,8 @@ class BtnImg:
         win_topleft = (int((w - win_width) / 2),) * 2
         surf.blit(win, win_topleft)
 
+        self.hover_dict[size] = surf
+
         return surf
 
     def get_resized_window(self, size, color=None):
@@ -145,12 +162,19 @@ class BtnImg:
             color = bp.Color(color)
 
         w, h = size
-        win = pygame.Surface((w, h), pygame.SRCALPHA)
 
-        win.blit(self.raw_win_corners[0], (0, 0))
-        win.blit(self.raw_win_corners[1], (w - 6, 0))
-        win.blit(self.raw_win_corners[2], (w - 6, h - 6))
-        win.blit(self.raw_win_corners[3], (0, h - 6))
+        try:
+            win = self.rawwin_dict[size].copy()
+
+        except KeyError:
+            win = pygame.Surface((w, h), pygame.SRCALPHA)
+
+            win.blit(self.raw_win_corners[0], (0, 0))
+            win.blit(self.raw_win_corners[1], (w - 6, 0))
+            win.blit(self.raw_win_corners[2], (w - 6, h - 6))
+            win.blit(self.raw_win_corners[3], (0, h - 6))
+
+            self.rawwin_dict[size] = win.copy()
 
         win.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
 
@@ -162,6 +186,7 @@ class BtnImg:
         win.fill(color, special_flags=pygame.BLEND_RGBA_MIN)
 
         return win
+
 
 btnimg_manager = BtnImg()
 

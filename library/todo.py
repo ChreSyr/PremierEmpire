@@ -8,7 +8,6 @@
 
 # DIVERS :
 # TODO : quand les règles seront terminées, faire un tutoriel
-# TODO : btnimg_manager saves created buttons images
 
 # NOUVEAUTÉS :
 # TODO : Permettre d'acheter une carte Région pour 3 or
