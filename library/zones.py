@@ -258,7 +258,6 @@ class CardsZone(BackgroundedZone):
         self.toggler.command = self.increase
 
 
-
 class InfoLeftZone(BackgroundedZone):
 
     def __init__(self, game):
@@ -274,6 +273,10 @@ class InfoLeftZone(BackgroundedZone):
         self.turn_zone = bp.Zone(self, size=(140 + spacing * 2, 40))
         self.turn_text = PartiallyTranslatableText(self.turn_zone, text_id=5, sticky="center", max_width=140,
                                                    get_args=(lambda: game.current_player.name_id,), align_mode="center")
+        def update():
+            self.turn_zone.set_background_color(game.current_player.color)
+            self.turn_text.complete_text()
+        game.signal.PLAYER_TURN.connect(update, owner=self)
 
         timer_zone = bp.Zone(self, size=(140 + spacing * 2, 40), background_color="black")
         bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),

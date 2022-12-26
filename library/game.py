@@ -36,6 +36,9 @@ class Game(bp.Scene):
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
         self.last_selected_region = None
 
+        # SIGNALS
+        self.create_signal("PLAYER_TURN")
+
         # PlAYERS
         self.players = {}
         self.nb_players = None
@@ -691,15 +694,14 @@ class Game(bp.Scene):
             self.set_step(20)
             self.playerturn_zone.show()
 
-        self.info_left_zone.turn_text.complete_text()
-        self.info_left_zone.turn_zone.set_background_color(self.current_player.color)
-
         if self.time_left.is_running:
             self.time_left.cancel()
         if self.step.id >= 20:
             self.time_left.start()
 
         set_cursor(self.current_player.name)
+
+        self.signal.PLAYER_TURN.emit()
 
     def next_step(self):
 
