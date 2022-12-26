@@ -154,9 +154,6 @@ class Game(bp.Scene):
 
         # INFORMATION ON TOP & RIGHT
         self.info_right_zone = bp.Zone(self, sticky="midright", size=("10%", 0), spacing=-3, layer=self.gameinfo_layer)
-        self.info_top_zone = bp.Zone(self, sticky="midtop", size=("80%", "5%"), visible=False, layer=self.gameinfo_layer)
-        self.au_tour_de = PartiallyTranslatableText(self.info_top_zone, sticky="center", text_id=5,
-                                                  get_args=(lambda : self.current_player.name_id,))
 
         # INFORMATION AT LEFT
         self.time_left = bp.Timer(90, self.next_player)
@@ -415,7 +412,6 @@ class Game(bp.Scene):
             self.choose_nb_players_zone.show()
             self.newgame_setup()
             self.set_tuto_ref_text_id(27)
-            self.info_top_zone.hide()
             self.info_right_zone.hide()
         Step(self, 1, start_choosenbplayers, end=self.choose_nb_players_zone.hide)
 
@@ -424,7 +420,6 @@ class Game(bp.Scene):
             self.set_tuto_ref_text_id(28)
         def end_choosecolor():
             self.choose_color_zone.hide()
-            self.info_top_zone.show()
             self.info_right_zone.show()
         Step(self, 10, start_choosecolor, end_choosecolor)
 
@@ -696,8 +691,8 @@ class Game(bp.Scene):
             self.set_step(20)
             self.playerturn_zone.show()
 
-        self.au_tour_de.complete_text()
-        self.info_top_zone.set_background_color(self.current_player.color)
+        self.info_left_zone.turn_text.complete_text()
+        self.info_left_zone.turn_zone.set_background_color(self.current_player.color)
 
         if self.time_left.is_running:
             self.time_left.cancel()
@@ -737,7 +732,6 @@ class Game(bp.Scene):
         if self.playerturn_zone is not None:
             self.playerturn_zone.kill()
             self.playerturn_zone = None
-        self.info_top_zone.hide()
         self.info_left_zone.hide()
         self.cards_zone.hide()
         self.winner_info_zone.hide()

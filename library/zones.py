@@ -13,8 +13,9 @@ class BackgroundedZone(bp.Zone):
     STYLE = bp.Zone.STYLE.substyle()
     STYLE.modify(
         background_color=(176, 167, 139),
+        border_color="black",
         border_width=2,
-        border_color="black"
+        padding=3,
     )
 
 
@@ -263,14 +264,18 @@ class InfoLeftZone(BackgroundedZone):
     def __init__(self, game):
 
         spacing = 4
-        padding = 4 + 3  # 3 for the border
+        padding = 4
         BackgroundedZone.__init__(self, game, sticky="midleft", visible=False, layer=game.gameinfo_layer)
 
         self.highlighted = None
         self.highlighted_color = (201, 129, 0)
         self.standard_color = (158, 106, 51)
 
-        timer_zone = bp.Zone(self, size=(140 + spacing * 2 + 3 * 2, 40), background_color="black")
+        self.turn_zone = bp.Zone(self, size=(140 + spacing * 2, 40))
+        self.turn_text = PartiallyTranslatableText(self.turn_zone, text_id=5, sticky="center", max_width=140,
+                                                   get_args=(lambda: game.current_player.name_id,), align_mode="center")
+
+        timer_zone = bp.Zone(self, size=(140 + spacing * 2, 40), background_color="black")
         bp.DynamicText(timer_zone, lambda: bp.format_time(game.time_left.get_time_left(), formatter="%M:%S"),
                             sticky="center", align_mode="center", font_color="white")
 
