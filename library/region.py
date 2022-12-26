@@ -86,7 +86,9 @@ class Region(bp.Image):
         self.all_allied_neighbors = []
         self.flag = None
 
-        parent.parent.regions[self.name] = self
+        self.scene.regions[self.name] = self
+        if len(self.scene.draw_pile) < 8:
+            self.scene.draw_pile.append(self)
 
         # self.build_rect = bp.Rectangle(parent, color="red", pos=self.structure.rect.topleft, size=self.structure.rect.size)
         # self.flag_rect = bp.Rectangle(parent, color="blue", midbottom=flag_midbottom, size=(36, 60))

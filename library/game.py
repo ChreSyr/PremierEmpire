@@ -127,7 +127,11 @@ class Game(bp.Scene):
         # self.progress_tracker.hide()
 
         # MAP
+        self.draw_pile = []  # pioche
+        self.discard_pile = []  # défausse
         map = self.map = Map(self)
+
+        # MAP SAIL  TODO : move to map.py
         self.map_sail = map.sail
         def mapsail_open_animate():
             self.map_sail.set_radius(self.map_sail.radius + 60)
@@ -218,7 +222,6 @@ class Game(bp.Scene):
         self.map.signal.REGION_SELECT.connect(handle_infocountry_change, owner=None)
 
         # REGION CHOOSE
-        self.picked_regions = []
         def rc_next():
             if len(self.players) < self.nb_players:
                 self.rc_yes.hide()
@@ -239,8 +242,11 @@ class Game(bp.Scene):
                         self.next_player()
                         return
                 self.pick_region()
+        def no():
+            self.discard_pile.append(self.last_selected_region)
+            rc_next()
         def yes():
-            self.current_player.flag_region = self.last_selected_region
+            self.current_player.flag_region = self.current_player.cards[0] = self.last_selected_region
             flag = self.flags[self.current_player_id]
             flag.swap_layer(map.behind_regions_layer)
             flag.set_pos(midbottom=self.last_selected_region.flag_midbottom +
@@ -250,11 +256,9 @@ class Game(bp.Scene):
             self.current_player.move_flag(self.last_selected_region)
             self.last_selected_region.add_soldiers(3)
             rc_next()
-        self.rc_yes = RegionInfoButton(self, text_id=21)
-        self.rc_no = RegionInfoButton(self, text_id=22)
+        self.rc_yes = RegionInfoButton(self, text_id=21, command=yes)
+        self.rc_no = RegionInfoButton(self, text_id=22, command=no)
         self.rc_yes.set_pos(midbottom=(75, 103))
-        self.rc_yes.command = yes
-        self.rc_no.command = rc_next
 
         # WINNER INFO
         self.winner = None
@@ -717,6 +721,14 @@ class Game(bp.Scene):
 
         self.winner = None
 
+        while self.discard_pile:
+            self.draw_pile.append(self.discard_pile.pop())
+        for player in self.players.values():
+            for card in player.cards:
+                if card is not None:
+                    self.draw_pile.append(card)
+        random.shuffle(self.draw_pile)
+
         for r in self.regions.values():
             r.flag = None
             r.structure.destroy()
@@ -744,20 +756,13 @@ class Game(bp.Scene):
         if self.time_left.is_running:
             self.time_left.cancel()
 
-        self.picked_regions.clear()
-
         self.map.map_image.pos_manager.config(pos=(0, 0))
 
         set_cursor("default")
 
     def pick_region(self):
 
-        while True:
-            picked = random.choice(self.regions_list)
-            if picked not in self.picked_regions:
-                self.picked_regions.append(picked)
-                break
-        self.map.region_select(picked)
+        self.map.region_select(self.draw_pile.pop())
 
         player = self.current_player
         player.choose_region_attemps += 1
