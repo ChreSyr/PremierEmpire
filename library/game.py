@@ -13,7 +13,7 @@ set_progression(.4)
 from library.memory import Memory
 from library.theme import set_cursor
 from library.images import FLAGS_BIG
-from library.buttons import PE_Button, RegionInfoButton
+from library.buttons import PE_Button, RegionInfoButton, TransfertButton
 from library.player import Player
 from library.zones import BackgroundedZone, CardsZone, GameSail, InfoLeftZone, PlayerTurnZone, PlayZone, \
     TmpMessage, WinnerInfoZone
@@ -170,9 +170,9 @@ class Game(bp.Scene):
                                                  ref=self.map.map_image)
         r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 40),
                           color=(0, 0, 0, 0), border_width=2, border_color="black")
-        self.invade_btn = RegionInfoButton(self, text_id=4)
-        self.back_btn = RegionInfoButton(self, text_id=19)
-        self.import_btn = RegionInfoButton(self, text_id=20)
+        self.invade_btn = TransfertButton(self, text_id=4)
+        self.back_btn = TransfertButton(self, text_id=19)
+        self.import_btn = TransfertButton(self, text_id=20)
         class InfoCountryTitle(TranslatableText):
             def __init__(txt, *args, **kwargs):
                 TranslatableText.__init__(txt, *args, text_id=1, **kwargs)

@@ -315,7 +315,15 @@ class RegionInfoButton(PE_Button):
 
     def __init__(self, game, **kwargs):
 
-        PE_Button.__init__(self, game.region_info_zone, midbottom=(75, 145), command=game.end_transfert, **kwargs)
+        PE_Button.__init__(self, game.region_info_zone, midbottom=(75, 145), **kwargs)
+
+
+class TransfertButton(RegionInfoButton):
+
+    def __init__(self, game, text_id):
+
+        RegionInfoButton.__init__(self, game, text_id=text_id, command=game.end_transfert)
+
 
     def handle_validate(self):
 
