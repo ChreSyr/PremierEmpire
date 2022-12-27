@@ -1,20 +1,22 @@
 
 # PORTABILITÉ :
-# TODO : Tester le jeu sur un PC Windows sans pygame
 # TODO : Tester le jeu sur un MAC
 # TODO : Tester le jeu sur un Chromebook (si possible)
 
 # BUGS :
 
 # DIVERS :
+# TODO : lors de l'attaque, ne pas highlight un pays qui ne contient qu'un seul soldat
 # TODO : traduire les nouveaux textes
 # TODO : quand les règles seront terminées, faire un tutoriel
 
 # NOUVEAUTÉS :
+# TODO : Permettre de vendre une carte
 # TODO : Permettre de construire un bateau
 # TODO : Ajouter Region.coast -> endroits où on peut mettre les bateaux
 # TODO : Ajouter Region.boats -> tous les bateaux d'une région
 # TODO : Permettre d'attaquer avec un bateau les régions qu'on a en carte
+# TODO : permettre de paramétrer la quantité d'animations
 
 # RÈGLES :
 # TODO : Choisir si on a un nombre maximum de cartes Région
