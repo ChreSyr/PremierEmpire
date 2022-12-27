@@ -99,28 +99,7 @@ class Player:
                 if neighbour not in self.regions:
                     self.neighboring_regions.add(neighbour)
 
-    def build_stuff(self):
-
-        for region in self.regions:
-            if region.structure.is_empty:
-                region.structure.show()
-            elif region.structure.is_under_construction:
-                region.structure.end_construction()
-            else:
-                region.structure.produce()
-
-        self.check_build()
-
-    def change_gold(self, delta):
-
-        self.gold += delta
-        assert self.gold >= 0
-        self.gold_tracker.set_text(str(self.gold))
-
-        if self.game.step.id == 20 and self.gold < 3:
-            self.game.set_step(21)
-
-    def check_attack(self):
+    def can_attack(self):
 
         can_attack = False
         for region, soldiers in self.regions.items():
@@ -132,28 +111,36 @@ class Player:
                         break
                 if can_attack:
                     break
-        if can_attack is False:
-            self.game.set_step(22)
+        return can_attack
 
-    def check_build(self):
+    def can_build(self):
 
-        if self.game.step.id != 20:
-            return  # happens when Player.change_gold() just called Game.set_step(21)
+        return not (self.gold < 3 or self.has_fully_built())
 
-        if self.gold < 3 or self.has_fully_built():
+    def can_move_troops(self):
 
-            # self.game.TmpMessage(self.game, msg="Fin de l'étape : CONSTRUCTION", explain="Tous vos pays possèdent déjà "
-            #     "un bâtiment" if has_fully_built else "Vous n'avez pas assez d'or (il en faut 3 au minimum)")
+        for region, soldiers in self.regions.items():
+            if len(soldiers) > 1 and len(region.all_allied_neighbors) > 1:
+                return True
+        return False
+
+    def change_gold(self, delta):
+
+        self.gold += delta
+        assert self.gold >= 0
+        self.gold_tracker.set_text(str(self.gold))
+
+        if self.game.step.id == 20 and self.gold < 3:
             self.game.set_step(21)
 
     def check_movement(self):
 
-        can_attack = False
+        can_move = False
         for region, soldiers in self.regions.items():
             if len(soldiers) > 1 and len(region.all_allied_neighbors) > 1:
-                can_attack = True
+                can_move = True
                 break
-        if can_attack is False:
+        if can_move is False:
             self.game.next_step()
 
     def conquer(self, region):

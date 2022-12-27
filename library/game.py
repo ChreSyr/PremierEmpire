@@ -389,8 +389,9 @@ class Game(bp.Scene):
         def build(build_name):
             self.last_selected_region.structure.start_construction(build_name)
             self.current_player.change_gold(-3)
-            self.current_player.check_build()
             self.map.region_unselect()
+            if not self.current_player.can_build():
+                self.set_step(21)
 
         self.mine_btn = bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.MINE,
                                   command=bp.PrefilledFunction(build, "mine"), background_color=(0, 0, 0, 0))
@@ -459,8 +460,6 @@ class Game(bp.Scene):
         def start_build():
             self.info_left_zone.show()
             self.cards_zone.show()
-            self.set_tuto_ref_text_id(31)
-            self.info_left_zone.highlight(self.info_left_zone.construction_btn)
 
             for region in self.current_player.regions:
                 if region.structure.is_empty:
@@ -469,7 +468,12 @@ class Game(bp.Scene):
                     if region.structure.is_under_construction:
                         region.structure.end_construction()
                     region.structure.produce()
-            self.current_player.check_build()
+
+            if self.current_player.can_build():
+                self.set_tuto_ref_text_id(31)
+                self.info_left_zone.highlight(self.info_left_zone.construction_btn)
+            else:
+                self.set_step(21)
         def end_build():
             for region in self.current_player.regions:
                 if region.structure.is_empty:
@@ -477,18 +481,22 @@ class Game(bp.Scene):
         Step(self, 20, start=start_build, end=end_build)
 
         def start_attack():
-            self.set_tuto_ref_text_id(32)
-            self.info_left_zone.highlight(self.info_left_zone.attack_btn)
-            self.current_player.check_attack()
+            if self.current_player.can_attack():
+                self.set_tuto_ref_text_id(32)
+                self.info_left_zone.highlight(self.info_left_zone.attack_btn)
+            else:
+                self.set_step(22)
         def end_attack():
             if self.transferring:
                 self.end_transfert(self.transfert_from)
         Step(self, 21, start=start_attack, end=end_attack)
 
         def start_reorganization():
-            self.set_tuto_ref_text_id(33)
-            self.info_left_zone.highlight(self.info_left_zone.reorganisation_btn)
-            self.current_player.check_movement()
+            if self.current_player.can_move_troops():
+                self.set_tuto_ref_text_id(33)
+                self.info_left_zone.highlight(self.info_left_zone.reorganisation_btn)
+            else:
+                self.next_player()
         def end_reorganization():
             if self.transferring:
                 self.end_transfert(self.transfert_from)
@@ -556,9 +564,11 @@ class Game(bp.Scene):
             self.import_btn.hide()
 
         if self.step.id == 21 and self.winner_info_zone.is_hidden:
-            self.current_player.check_attack()
+            if not self.current_player.can_attack():
+                self.set_step(22)
         elif self.step.id == 22:
-            self.current_player.check_movement()
+            if not self.current_player.can_move_troops():
+                self.next_player()
 
     def handle_event(self, event):
 
