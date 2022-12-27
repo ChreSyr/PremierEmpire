@@ -37,6 +37,7 @@ class Structure(bp.Image):
         self.hide()
         self.set_surface(Structure.WIP)
         self._state = 0
+        self._name = "NoName"
     
     def end_construction(self):
         
@@ -57,7 +58,8 @@ class Structure(bp.Image):
 
         self._state = 1
         self.show()
-        self.icon = bp.Image(self.parent, getattr(Structure, build_name.upper()), name=build_name,
+        self._name = build_name.upper()
+        self.icon = bp.Image(self.parent, getattr(Structure, self.name), name=build_name,
                              center=self.rect.center - bp.Vector2(self.parent.map_image.rect.topleft),
                              ref=self.parent.map_image)
 
@@ -87,7 +89,7 @@ class Region(bp.Image):
         self.flag = None
 
         self.scene.regions[self.name] = self
-        if len(self.scene.draw_pile) < 8:
+        if len(self.scene.draw_pile) < 8:  # TODO : remove
             self.scene.draw_pile.append(self)
 
         # self.build_rect = bp.Rectangle(parent, color="red", pos=self.structure.rect.topleft, size=self.structure.rect.size)

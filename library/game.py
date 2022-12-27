@@ -471,7 +471,7 @@ class Game(bp.Scene):
 
             if self.current_player.can_build():
                 self.set_tuto_ref_text_id(31)
-                self.info_left_zone.highlight(self.info_left_zone.construction_btn)
+                self.info_left_zone.highlight(self.info_left_zone.build_btn)
             else:
                 self.set_step(21)
         def end_build():
@@ -485,10 +485,7 @@ class Game(bp.Scene):
                 self.set_tuto_ref_text_id(32)
                 self.info_left_zone.highlight(self.info_left_zone.attack_btn)
             else:
-                for player in self.players.values():
-                    if player.can_play():
-                        return self.set_step(22)
-                self.set_winner(None)
+                self.set_step(22)
         def end_attack():
             if self.transferring:
                 self.end_transfert(self.transfert_from)
@@ -499,7 +496,10 @@ class Game(bp.Scene):
                 self.set_tuto_ref_text_id(33)
                 self.info_left_zone.highlight(self.info_left_zone.reorganisation_btn)
             else:
-                self.next_player()
+                for player in self.players.values():
+                    if player.can_play():
+                        return self.next_player()
+                self.set_winner(None)
         def end_reorganization():
             if self.transferring:
                 self.end_transfert(self.transfert_from)
@@ -646,6 +646,8 @@ class Game(bp.Scene):
                             self.region_info_zone.hide()
 
             elif event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
+                if self.winner:
+                    return
                 if self.step.id in (21, 22):
                     if self.map.is_hovered:
                         right_clicked = None
@@ -735,7 +737,8 @@ class Game(bp.Scene):
 
         if set_build:
             self.set_step(20)
-            self.playerturn_zone.show()
+            if not self.winner:
+                self.playerturn_zone.show()
 
         if self.time_left.is_running:
             self.time_left.cancel()
@@ -828,8 +831,8 @@ class Game(bp.Scene):
         if self.map.selected_region is not None:
             self.map.region_unselect()
         self.step.start()
-        if self.step.id != index:
-            return  # changed step during self.step.start()
+        if self.winner:
+            return  # draw
 
         if self.step.id >= 20:
             if self.nextsail_animator.is_running:
@@ -850,15 +853,18 @@ class Game(bp.Scene):
 
         if winner is None:
             self.winner_info_zone.title.set_text(lang_manager.get_text_from_id(97))
-            self.winner_info_zone.panel.set_color(BackgroundedZone.STYLE["background_color"])
+            self.winner_info_zone.panel.set_background_color(BackgroundedZone.STYLE["background_color"])
             self.winner = "draw"
         else:
             self.winner_info_zone.title.complete_text()
-            self.winner_info_zone.panel.set_color(winner.color)
+            self.winner_info_zone.panel.set_background_color(winner.color)
             self.winner = winner
+        self.nextsail_animator.cancel()
+        self.nextsail_zone.hide()
         self.time_left.pause()
         self.map.region_unselect()
         self.winner_info_zone.show()
+        self.winner_info_zone.panel.show()
         self.set_tuto_ref_text_id(45)
 
     def transfert(self, region):

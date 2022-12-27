@@ -292,6 +292,8 @@ class CardsZone(BackgroundedZone):
 
         for slot in self.current_hand:
             slot.decrease()
+        for btn in self.add_buttons:
+            btn.decrease()
 
         self.resize_height(44 + self.padding.top * 2)
 
@@ -302,6 +304,8 @@ class CardsZone(BackgroundedZone):
 
         for slot in self.current_hand:
             slot.increase()
+        for btn in self.add_buttons:
+            btn.increase()
 
         self.resize_height(self.big_slot_size[1] + self.padding.top * 2)
 
@@ -324,7 +328,7 @@ class CardsZone(BackgroundedZone):
 
         except KeyError:
             flag_region_card = self.Card(self, region=self.scene.current_player.flag_region, slot_id=0)
-            self.current_hand = [flag_region_card, self.add2, self.add3]
+            self.current_hand = bp.pybao.WeakList((flag_region_card, self.add2, self.add3))
             self.hands[self.scene.current_player] = self.current_hand
 
         for slot in self.current_hand:
@@ -407,8 +411,8 @@ class InfoLeftZone(BackgroundedZone):
                         btn.disable_sail.show()
 
         stepbtns_zone = bp.Zone(self, padding=(padding, spacing, padding, padding), spacing=spacing)
-        self.construction_btn = InfoLeftButton(stepbtns_zone, text_id=16, step_id=20)
-        self.construction_btn.disable()
+        self.build_btn = InfoLeftButton(stepbtns_zone, text_id=16, step_id=20)
+        self.build_btn.disable()
         self.attack_btn = InfoLeftButton(stepbtns_zone, text_id=17, step_id=21)
         self.reorganisation_btn = InfoLeftButton(stepbtns_zone, text_id=18, step_id=22)
         stepbtns_zone.pack()
@@ -434,8 +438,8 @@ class InfoLeftZone(BackgroundedZone):
         self.highlighted = btn
         btn.set_highlighted(True)
 
-        if btn == self.construction_btn:
-            self.scene.nextsail_text.set_text(self.construction_btn.text)
+        if btn == self.build_btn:
+            self.scene.nextsail_text.set_text(self.build_btn.text)
             self.attack_btn.enable()
             self.reorganisation_btn.enable()
         elif btn == self.attack_btn:
@@ -1045,14 +1049,12 @@ class WinnerInfoZone(bp.Zone):
         bp.Zone.__init__(self, game, size=game.map.rect.size, background_color=(0, 0, 0, 63), sticky="center",
                          visible=False, layer=game.gameinfo_layer)
 
-        self.panel = rw1 = bp.Rectangle(self, size=("40%", "40%"), sticky="center", border_width=2,
-                                        border_color="black")
-        self.title = PartiallyTranslatableText(self, text_id=23, get_args=(lambda : game.current_player.name_id,),
+        self.panel = bp.Zone(self, size=(640, 400), sticky="center", border_width=2, border_color="black")
+        self.title = PartiallyTranslatableText(self.panel, text_id=23, get_args=(lambda : game.current_player.name_id,),
                                                font_height=self.get_style_for(bp.Text)["font_height"] + 15,
-                                               max_width=rw1.rect.w - 10, align_mode="center",
-                                               pos=(rw1.rect.left + 5, rw1.rect.top + 5))
-        rw2 = bp.Rectangle(self, size=(rw1.rect.w, self.title.rect.h + 10),
-                           pos=rw1.rect.topleft, color=(0, 0, 0, 0), border_width=2, border_color="black")  # border
-        self.subtitle = TranslatableText(self, text_id=6, max_width=rw1.rect.w - 10, pos=(5, 5),
+                                               pos=(0, 5), sticky="midtop")
+        rw2 = bp.Rectangle(self.panel, size=(640, self.title.rect.h + 10),
+                           color=(0, 0, 0, 0), border_width=2, border_color="black")  # border
+        self.subtitle = TranslatableText(self.panel, text_id=6, max_width=self.panel.rect.w - 14, pos=(7, 5),
                                          ref=rw2, refloc="bottomleft")
-        PE_Button(self, text_id=24, midbottom=(rw1.rect.centerx, rw1.rect.bottom - 5), command=self.hide)
+        PE_Button(self.panel, text_id=24, sticky="midbottom", pos=(0, -5), command=self.panel.hide)

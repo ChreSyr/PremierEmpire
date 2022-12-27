@@ -126,6 +126,9 @@ class Player:
 
     def can_play(self):
 
+        for region in self.regions:
+            if region.structure.name == "CAMP":
+                return True
         return self.can_build() or self.can_attack() or self.can_move_troops()
 
     def change_gold(self, delta):
