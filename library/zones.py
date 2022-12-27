@@ -234,8 +234,23 @@ class CardsZone(BackgroundedZone):
     class AddCardButton(PE_Button):
 
         def __init__(self, cards_zone, slot_id):
-            PE_Button.__init__(self, cards_zone, text="+", translatable=False, size=cards_zone.little_slot_size)
+            PE_Button.__init__(self, cards_zone, text="+", translatable=False, size=cards_zone.little_slot_size,
+                               command=self.buy_card)
             self.slot_id = slot_id
+
+        def buy_card(self):
+            if self.scene.current_player.gold < 3:
+                return TmpMessage(self.scene, text_id=94, explain_id=95)  # TODO : deactivated, bp.Indicator
+
+            assert self.scene.current_player.cards[self.slot_id] is None
+            picked = self.scene.draw_pile.pick()
+            if picked is None:
+                return TmpMessage(self.scene, text_id=94, explain_id=96)
+
+            self.scene.current_player.change_gold(-3)
+            self.scene.current_player.cards[self.slot_id] = picked
+            card = CardsZone.Card(self.parent, region=picked, slot_id=self.slot_id)
+            self.parent.current_hand[self.slot_id] = card
 
         def decrease(self):
             self.resize(*self.parent.little_slot_size)
@@ -297,6 +312,9 @@ class CardsZone(BackgroundedZone):
 
         if self.scene.step.id < 20:
             return
+
+        if self.is_open:
+            self.decrease()
 
         for slot in self.current_hand:
             slot.hide()
@@ -630,10 +648,16 @@ class SettingsMainZone(SettingsZone):
                         game.set_step(10)
                     if game.step.id == 10:
                         game.flag_btns[0].validate()
-                        game.map.region_select(game.regions_list[0])  # alaska
+                        game.draw_pile.append(game.map.selected_region)
+                        alaska = game.regions_list[0]
+                        game.draw_pile.remove(alaska)
+                        game.map.region_select(alaska)
                         game.rc_yes.validate()
                         game.flag_btns[2].validate()
-                        game.map.region_select(game.regions_list[1])  # alberta
+                        game.draw_pile.append(game.map.selected_region)
+                        alberta = game.regions_list[1]
+                        game.draw_pile.remove(alberta)
+                        game.map.region_select(alberta)
                         game.rc_yes.validate()
                         qs_zone.close_settings()
             PE_Button(qs_zone, text="1", translatable=False, command=quick_setup1)
@@ -646,13 +670,22 @@ class SettingsMainZone(SettingsZone):
                         game.set_step(10)
                     if game.step.id == 10:
                         game.flag_btns[2].validate()
-                        game.map.region_select(game.regions_list[0])  # alaska
+                        game.draw_pile.append(game.map.selected_region)
+                        alaska = game.regions_list[0]
+                        game.draw_pile.remove(alaska)
+                        game.map.region_select(alaska)
                         game.rc_yes.validate()
                         game.flag_btns[3].validate()
-                        game.map.region_select(game.regions_list[4])  # ontario
+                        game.draw_pile.append(game.map.selected_region)
+                        groenland = game.regions_list[5]
+                        game.draw_pile.remove(groenland)
+                        game.map.region_select(groenland)
                         game.rc_yes.validate()
                         game.flag_btns[4].validate()
-                        game.map.region_select(game.regions_list[8])  # mexique
+                        game.draw_pile.append(game.map.selected_region)
+                        western = game.regions_list[6]
+                        game.draw_pile.remove(western)
+                        game.map.region_select(western)
                         game.rc_yes.validate()
                         qs_zone.close_settings()
             PE_Button(qs_zone, text="2", translatable=False, command=quick_setup2)
@@ -672,9 +705,13 @@ class SettingsMainZone(SettingsZone):
                         alberta = game.regions_list[2]
 
                         game.flag_btns[4].validate()  # gray
+                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.remove(alaska)
                         game.map.region_select(alaska)
                         game.rc_yes.validate()
                         game.flag_btns[5].validate()  # purple
+                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.remove(alberta)
                         game.map.region_select(alberta)
                         game.rc_yes.validate()
 

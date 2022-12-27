@@ -127,7 +127,28 @@ class Game(bp.Scene):
         # self.progress_tracker.hide()
 
         # MAP
-        self.draw_pile = []  # pioche
+        class DrawPile(list):
+
+            def merge_with_discard_pile(pile):
+                while self.discard_pile:
+                    pile.append(self.discard_pile.pop())
+
+            def pick(pile):
+                try:
+                    return pile.pop()
+
+                except IndexError:
+                    assert len(pile) == 0
+                    if len(self.discard_pile) == 0:
+                        return None
+                    pile.merge_with_discard_pile()
+                    pile.shuffle()
+                    return pile.pop()
+
+            def shuffle(pile):
+                random.shuffle(pile)
+
+        self.draw_pile = DrawPile()  # pioche
         self.discard_pile = []  # défausse
         map = self.map = Map(self)
 
@@ -723,13 +744,12 @@ class Game(bp.Scene):
 
         self.winner = None
 
-        while self.discard_pile:
-            self.draw_pile.append(self.discard_pile.pop())
         for player in self.players.values():
             for card in player.cards:
                 if card is not None:
                     self.draw_pile.append(card)
-        random.shuffle(self.draw_pile)
+        self.draw_pile.merge_with_discard_pile()
+        self.draw_pile.shuffle()
 
         for r in self.regions.values():
             r.flag = None

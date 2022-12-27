@@ -91,5 +91,8 @@ texts = [
     "Annuler",
     "Valider",
     "Recentrer la carte",
+    "Impossible d'acheter une carte",
+    "Vous n'avez pas assez d'or",
+    "Il n'y a plus de cartes dans la pioche",
 ]
 

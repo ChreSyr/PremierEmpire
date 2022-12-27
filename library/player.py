@@ -117,6 +117,9 @@ class Player:
         assert self.gold >= 0
         self.gold_tracker.set_text(str(self.gold))
 
+        if self.game.step.id == 20 and self.gold < 3:
+            self.game.set_step(21)
+
     def check_attack(self):
 
         can_attack = False
@@ -134,7 +137,9 @@ class Player:
 
     def check_build(self):
 
-        assert self.game.step.id == 20
+        if self.game.step.id != 20:
+            return  # happens when Player.change_gold() just called Game.set_step(21)
+
         if self.gold < 3 or self.has_fully_built():
 
             # self.game.TmpMessage(self.game, msg="Fin de l'étape : CONSTRUCTION", explain="Tous vos pays possèdent déjà "
