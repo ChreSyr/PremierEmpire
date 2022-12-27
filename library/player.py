@@ -124,6 +124,10 @@ class Player:
                 return True
         return False
 
+    def can_play(self):
+
+        return self.can_build() or self.can_attack() or self.can_move_troops()
+
     def change_gold(self, delta):
 
         self.gold += delta
@@ -162,14 +166,7 @@ class Player:
             if alive_players == 1:
                 assert self.is_alive
 
-                self.game.time_left.pause()
-                self.game.map.region_unselect()
-                self.game.winner_info_zone.title.complete_text()
-                self.game.winner_info_zone.panel.set_color(self.color)
-                self.game.winner_info_zone.show()
-                self.game.winner = self
-                if self.game.tutoring:
-                    self.game.set_tuto_ref_text_id(45)
+                self.game.set_winner(self)
 
         elif region.owner is not None:
             region.owner.unconquer(region)

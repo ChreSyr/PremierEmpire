@@ -485,7 +485,10 @@ class Game(bp.Scene):
                 self.set_tuto_ref_text_id(32)
                 self.info_left_zone.highlight(self.info_left_zone.attack_btn)
             else:
-                self.set_step(22)
+                for player in self.players.values():
+                    if player.can_play():
+                        return self.set_step(22)
+                self.set_winner(None)
         def end_attack():
             if self.transferring:
                 self.end_transfert(self.transfert_from)
@@ -825,6 +828,8 @@ class Game(bp.Scene):
         if self.map.selected_region is not None:
             self.map.region_unselect()
         self.step.start()
+        if self.step.id != index:
+            return  # changed step during self.step.start()
 
         if self.step.id >= 20:
             if self.nextsail_animator.is_running:
@@ -840,6 +845,21 @@ class Game(bp.Scene):
             self.tuto_text.set_ref_text(text_id)
         else:
             self.tuto_text = text_id
+
+    def set_winner(self, winner):
+
+        if winner is None:
+            self.winner_info_zone.title.set_text(lang_manager.get_text_from_id(97))
+            self.winner_info_zone.panel.set_color(BackgroundedZone.STYLE["background_color"])
+            self.winner = "draw"
+        else:
+            self.winner_info_zone.title.complete_text()
+            self.winner_info_zone.panel.set_color(winner.color)
+            self.winner = winner
+        self.time_left.pause()
+        self.map.region_unselect()
+        self.winner_info_zone.show()
+        self.set_tuto_ref_text_id(45)
 
     def transfert(self, region):
 
