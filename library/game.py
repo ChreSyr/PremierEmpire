@@ -127,7 +127,7 @@ class Game(bp.Scene):
         # self.progress_tracker.hide()
 
         # MAP
-        class DrawPile(list):
+        class Pile(list):
 
             def merge_with_discard_pile(pile):
                 while self.discard_pile:
@@ -148,8 +148,8 @@ class Game(bp.Scene):
             def shuffle(pile):
                 random.shuffle(pile)
 
-        self.draw_pile = DrawPile()  # pioche
-        self.discard_pile = []  # défausse
+        self.draw_pile = Pile()  # pioche
+        self.discard_pile = Pile()  # défausse
         map = self.map = Map(self)
 
         # MAP SAIL  TODO : move to map.py
