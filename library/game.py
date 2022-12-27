@@ -646,8 +646,6 @@ class Game(bp.Scene):
                             self.region_info_zone.hide()
 
             elif event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
-                if self.winner:
-                    return
                 if self.step.id in (21, 22):
                     if self.map.is_hovered:
                         right_clicked = None
@@ -868,6 +866,8 @@ class Game(bp.Scene):
         self.set_tuto_ref_text_id(45)
 
     def transfert(self, region):
+
+        self.playerturn_zone.hide()
 
         if self.transferring:
             if self.transfert_from is region:

@@ -178,7 +178,6 @@ class Map(bp.Zone, bp.LinkableByMouse):
                         if region.get_hovered():
                             return  # a transfert will start
 
-
             with bp.paint_lock:
 
                 def recenter():

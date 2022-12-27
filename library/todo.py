@@ -7,10 +7,10 @@
 # BUGS :
 
 # DIVERS :
+# TODO : traduire les nouveaux textes
 # TODO : quand les règles seront terminées, faire un tutoriel
 
 # NOUVEAUTÉS :
-# TODO : Permettre d'acheter une carte Région pour 3 or
 # TODO : Permettre de construire un bateau
 # TODO : Ajouter Region.coast -> endroits où on peut mettre les bateaux
 # TODO : Ajouter Region.boats -> tous les bateaux d'une région

@@ -501,6 +501,8 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
 
         self.hide_timer = bp.Timer(1.5, self.hide)
 
+        game.map.signal.REGION_SELECT.connect(self.hide, owner=self)
+
         self.show()  # start animations
 
     def handle_link(self):
@@ -508,6 +510,9 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
         self.hide()
 
     def hide(self):
+
+        if self.is_hidden:
+            return
 
         super().hide()
 
@@ -518,6 +523,9 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
             self.scene.nextsail_animator.resume()
 
     def show(self):
+
+        if self.is_visible:
+            return
 
         super().show()
 
@@ -1042,13 +1050,14 @@ class SettingsResolutionZone(SettingsZone):
         self.behind.resolution_btn.command = self.show
 
 
-class WinnerInfoZone(bp.Zone):
+class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
 
     def __init__(self, game):
 
-        bp.Zone.__init__(self, game, size=game.map.rect.size, background_color=(0, 0, 0, 63), sticky="center",
-                         visible=False, layer=game.gameinfo_layer)
+        bp.Zone.__init__(self, game, size=game.map.rect.size, sticky="center", visible=False, layer=game.gameinfo_layer)
+        bp.LinkableByMouse.__init__(self, game)
 
+        self.sail = bp.Rectangle(self, size=self.rect.size, color=(0, 0, 0, 63))
         self.panel = bp.Zone(self, size=(640, 400), sticky="center", border_width=2, border_color="black")
         self.title = PartiallyTranslatableText(self.panel, text_id=23, get_args=(lambda : game.current_player.name_id,),
                                                font_height=self.get_style_for(bp.Text)["font_height"] + 15,
@@ -1058,3 +1067,20 @@ class WinnerInfoZone(bp.Zone):
         self.subtitle = TranslatableText(self.panel, text_id=6, max_width=self.panel.rect.w - 14, pos=(7, 5),
                                          ref=rw2, refloc="bottomleft")
         PE_Button(self.panel, text_id=24, sticky="midbottom", pos=(0, -5), command=self.panel.hide)
+        self.panel.signal.HIDE.connect(self.sail.hide, owner=self.sail)
+
+    def handle_link_motion(self, rel):
+
+        self.scene.map.handle_link_motion(rel)
+
+    def handle_mousebuttondown(self, event):
+
+        if event.button == 3:
+
+            with bp.paint_lock:
+
+                def recenter():
+                    self.scene.map.map_image.pos_manager.config(pos=(0, 0))
+
+                rightclick_zone = RightClickZone(self.scene, event)
+                rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
