@@ -186,6 +186,10 @@ class Player:
             region.rem_soldiers(region.soldiers_amount)
         self.flag_region.flag = None
         self.flag.hide()
+        for card in self.cards:
+            if card is not None:
+                self.game.discard_pile.append(card)
+        self.cards = [None] * 3
         self.is_alive = False
 
     def has_fully_built(self):
