@@ -220,7 +220,7 @@ class CardsZone(BackgroundedZone):
 
             title_zone = BackgroundedZone(self, size=cards_zone.little_slot_size)
             TranslatableText(title_zone, text_id=region.upper_name_id, sticky="center",
-                             max_width=self.content_rect.w - 6, align_mode="center", selectable=False)
+                             max_width=self.content_rect.w - 6, align_mode="center")
 
             self.region = region
             self.slot_id = slot_id

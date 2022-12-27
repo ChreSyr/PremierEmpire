@@ -27,7 +27,7 @@ class Game(bp.Scene):
 
     def __init__(self, app):
 
-        bp.Scene.__init__(self, app, background_color=(96, 163, 150))
+        bp.Scene.__init__(self, app, background_color=(96, 163, 150), can_select=False)
 
         self.regions = {}
         self.regions_list = None
