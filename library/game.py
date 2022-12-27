@@ -263,8 +263,8 @@ class Game(bp.Scene):
                         self.current_player_id = -1
                         self.next_player()
                         return
-                self.playerturn_zone.show()
                 self.pick_region()
+                self.playerturn_zone.show()
         def no():
             self.discard_pile.append(self.last_selected_region)
             rc_next()

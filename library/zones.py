@@ -454,7 +454,7 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
 
     def __init__(self, game):
 
-        BackgroundedZone.__init__(self, game, size=(650, 650), sticky="center")
+        BackgroundedZone.__init__(self, game, size=(650, 650), sticky="center", visible=False)
         bp.LinkableByMouse.__init__(self, game)
 
         self.flags = {}
@@ -503,8 +503,6 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
 
         game.map.signal.REGION_SELECT.connect(self.hide, owner=self)
 
-        self.show()  # start animations
-
     def handle_link(self):
 
         self.hide()
@@ -523,9 +521,6 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
             self.scene.nextsail_animator.resume()
 
     def show(self):
-
-        if self.is_visible:
-            return
 
         super().show()
 
