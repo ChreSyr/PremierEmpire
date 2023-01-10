@@ -91,4 +91,7 @@ texts = [
     "Cancel",
     "Validate",
     "Recenter the map",
+    "Could not buy a card :\nYou don't have enough gold",
+    "Could not buy a card :\nThe draw pile is empty",
+    "Draw !",
 ]

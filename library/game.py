@@ -836,7 +836,7 @@ class Game(bp.Scene):
     def set_winner(self, winner):
 
         if winner is None:
-            self.winner_info_zone.title.set_text(lang_manager.get_text_from_id(97))
+            self.winner_info_zone.title.set_text(lang_manager.get_text_from_id(96))
             self.winner_info_zone.panel.set_background_color(BackgroundedZone.STYLE["background_color"])
             self.winner = "draw"
         else:

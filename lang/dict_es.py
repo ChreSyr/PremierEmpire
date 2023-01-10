@@ -88,7 +88,10 @@ texts = [
     "EL OESTE DE AUSTRALIA",
     "AUSTRALIA ORIENTAL",
     "Hay un juego en curso.\n¿Quieres abandonarlo?",
-    "anular",
+    "Anular",
     "Validar",
     "Centrar el mapa",
+    "No se pudo comprar una carta :\nNo tienes suficiente oro",
+    "No se pudo comprar una carta :\nLa pila de robo está vacía",
+    "Empate !",
 ]

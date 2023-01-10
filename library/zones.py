@@ -240,14 +240,15 @@ class CardsZone(BackgroundedZone):
                 PE_Button.STYLE["disable_class"].__init__(self, *args, **kwargs)
                 bp.HoverableByMouse.__init__(self, self.parent)
 
-        class DisableIndicator(bp.Indicator):
+        from baopig.googletrans import TranslatableIndicator
+        class DisableIndicator(TranslatableIndicator):
 
             def wake(self):
 
                 if not self.scene.draw_pile:
-                    self.set_text("Impossible d'acheter une carte :\nIl n'y a plus de cartes dans la pioche")
+                    self.set_ref_text(text_id=95)
                 else:
-                    self.set_text("Impossible d'acheter une carte :\nVous n'avez pas assez d'or")
+                    self.set_ref_text(text_id=94)
 
                 super().wake()
 
@@ -261,8 +262,7 @@ class CardsZone(BackgroundedZone):
                                command=self.buy_card)
             self.slot_id = slot_id
 
-            self.DisableIndicator(target=self.disable_sail, parent=self.scene, align_mode="center",
-                                  text="Impossible d'acheter une carte :\nVous n'avez pas assez d'or")
+            self.DisableIndicator(target=self.disable_sail, parent=self.scene, align_mode="center", text_id=94)
 
         def buy_card(self):
             if self.disable_sail.is_visible:
