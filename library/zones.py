@@ -240,6 +240,17 @@ class CardsZone(BackgroundedZone):
                 PE_Button.STYLE["disable_class"].__init__(self, *args, **kwargs)
                 bp.HoverableByMouse.__init__(self, self.parent)
 
+        class DisableIndicator(bp.Indicator):
+
+            def wake(self):
+
+                if not self.scene.draw_pile:
+                    self.set_text("Impossible d'acheter une carte :\nIl n'y a plus de cartes dans la pioche")
+                else:
+                    self.set_text("Impossible d'acheter une carte :\nVous n'avez pas assez d'or")
+
+                super().wake()
+
         STYLE = PE_Button.STYLE.substyle()
         STYLE.modify(
             disable_class=HoverableDisableSail,
@@ -250,9 +261,8 @@ class CardsZone(BackgroundedZone):
                                command=self.buy_card)
             self.slot_id = slot_id
 
-            self.nope = bp.Indicator(target=self.disable_sail, parent=self.scene,
-                                        align_mode="center",
-                                        text="Impossible d'acheter une carte :\nVous n'avez pas assez d'or")
+            self.DisableIndicator(target=self.disable_sail, parent=self.scene, align_mode="center",
+                                  text="Impossible d'acheter une carte :\nVous n'avez pas assez d'or")
 
         def buy_card(self):
             if self.disable_sail.is_visible:
@@ -260,6 +270,7 @@ class CardsZone(BackgroundedZone):
 
             assert self.scene.current_player.cards[self.slot_id] is None
             picked = self.scene.draw_pile.pick()
+            self.parent.update()
             if picked is None:
                 return TmpMessage(self.scene, text_id=94, explain_id=96)
 
@@ -386,12 +397,12 @@ class CardsZone(BackgroundedZone):
         self.current_player = self.scene.current_player
         self.current_player.signal.CHANGE_GOLD.connect(self.update, owner=self)
 
-        if self.current_player.gold < 3:
+        if self.current_player.gold < 3 or not self.scene.draw_pile:
             for btn in self.add_buttons:
                 btn.disable()
         else:
             for btn in self.add_buttons:
-                btn.enable()  # TODO : is there enough cards disponible ?
+                btn.enable()
 
 
 class InfoLeftZone(BackgroundedZone):
