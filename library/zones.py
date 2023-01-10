@@ -587,12 +587,17 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
 
     def show(self):
 
+        was_hidden = self.is_hidden
+
         super().show()
 
         self.select_origin = self.select.rect.center
         self.select_dest = self.flags[self.scene.current_player.id].rect.center
         self.select_travel = pygame.Vector2(self.select_dest) - self.select_origin
-        self.select_movement = -.3
+        if was_hidden:
+            self.select_movement = -.2
+        else:
+            self.select_movement = 0
         if self.select_animator.is_running:
             self.select_animator.cancel()
             self.select_color_origin = self.select_color_dest
