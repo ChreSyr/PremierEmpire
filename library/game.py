@@ -152,20 +152,6 @@ class Game(bp.Scene):
         self.discard_pile = Pile()  # défausse
         map = self.map = Map(self)
 
-        # MAP SAIL  TODO : move to map.py
-        self.map_sail = map.sail
-        def mapsail_open_animate():
-            self.map_sail.set_radius(self.map_sail.radius + 60)
-            if self.map_sail.radius >= 250:
-                self.mapsail_open_animator.cancel()
-        self.mapsail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
-        def mapsail_close_animate():
-            self.map_sail.set_radius(self.map_sail.radius - 60)
-            if self.map_sail.radius <= 0:
-                self.mapsail_close_animator.cancel()
-                self.map_sail.hide()
-        self.mapsail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
-
         # NEXT_TODO ANIMATION
         self.nextsail_zone = bp.Zone(self, pos=(-self.rect.h, 0), size=(self.rect.h, "100%"), layer=self.gameinfo_layer,
                                      touchable=False)
@@ -663,14 +649,14 @@ class Game(bp.Scene):
 
     def handle_region_select(self, region):
 
-        if self.mapsail_close_animator.is_running:
-            self.mapsail_close_animator.cancel()
-        if self.mapsail_open_animator.is_running:
-            self.mapsail_open_animator.cancel()
-        self.map_sail.set_pos(center=region.rect.center)
-        self.map_sail.set_radius(60)
-        self.mapsail_open_animator.start()
-        self.map_sail.show()
+        if self.map.sail_close_animator.is_running:
+            self.map.sail_close_animator.cancel()
+        if self.map.sail_open_animator.is_running:
+            self.map.sail_open_animator.cancel()
+        self.map.sail.set_pos(center=region.rect.center)
+        self.map.sail.set_radius(60)
+        self.map.sail_open_animator.start()
+        self.map.sail.show()
 
         self.last_selected_region = region
 
@@ -694,9 +680,9 @@ class Game(bp.Scene):
 
     def handle_region_unselect(self):
 
-        if self.mapsail_open_animator.is_running:
-            self.mapsail_open_animator.cancel()
-        self.mapsail_close_animator.start()
+        if self.map.sail_open_animator.is_running:
+            self.map.sail_open_animator.cancel()
+        self.map.sail_close_animator.start()
 
         self.region_info_zone.hide()
         self.confirm_zone.hide()

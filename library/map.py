@@ -27,8 +27,22 @@ class Map(bp.Zone, bp.LinkableByMouse):
         self.create_signal("REGION_UNSELECT")
 
         self.map_image = bp.Image(self, Map.IMAGE, sticky="center", layer=self.background_layer)
+
+        # SAIL
         self.sail = bp.Circle(self, (0, 0, 0, 63), radius=0, center=(0, 0), visible=False,
                               layer=self.regions_layer, ref=self.map_image)
+        def mapsail_open_animate():
+            self.sail.set_radius(self.sail.radius + 60)
+            if self.sail.radius >= 250:
+                self.sail_open_animator.cancel()
+        self.sail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
+        def mapsail_close_animate():
+            self.sail.set_radius(self.sail.radius - 60)
+            if self.sail.radius <= 0:
+                self.sail_close_animator.cancel()
+                self.sail.hide()
+        self.sail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
+
         self._create_regions()
 
     def _create_regions(self):
