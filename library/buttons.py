@@ -329,11 +329,10 @@ class PE_Button(bp.Button):
         self.true_background_color = background_color
         self.set_background_image(btnimg_manager.get_resized_background(self.rect.size, color=background_color))
 
-    def set_text(self, text):  # TODO : resize font_height if needed
+    def set_text(self, text):
 
         self.text_widget.set_text(text)
-        if self.text_widget2 is not None:
-            self.text_widget2.set_text(text)
+        self.text_widget.fit()
 
 
 class RegionInfoButton(PE_Button):
