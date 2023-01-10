@@ -6,7 +6,7 @@ from library.region import Structure
 from library.zones import BackgroundedZone
 
 
-class Player:
+class Player(bp.Communicative):
 
     NAMES = {
         "north_america": 39,  # Jaune
@@ -52,6 +52,8 @@ class Player:
 
     def __init__(self, game, continent):
 
+        bp.Communicative.__init__(self)
+
         self.game = game
         self.is_alive = True
         self.id = len(game.players)
@@ -89,6 +91,8 @@ class Player:
                  name="soldier")
         game.info_right_zone.pack()
         game.info_right_zone.adapt()
+
+        self.create_signal("CHANGE_GOLD")
 
     def _update_neighboring_regions(self):
 
@@ -139,6 +143,8 @@ class Player:
 
         if self.game.step.id == 20 and self.gold < 3:
             self.game.set_step(21)
+
+        self.signal.CHANGE_GOLD.emit()
 
     def check_movement(self):
 

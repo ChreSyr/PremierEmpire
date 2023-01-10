@@ -233,14 +233,30 @@ class CardsZone(BackgroundedZone):
 
     class AddCardButton(PE_Button):
 
+        class HoverableDisableSail(PE_Button.STYLE["disable_class"], bp.HoverableByMouse):
+
+            def __init__(self, *args, **kwargs):
+
+                PE_Button.STYLE["disable_class"].__init__(self, *args, **kwargs)
+                bp.HoverableByMouse.__init__(self, self.parent)
+
+        STYLE = PE_Button.STYLE.substyle()
+        STYLE.modify(
+            disable_class=HoverableDisableSail,
+        )
+
         def __init__(self, cards_zone, slot_id):
             PE_Button.__init__(self, cards_zone, text="+", translatable=False, size=cards_zone.little_slot_size,
                                command=self.buy_card)
             self.slot_id = slot_id
 
+            self.nope = bp.Indicator(target=self.disable_sail, parent=self.scene,
+                                        align_mode="center",
+                                        text="Impossible d'acheter une carte :\nVous n'avez pas assez d'or")
+
         def buy_card(self):
-            if self.scene.current_player.gold < 3:
-                return TmpMessage(self.scene, text_id=94, explain_id=95)  # TODO : deactivated, bp.Indicator
+            if self.disable_sail.is_visible:
+                return
 
             assert self.scene.current_player.cards[self.slot_id] is None
             picked = self.scene.draw_pile.pick()
@@ -255,8 +271,22 @@ class CardsZone(BackgroundedZone):
         def decrease(self):
             self.resize(*self.parent.little_slot_size)
 
+        def handle_link(self):
+
+            if self.disable_sail.is_visible:
+                return
+
+            super().handle_link()
+
         def increase(self):
             self.resize(*self.parent.big_slot_size)
+
+        def set_touchable_by_mouse(self, val):
+
+            if val:
+                self.disable_sail.hide()
+            else:
+                self.disable_sail.show()
 
     def __init__(self, game):
 
@@ -281,7 +311,9 @@ class CardsZone(BackgroundedZone):
         self.current_hand = [self.add1, self.add2, self.add3]
 
         self.default_layer.pack(axis="horizontal")
-        self.adapt()
+        self.adapt(self.default_layer)
+
+        self.current_player = None
 
         game.signal.PLAYER_TURN.connect(self.handle_player_turn, owner=self)
 
@@ -334,12 +366,32 @@ class CardsZone(BackgroundedZone):
         for slot in self.current_hand:
             slot.show()
 
+        # Update add buttons
+        self.update()
+
     def reset(self):
 
         for slots in self.hands.values():
             for widget in slots:
                 if not isinstance(widget, PE_Button):
                     widget.kill()
+
+    def update(self):
+
+        if not self.scene.players:
+            return
+
+        if self.current_player is not None:
+            self.current_player.signal.CHANGE_GOLD.disconnect(self.update)
+        self.current_player = self.scene.current_player
+        self.current_player.signal.CHANGE_GOLD.connect(self.update, owner=self)
+
+        if self.current_player.gold < 3:
+            for btn in self.add_buttons:
+                btn.disable()
+        else:
+            for btn in self.add_buttons:
+                btn.enable()  # TODO : is there enough cards disponible ?
 
 
 class InfoLeftZone(BackgroundedZone):

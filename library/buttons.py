@@ -221,6 +221,20 @@ class PE_Button_Text(bp.Button_Text, Translatable):
 
 class PE_Button(bp.Button):
 
+    class Button_DisableImage(bp.Image):
+
+        def __init__(self, textbutton):
+
+            surf = btnimg_manager.colored_back.copy()
+            surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
+            if surf.get_size() != textbutton.rect.size:
+                surf = pygame.transform.smoothscale(surf, textbutton.rect.size)  # TODO : get_resized_disable
+
+            # if surf.get_size() != textbutton.rect.size:
+            #     surf = btnimg_manager.get_resized_hover(textbutton.rect.size)
+
+            bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.above_content)
+
     class Button_HoverImage(bp.Image):
 
         def __init__(self, textbutton):
@@ -236,7 +250,6 @@ class PE_Button(bp.Button):
             self.set_surface(btnimg_manager.get_resized_hover(asked_size))
             self.send_paint_request()
 
-
     class Button_LinkImage(bp.Image):
 
         def __init__(self, textbutton):
@@ -249,6 +262,7 @@ class PE_Button(bp.Button):
 
     STYLE = bp.Button.STYLE.substyle()
     STYLE.modify(
+        disable_class=Button_DisableImage,
         focus_class=None,
         hover_class=Button_HoverImage,
         link_class=Button_LinkImage,
@@ -277,13 +291,13 @@ class PE_Button(bp.Button):
             surf = btnimg_manager.get_resized_background(self.rect.size, color=self.background_color)
         self.set_background_image(surf)
 
-        disable_surf = btnimg_manager.colored_back.copy()
-        disable_surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
-        if disable_surf.get_size() != self.rect.size:
-            disable_surf = pygame.transform.smoothscale(disable_surf, self.rect.size)
-        self.disable_sail.kill()
-        self._disable_sail_ref =bp.Image(self, disable_surf, visible=False,
-                                         layer=self.above_content, name=self.name + ".disable_sail").get_weakref()
+        # disable_surf = btnimg_manager.colored_back.copy()
+        # disable_surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
+        # if disable_surf.get_size() != self.rect.size:
+        #     disable_surf = pygame.transform.smoothscale(disable_surf, self.rect.size)
+        # self.disable_sail.kill()
+        # self._disable_sail_ref = self.style["disable_class"](self, disable_surf, visible=False,
+        #                                                      layer=self.above_content).get_weakref()
 
         self.original_font_height = self.text_widget.font.height
 
