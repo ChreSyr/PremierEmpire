@@ -2,6 +2,8 @@
 import random
 
 import baopig as bp
+import pygame
+
 load = bp.image.load
 
 from library.loading import set_progression
@@ -393,20 +395,29 @@ class Game(bp.Scene):
         self.cards_zone = CardsZone(self)
 
         # CHOOSE BUILD
-        self.choose_build_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
+        self.choose_build_zone = bp.Zone(self.region_info_zone, visible=False, pos=(0, -6), sticky="midbottom",
+                                         size=(140, 64), spacing=12)
 
         def build(build_name):
+            if self.current_player.gold < 3:
+                return TmpMessage(self, text_id=97)
             self.last_selected_region.structure.start_construction(build_name)
             self.current_player.change_gold(-3)
             self.map.region_unselect()
             if not self.current_player.can_build():
                 self.set_step(21)
 
-        self.mine_btn = bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.MINE,
+        mine_background = pygame.Surface((64, 64), pygame.SRCALPHA)
+        mine_background.blit(Structure.DONE, (32 - 15, 32 - 15))
+        camp_background = mine_background.copy()
+        mine_background.blit(Structure.MINE, (32 - 15, 32 - 15))
+        camp_background.blit(Structure.CAMP, (32 - 15, 32 - 15))
+
+        self.mine_btn = bp.Button(self.choose_build_zone, "", size=(64, 64), background_image=mine_background,
                                   command=bp.PrefilledFunction(build, "mine"), background_color=(0, 0, 0, 0))
-        self.camp_btn = bp.Button(self.choose_build_zone, "", size=(30, 30), background_image=Structure.CAMP,
+        self.camp_btn = bp.Button(self.choose_build_zone, "", size=(64, 64), background_image=camp_background,
                                   command=bp.PrefilledFunction(build, "camp"), background_color=(0, 0, 0, 0))
-        self.choose_build_zone.pack(adapt=True)
+        self.choose_build_zone.pack(axis="horizontal")
 
         # SOLDIERS TRANSFERT
         self.transfert_from = None
@@ -696,7 +707,7 @@ class Game(bp.Scene):
 
         if self.step.id == 20:
             if region in self.current_player.regions and region.structure.is_empty:
-                self.choose_build_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
+                 # self.choose_build_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
                 self.choose_build_zone.show()
             else:
                 self.choose_build_zone.hide()

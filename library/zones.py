@@ -222,14 +222,33 @@ class CardsZone(BackgroundedZone):
             TranslatableText(title_zone, text_id=region.upper_name_id, sticky="center",
                              max_width=self.content_rect.w - 6, align_mode="center")
 
+            self.sell_btn = PE_Button(self, text="Vendre", translatable=False, pos=(0, -6), sticky="midbottom",
+                                      visible=cards_zone.current_slot_size == cards_zone.big_slot_size,
+                                      command=self.sell)
+
             self.region = region
             self.slot_id = slot_id
 
         def decrease(self):
             self.resize(*self.parent.little_slot_size)
+            self.sell_btn.hide()
 
         def increase(self):
             self.resize(*self.parent.big_slot_size)
+            self.sell_btn.show()
+
+        def sell(self):
+            hand = self.parent.current_hand
+            for i, card in enumerate(hand):
+                if card is self:
+                    self.parent.add_buttons[i].show()
+                    hand[i] = self.parent.add_buttons[i]
+                    self.scene.current_player.cards[i] = None
+                    break
+
+            self.scene.discard_pile.append(self.region)
+            self.kill()
+            self.scene.current_player.change_gold(+2)
 
     class AddCardButton(PE_Button):
 
@@ -302,7 +321,7 @@ class CardsZone(BackgroundedZone):
         BackgroundedZone.__init__(self, game, sticky="midbottom", pos=(0, 2), visible=False, padding=8, spacing=4)
 
         self.set_style_for(
-            PE_Button,
+            self.AddCardButton,
             text_style={"font_height": 35},
             padding=0,
         )
@@ -310,7 +329,8 @@ class CardsZone(BackgroundedZone):
         self.little_slot_size = (152, 44)
         self.big_slot_size = (152, int(152 * 1.6))
 
-        self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase)
+        self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase,
+                                 text_style={"font_height": 35}, padding=0)
         self.add1 = self.AddCardButton(self, slot_id=0)
         self.add2 = self.AddCardButton(self, slot_id=1)
         self.add3 = self.AddCardButton(self, slot_id=2)

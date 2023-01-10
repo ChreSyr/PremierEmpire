@@ -94,4 +94,5 @@ texts = [
     "Could not buy a card :\nYou don't have enough gold",
     "Could not buy a card :\nThe draw pile is empty",
     "Draw !",
+    "Could not construct a building :\nYou don't have enough gold",
 ]

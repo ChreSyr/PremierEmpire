@@ -119,7 +119,8 @@ class Player(bp.Communicative):
 
     def can_build(self):
 
-        return not (self.gold < 3 or self.has_fully_built())
+        num_cards = 3 - self.cards.count(None)
+        return not (self.gold + num_cards * 2 < 3 or self.has_fully_built())
 
     def can_move_troops(self):
 
@@ -141,7 +142,8 @@ class Player(bp.Communicative):
         assert self.gold >= 0
         self.gold_tracker.set_text(str(self.gold))
 
-        if self.game.step.id == 20 and self.gold < 3:
+        num_cards = 3 - self.cards.count(None)
+        if self.game.step.id == 20 and self.gold + num_cards * 2 < 3:
             self.game.set_step(21)
 
         self.signal.CHANGE_GOLD.emit()

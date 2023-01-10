@@ -228,10 +228,7 @@ class PE_Button(bp.Button):
             surf = btnimg_manager.colored_back.copy()
             surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
             if surf.get_size() != textbutton.rect.size:
-                surf = pygame.transform.smoothscale(surf, textbutton.rect.size)  # TODO : get_resized_disable
-
-            # if surf.get_size() != textbutton.rect.size:
-            #     surf = btnimg_manager.get_resized_hover(textbutton.rect.size)
+                surf = pygame.transform.smoothscale(surf, textbutton.rect.size)
 
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.above_content)
 
