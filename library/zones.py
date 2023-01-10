@@ -270,14 +270,12 @@ class CardsZone(BackgroundedZone):
 
             assert self.scene.current_player.cards[self.slot_id] is None
             picked = self.scene.draw_pile.pick()
-            self.parent.update()
-            if picked is None:
-                return TmpMessage(self.scene, text_id=94, explain_id=96)
 
-            self.scene.current_player.change_gold(-3)
-            self.scene.current_player.cards[self.slot_id] = picked
             card = CardsZone.Card(self.parent, region=picked, slot_id=self.slot_id)
             self.parent.current_hand[self.slot_id] = card
+
+            self.scene.current_player.cards[self.slot_id] = picked
+            self.scene.current_player.change_gold(-3)
 
         def decrease(self):
             self.resize(*self.parent.little_slot_size)
@@ -327,6 +325,7 @@ class CardsZone(BackgroundedZone):
         self.current_player = None
 
         game.signal.PLAYER_TURN.connect(self.handle_player_turn, owner=self)
+        game.draw_pile.signal.UPDATE.connect(self.update, owner=self)
 
     current_slot_size = property(lambda self: self.big_slot_size if self.is_open else self.little_slot_size)
     is_open = property(lambda self: self.rect.height > 150)
@@ -377,6 +376,14 @@ class CardsZone(BackgroundedZone):
         for slot in self.current_hand:
             slot.show()
 
+        # if not self.scene.players:
+        #     return
+
+        if self.current_player is not None:
+            self.current_player.signal.CHANGE_GOLD.disconnect(self.update)
+        self.current_player = self.scene.current_player
+        self.current_player.signal.CHANGE_GOLD.connect(self.update, owner=self)
+
         # Update add buttons
         self.update()
 
@@ -389,13 +396,8 @@ class CardsZone(BackgroundedZone):
 
     def update(self):
 
-        if not self.scene.players:
+        if self.current_player is None:
             return
-
-        if self.current_player is not None:
-            self.current_player.signal.CHANGE_GOLD.disconnect(self.update)
-        self.current_player = self.scene.current_player
-        self.current_player.signal.CHANGE_GOLD.connect(self.update, owner=self)
 
         if self.current_player.gold < 3 or not self.scene.draw_pile:
             for btn in self.add_buttons:

@@ -195,6 +195,9 @@ class Player(bp.Communicative):
         for card in self.cards:
             if card is not None:
                 self.game.discard_pile.append(card)
+        if not self.game.draw_pile:
+            self.game.draw_pile.merge_with_discard_pile()
+            self.game.draw_pile.shuffle()
         self.cards = [None] * 3
         self.is_alive = False
 

@@ -127,7 +127,19 @@ class Game(bp.Scene):
         # self.progress_tracker.hide()
 
         # MAP
-        class Pile(list):
+        class Pile(list, bp.Communicative):
+
+            def __init__(pile):
+
+                list.__init__(pile)
+                bp.Communicative.__init__(pile)
+
+                pile.create_signal("UPDATE")
+
+            def append(self, *args):
+                super().append(*args)
+
+                self.signal.UPDATE.emit()
 
             def merge_with_discard_pile(pile):
                 while self.discard_pile:
@@ -135,7 +147,11 @@ class Game(bp.Scene):
 
             def pick(pile):
                 try:
-                    return pile.pop()
+                    card = pile.pop()
+                    if len(pile) == 0:
+                        pile.merge_with_discard_pile()
+                        pile.shuffle()
+                    return card
 
                 except IndexError:
                     assert len(pile) == 0
@@ -144,6 +160,13 @@ class Game(bp.Scene):
                     pile.merge_with_discard_pile()
                     pile.shuffle()
                     return pile.pop()
+
+            def pop(self, *args):
+                val = super().pop(*args)
+
+                self.signal.UPDATE.emit()
+
+                return val
 
             def shuffle(pile):
                 random.shuffle(pile)
@@ -784,14 +807,7 @@ class Game(bp.Scene):
 
     def pick_region(self):
 
-        try:
-            picked = self.draw_pile.pop()
-
-        except IndexError:
-            assert len(self.draw_pile) == 0
-            self.draw_pile, self.discard_pile = self.discard_pile, self.draw_pile
-            random.shuffle(self.draw_pile)
-            picked = self.draw_pile.pop()
+        picked = self.draw_pile.pick()
 
         self.map.region_select(picked)
 
