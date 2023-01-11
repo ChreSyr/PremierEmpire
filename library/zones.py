@@ -832,6 +832,28 @@ class SettingsMainZone(SettingsZone):
                         game.map.region_select(alberta)
                         game.invade_btn.validate()
             PE_Button(qs_zone, text="3", translatable=False, command=quick_setup3)
+            def quick_setup4():
+                with bp.paint_lock:
+                    if game.step.id == 0:
+                        game.set_step(1)
+                    if game.step.id == 1:
+                        game.nb_players = 6
+                        game.set_step(10)
+                    if game.step.id == 10:
+                        game.flag_btns[0].validate()
+                        game.rc_yes.validate()
+                        game.flag_btns[1].validate()
+                        game.rc_yes.validate()
+                        game.flag_btns[2].validate()
+                        game.rc_yes.validate()
+                        game.flag_btns[3].validate()
+                        game.rc_yes.validate()
+                        game.flag_btns[4].validate()
+                        game.rc_yes.validate()
+                        game.flag_btns[5].validate()
+                        game.rc_yes.validate()
+                        qs_zone.close_settings()
+            PE_Button(qs_zone, text="4", translatable=False, command=quick_setup4)
             qs_zone.pack_and_adapt()
             self.qs_btn.command = qs_zone.show
         self.qs_btn = PE_Button(parent=self, text="Quick setup", translatable=False, command=init_qs)
