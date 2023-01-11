@@ -3,7 +3,10 @@ import random
 import baopig as bp
 import pygame
 from baopig.googletrans import dicts
-from .images import boat_back, boat_front
+from .images import boat_back, boat_front, boat_front_hover
+front = pygame.transform.smoothscale(boat_front, ((59, 20)))
+front_hover = pygame.transform.smoothscale(boat_front_hover, ((59, 20)))
+back = pygame.transform.smoothscale(boat_back, ((54, 17)))
 
 
 class Structure(bp.Image):
@@ -67,14 +70,33 @@ class Structure(bp.Image):
                              ref=self.parent.map_image, layer=self.layer)
 
 
-class Boat(bp.Image):
+class WidgetWithInfoZone(bp.Focusable):
+
+    def __init__(self, parent, info_zone):
+
+        bp.Focusable.__init__(self, parent)
+
+        self.info_zone = info_zone
+
+    def handle_defocus(self):
+
+        self.info_zone.close()
+        self.handle_unhover()
+
+    def handle_focus(self):
+
+        self.info_zone.open(self)
+
+    def handle_link_motion(self, rel):
+
+        self.scene.map.handle_link_motion(rel)
+
+
+class Boat(bp.Zone, WidgetWithInfoZone):
+
+    MAX = 5
 
     def __init__(self, region):
-
-        surf = pygame.Surface(boat_front.get_size(), pygame.SRCALPHA)
-        surf.blit(boat_back, (int((boat_front.get_width() - boat_back.get_width()) / 2), 0))
-        surf.blit(boat_front, (0, 0))
-        surf = pygame.transform.smoothscale(surf, (55, 20))
 
         ok = x = y = 0
         while ok == 0:
@@ -109,8 +131,67 @@ class Boat(bp.Image):
 
         ref = region.parent.map_image
 
-        bp.Image.__init__(self, region.parent, image=surf, layer=layer, ref=ref,
-                          center=(x + region.rect.left - ref.rect.left, y + region.rect.top - ref.rect.top))
+        top_padding = 11
+
+        bp.Zone.__init__(self, region.parent, layer=layer, ref=ref,
+                         size=(front.get_width(), front.get_height() + top_padding),
+                         center=(x + region.rect.left - ref.rect.left,
+                                 y + region.rect.top - ref.rect.top - top_padding / 2))
+
+        self._owner = None
+        self._region = region
+        self._nb_soldiers = 0
+
+        region.boats.append(self)
+
+        self.back = bp.Image(self, image=back, pos=(front.get_width() / 2 - back.get_width() / 2,
+                                                         top_padding))
+        self.soldiers_zone = bp.Zone(self, size=(0, 22), sticky="midtop", spacing=-1)
+        self.front = bp.Image(self, image=front, pos=(0, top_padding))
+        self.front_hover = bp.Image(self, image=front_hover, pos=(0, top_padding), visible=False)
+
+        WidgetWithInfoZone.__init__(self, self.parent, info_zone=self.scene.info_boat_zone)
+
+        for i in range(random.randint(1, 5)):
+            self.add_soldier()
+
+    nb_soldiers = property(lambda self: self._nb_soldiers)
+    owner = property(lambda self: self._owner)
+    region = property(lambda self: self._region)
+
+    def add_soldier(self):
+
+        assert self.nb_soldiers < 5
+
+        if self.owner is None:
+            self._owner = self.region.owner
+            self.owner.boats.append(self)
+
+        self._nb_soldiers += 1
+        bp.Image(self.soldiers_zone, image=self.region.owner.soldier_icon)
+        self.soldiers_zone.pack(axis="horizontal")
+        self.soldiers_zone.adapt()
+
+    def handle_hover(self):
+
+        self.front_hover.show()
+        self.swap_layer(self.parent.frontof_regions_layer)
+
+    def handle_unhover(self):
+
+        if self.is_focused:
+            return
+        self.front_hover.hide()
+        if self.region.is_hidden:
+            self.swap_layer(self.parent.behind_regions_layer)
+
+    def remove_all_soldiers(self):
+
+        self.owner.boats.remove(self)
+        for soldier in tuple(self.soldiers_zone.default_layer):
+            soldier.kill()
+        self._nb_soldiers = 0
+        self._owner = None
 
 
 class Region(bp.Image):
@@ -150,8 +231,7 @@ class Region(bp.Image):
 
     def add_boat(self):
 
-        boat = Boat(self)
-        self.boats.append(boat)
+        Boat(self)
 
     def add_soldiers(self, amount):
 

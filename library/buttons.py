@@ -303,7 +303,7 @@ class PE_Button(bp.Button):
         if sum(self.background_color[:3]) < self.middle_color:
             self.text_widget2 = bp.Button_Text(self, text=self.text, layer=self.content, font_color="white",
                                                **self.style["text_style"])
-            self.text_widget.move(1, 1)
+            self.text_widget.move(1, 1)  # TODO : move 1 pxl to the right ?
             self.text_widget2.move(-1, -1)
 
         self.true_background_color = self.background_color

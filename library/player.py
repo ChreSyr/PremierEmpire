@@ -2,6 +2,7 @@
 import baopig as bp
 load = bp.image.load
 from baopig.googletrans import dicts, lang_manager, TranslatableText
+from library.images import SOLDIERS
 from library.region import Structure
 from library.zones import BackgroundedZone
 
@@ -23,19 +24,6 @@ class Player(bp.Communicative):
         "south_america": (243, 0, 0),    # Violet
         "africa": (108, 124, 111),       # Gris
         "oceania": (214, 0, 153),        # Rouge
-    }
-    s = load("images/soldiers.png")
-    w, h = s.get_size()
-    w = w / 3
-    h = h / 2
-    SOLDIERS = {
-        "north_america": s.subsurface(0, 0, w, h),
-        "europa": s.subsurface(w, 0, w, h),
-        "asia": s.subsurface( 2 *w, 0, w, h),
-        "south_america": s.subsurface(0, h, w, h),
-        "africa": s.subsurface(w, h, w, h),
-        "oceania": s.subsurface( 2 *w, h, w, h),
-        # "black": load("images/builds.png").subsurface(38, 38, 14, 14)
     }
     f = load("images/flags.png")
     w, h = f.get_size()
@@ -70,7 +58,7 @@ class Player(bp.Communicative):
             self.translated_name = lang_manager.get_text_from_id(self.name_id)
 
         self.color = Player.COLORS[continent]
-        self.soldier_icon = Player.SOLDIERS[continent]
+        self.soldier_icon = SOLDIERS[continent]
         self.flag = bp.Image(game.map, Player.FLAGS[continent], name=str(self.id),
                              visible=False, layer=game.map.frontof_regions_layer, ref=game.map.map_image)
         self.flag_region = None
@@ -80,6 +68,7 @@ class Player(bp.Communicative):
         self.regions = {}  # ex: {Region("alaska"): (Soldier1, Soldier2, Soldier3)}
         self.neighboring_regions = set()
         self.cards = [None] * 3
+        self.boats = []
 
         z = BackgroundedZone(game.info_right_zone, size=("100%", 104), pos=(0, 1000))
         colored_rect = bp.Rectangle(z, size=(z.rect.w, 42), color=self.color, border_width=2, border_color="black")
@@ -192,6 +181,8 @@ class Player(bp.Communicative):
 
         for region in tuple(self.regions):
             region.rem_soldiers(region.soldiers_amount)
+        for boat in tuple(self.boats):
+            boat.remove_all_soldiers()
         self.flag_region.flag = None
         self.flag.hide()
         for card in self.cards:

@@ -13,11 +13,11 @@ set_progression(.4)
 
 from library.memory import Memory
 from library.theme import set_cursor
-from library.images import FLAGS_BIG
+from library.images import FLAGS_BIG, SOLDIERS
 from library.buttons import PE_Button, RegionInfoButton, TransfertButton
 from library.player import Player
-from library.zones import BackgroundedZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone, NextStepZone, \
-    PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, BoatZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone,\
+    NextStepZone, PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
 from library.map import Map
 from library.region import Structure
 
@@ -198,17 +198,15 @@ class Game(bp.Scene):
         self.invade_btn = TransfertButton(self, text_id=4)
         self.back_btn = TransfertButton(self, text_id=19)
         self.import_btn = TransfertButton(self, text_id=20)
-        class InfoCountryTitle(TranslatableText):
-            def __init__(txt, *args, **kwargs):
-                TranslatableText.__init__(txt, *args, text_id=1, **kwargs)
+        class RegionTitle(TranslatableText):
             def set_region(self, region):
                 if region.upper_name == self.text:
                     return
                 self.set_ref_text(region.upper_name_id)
-        info_country_title = InfoCountryTitle(self.region_info_zone, align_mode="center", sticky="center", ref=r2,
-                                              max_width=self.region_info_zone.rect.w - 10)
+        info_country_title = RegionTitle(self.region_info_zone, align_mode="center", sticky="center", ref=r2,
+                                         max_width=self.region_info_zone.rect.w - 10, text_id=48)
         self.info_csa = bp.Text(self.region_info_zone, "", pos=(5, r2.rect.bottom + 5))
-        self.info_csi = bp.Image(self.region_info_zone, Player.SOLDIERS["asia"],
+        self.info_csi = bp.Image(self.region_info_zone, SOLDIERS["asia"],
                                  ref=self.info_csa, pos=(4, -2), refloc="topright")
         def handle_infocountry_change(region=None):
             region = self.map.selected_region if region is None else region
@@ -240,6 +238,9 @@ class Game(bp.Scene):
                     self.import_btn.show()
         self.handle_infocountry_change = handle_infocountry_change
         self.map.signal.REGION_SELECT.connect(handle_infocountry_change, owner=None)
+
+        # BOAT ZONE
+        self.info_boat_zone = BoatZone(self)
 
         # REGION CHOOSE
         def rc_next():
@@ -391,7 +392,7 @@ class Game(bp.Scene):
                                                padding=4, spacing=4, layer=self.game_layer)
         self.transfert_amount = 0
         self.transfert_title = bp.Text(self.transfert_zone, "")
-        self.transfert_icon = bp.Image(self.transfert_zone, Player.SOLDIERS["asia"])
+        self.transfert_icon = bp.Image(self.transfert_zone, SOLDIERS["asia"])
         def handle_mouse_motion():
             if self.transferring:
                 self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
@@ -660,7 +661,7 @@ class Game(bp.Scene):
 
         self.last_selected_region = region
 
-        if self.step.id == 17:
+        if self.step.id == 17:  # TODO : remove step 17
             flag = self.flags[self.current_player_id]
             if region.owner is not None:
                 flag.hide()

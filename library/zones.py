@@ -4,10 +4,10 @@ import baopig as bp
 from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
     LANGUAGES_TRANSLATED
 import pygame
-from library.images import FLAGS_BIG, boat_back, boat_front
+from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
 from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button, PE_Button_Text
-from library.region import Structure
+from library.region import Boat, Structure, back, front
 
 
 class BackgroundedZone(bp.Zone):
@@ -208,6 +208,116 @@ class Warning(BackgroundedZone):
 
 
 # --
+
+
+class InfoZone(BackgroundedZone):
+
+    class RegionTitle(TranslatableText):
+
+        def set_region(self, region):
+            if region.upper_name == self.text:
+                return
+            self.set_ref_text(region.upper_name_id)
+
+    def __init__(self, game):
+
+        BackgroundedZone.__init__(self, game, size=(152, 152), visible=False, layer=game.game_layer,
+                                  ref=game.map.map_image)
+
+        self.title_outline = bp.Rectangle(self, size=(self.rect.w, 44), color=(0, 0, 0, 0),
+                                          border_width=2, border_color="black")
+
+        self.sail = bp.Circle(game.map, (0, 0, 0, 63), radius=0, center=(0, 0), visible=False,
+                              layer=game.map.regions_layer, ref=game.map.map_image)
+        def mapsail_open_animate():
+            self.sail.set_radius(self.sail.radius + 60)
+            if self.sail.radius >= 250:
+                self.sail_open_animator.cancel()
+        self.sail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
+        def mapsail_close_animate():
+            self.sail.set_radius(self.sail.radius - 60)
+            if self.sail.radius <= 0:
+                self.sail_close_animator.cancel()
+                self.sail.hide()
+        self.sail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
+
+    def open(self, target):
+
+        if self.sail_close_animator.is_running:
+            self.sail_close_animator.cancel()
+        if self.sail_open_animator.is_running:
+            self.sail_open_animator.cancel()
+        self.sail.set_pos(center=target.rect.center)
+        self.sail.set_radius(60)
+        self.sail_open_animator.start()
+        self.sail.show()
+
+        self.set_pos(midleft=(target.abs_rect.right + 10, target.abs_rect.centery))
+        self.show()
+
+    def close(self):
+
+        if self.sail_open_animator.is_running:
+            self.sail_open_animator.cancel()
+        self.sail_close_animator.start()
+        self.hide()
+
+
+class BoatZone(InfoZone):
+
+    def __init__(self, game):
+
+        InfoZone.__init__(self, game)
+
+        boat = pygame.Surface(front.get_size(), pygame.SRCALPHA)
+        boat.blit(back, (2, 0))
+        boat.blit(front, (0, 0))
+        bp.Image(self, sticky="center", ref=self.title_outline, image=boat)
+
+        self.region_title = self.RegionTitle(self, align_mode="center", sticky="midtop", ref=self.title_outline,
+                                             pos=(0, 50), max_width=self.rect.w - 10, text_id=48)
+
+        self.soldiers_zone = bp.Zone(self, sticky="center", spacing=3, pos=(0, 9))
+        self.soldiers = []
+        self.continent = "north_america"
+        for i in range(Boat.MAX):
+            soldier = bp.Image(self.soldiers_zone, image=SOLDIERS[self.continent])
+            soldier.sleep()
+            self.soldiers.append(soldier)
+
+        self.set_style_for(PE_Button, width=25, height=25, padding=0)
+        self.minus = PE_Button(self, midleft=(6, self.soldiers_zone.rect.centery), text="-", translatable=False)
+        self.plus = PE_Button(self, midright=(self.rect.width - 6, self.soldiers_zone.rect.centery), text="+",
+                              translatable=False)
+
+    def open(self, boat):
+
+        with bp.paint_lock:
+
+            super().open(boat)
+
+            if boat.region.owner.continent != self.continent:
+                self.continent = boat.owner.continent
+                for soldier in self.soldiers:
+                    soldier.set_surface(SOLDIERS[self.continent])
+
+            for i in range(Boat.MAX):
+                if i < boat.nb_soldiers:
+                    self.soldiers[i].wake()
+                else:
+                    self.soldiers[i].sleep()
+
+            self.soldiers_zone.pack(axis="horizontal")
+            self.soldiers_zone.adapt()
+
+            self.region_title.set_region(boat.region)
+
+            if boat.region.owner == self.scene.current_player:
+                self.minus.show()
+                self.plus.show()
+            else:
+                self.minus.hide()
+                self.plus.hide()
 
 
 class CardsZone(BackgroundedZone):
