@@ -1,7 +1,9 @@
 
 import baopig as bp
 
-f_big = bp.image.load("images/flags_big.png")
+load = lambda val: bp.image.load(f"images/{val}.png")
+
+f_big = load("flags_big")
 w, h = f_big.get_size()
 w = w / 3
 h = h / 2
@@ -13,3 +15,6 @@ FLAGS_BIG = {
     "africa": f_big.subsurface(w, h, w, h),
     "oceania": f_big.subsurface( 2 *w, h, w, h),
 }
+
+boat_back = load("boat_back")
+boat_front = load("boat_front")

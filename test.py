@@ -1,3 +1,2 @@
 
-import baopig
-baopig.Application().launch()
+print([0, 1, 2, 3][:3])

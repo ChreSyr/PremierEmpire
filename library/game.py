@@ -2,13 +2,12 @@
 import random
 
 import baopig as bp
-import pygame
 
 load = bp.image.load
 
 from library.loading import set_progression
 
-from baopig.googletrans import TranslatableText, PartiallyTranslatableText, lang_manager, translator
+from baopig.googletrans import TranslatableText, lang_manager, translator
 
 set_progression(.4)
 
@@ -17,10 +16,10 @@ from library.theme import set_cursor
 from library.images import FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton, TransfertButton
 from library.player import Player
-from library.zones import BackgroundedZone, CardsZone, GameSail, InfoLeftZone, PlayerTurnZone, PlayZone, \
-    TmpMessage, WinnerInfoZone
-from library.region import Structure
+from library.zones import BackgroundedZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone, PlayerTurnZone, \
+    PlayZone, TmpMessage, WinnerInfoZone
 from library.map import Map
+from library.region import Structure
 
 set_progression(.5)
 
@@ -395,29 +394,7 @@ class Game(bp.Scene):
         self.cards_zone = CardsZone(self)
 
         # CHOOSE BUILD
-        self.choose_build_zone = bp.Zone(self.region_info_zone, visible=False, pos=(0, -6), sticky="midbottom",
-                                         size=(140, 64), spacing=12)
-
-        def build(build_name):
-            if self.current_player.gold < 3:
-                return TmpMessage(self, text_id=97)
-            self.last_selected_region.structure.start_construction(build_name)
-            self.current_player.change_gold(-3)
-            self.map.region_unselect()
-            if not self.current_player.can_build():
-                self.set_step(21)
-
-        mine_background = pygame.Surface((64, 64), pygame.SRCALPHA)
-        mine_background.blit(Structure.DONE, (32 - 15, 32 - 15))
-        camp_background = mine_background.copy()
-        mine_background.blit(Structure.MINE, (32 - 15, 32 - 15))
-        camp_background.blit(Structure.CAMP, (32 - 15, 32 - 15))
-
-        self.mine_btn = bp.Button(self.choose_build_zone, "", size=(64, 64), background_image=mine_background,
-                                  command=bp.PrefilledFunction(build, "mine"), background_color=(0, 0, 0, 0))
-        self.camp_btn = bp.Button(self.choose_build_zone, "", size=(64, 64), background_image=camp_background,
-                                  command=bp.PrefilledFunction(build, "camp"), background_color=(0, 0, 0, 0))
-        self.choose_build_zone.pack(axis="horizontal")
+        self.choose_build_zone = ChooseBuildZone(self)
 
         # SOLDIERS TRANSFERT
         self.transfert_from = None
@@ -706,9 +683,9 @@ class Game(bp.Scene):
             self.confirm_zone.show()
 
         if self.step.id == 20:
-            if region in self.current_player.regions and region.structure.is_empty:
+            if region in self.current_player.regions:
                  # self.choose_build_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
-                self.choose_build_zone.show()
+                self.choose_build_zone.update()
             else:
                 self.choose_build_zone.hide()
 
@@ -788,6 +765,9 @@ class Game(bp.Scene):
         for r in self.regions.values():
             r.flag = None
             r.structure.destroy()
+            for boat in r.boats:
+                boat.kill()
+            r.boats = []
 
         for p in self.players.values():
             for r in tuple(p.regions):

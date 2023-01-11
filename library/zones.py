@@ -4,9 +4,10 @@ import baopig as bp
 from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
     LANGUAGES_TRANSLATED
 import pygame
-from library.images import FLAGS_BIG
+from library.images import FLAGS_BIG, boat_back, boat_front
 from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button, PE_Button_Text
+from library.region import Structure
 
 
 class BackgroundedZone(bp.Zone):
@@ -426,6 +427,52 @@ class CardsZone(BackgroundedZone):
             for btn in self.add_buttons:
                 btn.enable()
 
+
+class ChooseBuildZone(bp.Zone):
+
+    def __init__(self, game):
+
+        spacing = 7
+        size = int((140 - spacing * 2) / 3)
+        bp.Zone.__init__(self, game.region_info_zone, visible=False, pos=(0, -6), sticky="midbottom",
+                         size=(140, size), spacing=spacing)
+
+        def build(build_name):
+            if game.current_player.gold < 3:
+                return TmpMessage(game, text_id=97)
+            if build_name == "boat":
+                game.last_selected_region.add_boat()
+            else:
+                game.last_selected_region.structure.start_construction(build_name)
+                self.camp_btn.disable()
+                self.mine_btn.disable()
+            game.current_player.change_gold(-3)
+
+        mine_background = pygame.Surface((size, size), pygame.SRCALPHA)
+        mine_background.blit(Structure.DONE, (size / 2 - 15, size / 2 - 15))
+        camp_background = mine_background.copy()
+        mine_background.blit(Structure.MINE, (size / 2 - 15, size / 2 - 15))
+        camp_background.blit(Structure.CAMP, (size / 2 - 15, size / 2 - 15))
+        boat_background = pygame.Surface((80, 80), pygame.SRCALPHA)
+        boat_background.blit(boat_back, (40 - 68 / 2, 40 - 20 / 2))
+        boat_background.blit(boat_front, (40 - 73 / 2, 43 - 26 / 2))
+
+        self.mine_btn = bp.Button(self, "", size=(size, size), background_image=mine_background,
+                                  command=bp.PrefilledFunction(build, "mine"))
+        self.baot_btn = bp.Button(self, "", size=(size, size), background_image=boat_background,
+                                  command=bp.PrefilledFunction(build, "boat"))
+        self.camp_btn = bp.Button(self, "", size=(size, size), background_image=camp_background,
+                                  command=bp.PrefilledFunction(build, "camp"))
+        self.pack(axis="horizontal")
+
+    def update(self):
+        self.show()
+        if self.scene.last_selected_region.structure.is_empty:
+            self.camp_btn.enable()
+            self.mine_btn.enable()
+        else:
+            self.camp_btn.disable()
+            self.mine_btn.disable()
 
 class InfoLeftZone(BackgroundedZone):
 

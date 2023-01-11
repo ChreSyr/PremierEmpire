@@ -118,9 +118,10 @@ class Player(bp.Communicative):
         return can_attack
 
     def can_build(self):
+        """ Return True if, after selling all its cards, a player has at least 3 gold """
 
         num_cards = 3 - self.cards.count(None)
-        return not (self.gold + num_cards * 2 < 3 or self.has_fully_built())
+        return self.gold + num_cards * 2 >= 3
 
     def can_move_troops(self):
 
@@ -142,8 +143,7 @@ class Player(bp.Communicative):
         assert self.gold >= 0
         self.gold_tracker.set_text(str(self.gold))
 
-        num_cards = 3 - self.cards.count(None)
-        if self.game.step.id == 20 and self.gold + num_cards * 2 < 3:
+        if self.game.step.id == 20 and not self.can_build():
             self.game.set_step(21)
 
         self.signal.CHANGE_GOLD.emit()
@@ -204,6 +204,8 @@ class Player(bp.Communicative):
         self.is_alive = False
 
     def has_fully_built(self):
+
+        # TODO : remove ? if we can build as many boats as we want, this is meaningless
 
         for r in self.regions:
             if r.structure.is_empty:
