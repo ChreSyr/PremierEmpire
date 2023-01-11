@@ -474,6 +474,7 @@ class ChooseBuildZone(bp.Zone):
             self.camp_btn.disable()
             self.mine_btn.disable()
 
+
 class InfoLeftZone(BackgroundedZone):
 
     def __init__(self, game):
@@ -571,15 +572,34 @@ class InfoLeftZone(BackgroundedZone):
         btn.set_highlighted(True)
 
         if btn == self.build_btn:
-            self.scene.nextsail_text.set_text(self.build_btn.text)
+            self.scene.nextstep_zone.text.set_text(self.build_btn.text)
             self.attack_btn.enable()
             self.reorganisation_btn.enable()
         elif btn == self.attack_btn:
-            self.scene.nextsail_text.set_text(self.attack_btn.text)
+            self.scene.nextstep_zone.text.set_text(self.attack_btn.text)
             self.reorganisation_btn.enable()
         elif btn == self.reorganisation_btn:
-            self.scene.nextsail_text.set_text(self.reorganisation_btn.text)
+            self.scene.nextstep_zone.text.set_text(self.reorganisation_btn.text)
             self.attack_btn.disable()
+
+
+class NextStepZone(bp.Zone):
+
+    def __init__(self, game):
+
+        bp.Zone.__init__(self, game, pos=(-game.rect.h, 0), size=(game.rect.h, "100%"), layer=game.gameinfo_layer,
+                         touchable=False)
+
+        def nextsail_animate():
+            self.move(dx=max(abs(self.rect.centerx - game.auto_rect.centerx) / 5, 20))
+            if self.rect.left >= game.rect.width:
+                self.circle_animator.cancel()
+                self.hide()
+
+        self.circle_animator = bp.RepeatingTimer(.04, nextsail_animate)
+        self.circle = bp.Circle(self, (0, 0, 0, 63), radius=game.auto_rect.centery, sticky="center")
+        self.text = bp.Text(self, "HELLO !!", font_height=50, font_color="orange", font_bold=True, sticky="center",
+                            ref=game.map)
 
 
 class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
@@ -650,7 +670,7 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
             self.hide_timer.cancel()
 
         if self.scene.step.id >= 20:
-            self.scene.nextsail_animator.resume()
+            self.scene.nextstep_zone.circle_animator.resume()
 
     def show(self):
 
@@ -678,7 +698,7 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
         self.hide_timer.start()
 
         if self.scene.step.id >= 20:
-            self.scene.nextsail_animator.pause()
+            self.scene.nextstep_zone.circle_animator.pause()
 
 
 class PlayZone(bp.Zone):

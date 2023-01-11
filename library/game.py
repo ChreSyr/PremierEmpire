@@ -16,8 +16,8 @@ from library.theme import set_cursor
 from library.images import FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton, TransfertButton
 from library.player import Player
-from library.zones import BackgroundedZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone, PlayerTurnZone, \
-    PlayZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone, NextStepZone, \
+    PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
 from library.map import Map
 from library.region import Structure
 
@@ -176,19 +176,8 @@ class Game(bp.Scene):
         self.discard_pile = Pile()  # défausse
         map = self.map = Map(self)
 
-        # NEXT_TODO ANIMATION
-        self.nextsail_zone = bp.Zone(self, pos=(-self.rect.h, 0), size=(self.rect.h, "100%"), layer=self.gameinfo_layer,
-                                     touchable=False)
-        def nextsail_animate():
-            self.nextsail_zone.move(dx=max(abs(self.nextsail_zone.rect.centerx - self.auto_rect.centerx) / 5, 20))
-            if self.nextsail_zone.rect.left >= self.rect.width:
-                self.nextsail_animator.cancel()
-                self.nextsail_zone.hide()
-        self.nextsail_animator = bp.RepeatingTimer(.04, nextsail_animate)
-        self.nextsail_circle = bp.Circle(self.nextsail_zone, (0, 0, 0, 63), radius=self.auto_rect.centery,
-                                         sticky="center")
-        self.nextsail_text = bp.Text(self.nextsail_zone, "HELLO !!", font_height=50, font_color="orange",
-                                     font_bold=True, sticky="center", ref=map)
+        # NEXT STEP ANIMATION
+        self.nextstep_zone = NextStepZone(self)
 
         # INFORMATION ON TOP & RIGHT
         self.info_right_zone = bp.Zone(self, sticky="midright", size=("10%", 0), spacing=-3, layer=self.gameinfo_layer)
@@ -706,8 +695,8 @@ class Game(bp.Scene):
         text = f"{self.rect.width} × {self.rect.height}"
         self.settings_zone.resolution_btn.set_text(text)
 
-        self.nextsail_zone.resize_width(self.rect.height)
-        self.nextsail_circle.set_radius(self.auto_rect.centery)
+        self.nextstep_zone.resize_width(self.rect.height)
+        self.nextstep_zone.circle.set_radius(self.auto_rect.centery)
 
     def next_player(self):
 
@@ -826,12 +815,12 @@ class Game(bp.Scene):
             return  # draw
 
         if self.step.id >= 20:
-            if self.nextsail_animator.is_running:
-                self.nextsail_animator.cancel()
-            if not self.nextsail_animator.is_paused:  # can be paused by PlayerTurnZone
-                self.nextsail_animator.start()
-            self.nextsail_zone.set_pos(right=0)
-            self.nextsail_zone.show()
+            if self.nextstep_zone.circle_animator.is_running:
+                self.nextstep_zone.circle_animator.cancel()
+            if not self.nextstep_zone.circle_animator.is_paused:  # can be paused by PlayerTurnZone
+                self.nextstep_zone.circle_animator.start()
+            self.nextstep_zone.set_pos(right=0)
+            self.nextstep_zone.show()
 
     def set_tuto_ref_text_id(self, text_id):
         self.tuto_ref_text_id = text_id
@@ -850,8 +839,8 @@ class Game(bp.Scene):
             self.winner_info_zone.title.complete_text()
             self.winner_info_zone.panel.set_background_color(winner.color)
             self.winner = winner
-        self.nextsail_animator.cancel()
-        self.nextsail_zone.hide()
+        self.nextstep_zone.circle_animator.cancel()
+        self.nextstep_zone.hide()
         self.time_left.pause()
         self.map.region_unselect()
         self.winner_info_zone.show()
