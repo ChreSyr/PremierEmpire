@@ -6,7 +6,7 @@ from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslata
 import pygame
 from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
 from library.loading import logo, fullscreen_size, screen_sizes
-from library.buttons import PE_Button, PE_Button_Text
+from library.buttons import PE_Button, PE_Button_Text, TransfertButton
 from library.region import Boat, Structure, back, front
 
 
@@ -210,7 +210,7 @@ class Warning(BackgroundedZone):
 # --
 
 
-class InfoZone(BackgroundedZone):
+class InfoZone(BackgroundedZone, bp.Focusable):
 
     class RegionTitle(TranslatableText):
 
@@ -223,12 +223,17 @@ class InfoZone(BackgroundedZone):
 
         BackgroundedZone.__init__(self, game, size=(152, 152), visible=False, layer=game.game_layer,
                                   ref=game.map.map_image)
+        bp.Focusable.__init__(self, game)
+
+        self._target = None
+        self._maintainer = None
 
         self.title_outline = bp.Rectangle(self, size=(self.rect.w, 44), color=(0, 0, 0, 0),
                                           border_width=2, border_color="black")
 
         self.sail = bp.Circle(game.map, (0, 0, 0, 63), radius=0, center=(0, 0), visible=False,
                               layer=game.map.regions_layer, ref=game.map.map_image)
+        self.sail.move_behind(game.map.regions_layer[0])
         def mapsail_open_animate():
             self.sail.set_radius(self.sail.radius + 60)
             if self.sail.radius >= 250:
@@ -241,7 +246,49 @@ class InfoZone(BackgroundedZone):
                 self.sail.hide()
         self.sail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
 
+    target = property(lambda self: None if self.is_hidden else self._target)
+    last_target = property(lambda self: self._target)
+
+    def _handle_maintainer_defocus(self):
+
+        self._maintainer.signal.DEFOCUS.disconnect(self._handle_maintainer_defocus)
+
+        focused = self.scene.focused_widget
+        if focused is None:
+            return self.close()
+
+        widget = focused
+        while True:
+
+            if widget is self:
+                break
+
+            widget = widget.parent
+            if widget.scene == widget:
+                return self.close()
+
+        self._maintainer = focused
+        self._maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
+
+    def close(self):
+
+        if self.is_hidden:
+            return
+
+        self.target.handle_unhover()
+
+        if self.sail_open_animator.is_running:
+            self.sail_open_animator.cancel()
+        self.sail_close_animator.start()
+
+        self.hide()
+
     def open(self, target):
+
+        self._target = target
+
+        self._maintainer = target
+        self._maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
 
         if self.sail_close_animator.is_running:
             self.sail_close_animator.cancel()
@@ -255,15 +302,8 @@ class InfoZone(BackgroundedZone):
         self.set_pos(midleft=(target.abs_rect.right + 10, target.abs_rect.centery))
         self.show()
 
-    def close(self):
 
-        if self.sail_open_animator.is_running:
-            self.sail_open_animator.cancel()
-        self.sail_close_animator.start()
-        self.hide()
-
-
-class BoatZone(InfoZone):
+class BoatInfoZone(InfoZone):
 
     def __init__(self, game):
 
@@ -318,6 +358,66 @@ class BoatZone(InfoZone):
             else:
                 self.minus.hide()
                 self.plus.hide()
+
+
+class RegionInfoZone(InfoZone):
+
+    def __init__(self, game):
+
+        InfoZone.__init__(self, game)
+
+        self.open_on_hover = False  # TODO : vérifier que ça marche
+
+        self.region_title = self.RegionTitle(self, align_mode="center", sticky="center", ref=self.title_outline,
+                                             max_width=self.rect.w - 10, text_id=48)
+
+        self.soldier_amount = bp.Text(self, "", pos=(5, self.title_outline.rect.bottom + 5))
+        self.soldier_icon = bp.Image(self, SOLDIERS["asia"], ref=self.soldier_amount, pos=(4, -2), refloc="topright")
+
+        game.region_info_zone = self
+        self.invade_btn = TransfertButton(game, text_id=4)
+        self.back_btn = TransfertButton(game, text_id=19)
+        self.import_btn = TransfertButton(game, text_id=20)
+        self.choose_build_zone = ChooseBuildZone(self)
+
+        for region in game.regions.values():
+            region.info_zone = self
+
+    def open(self, region=None):
+
+        region = self.scene.selected_region if region is None else region
+
+        super().open(region)
+
+        self.region_title.set_region(region)
+
+        if region.owner is None:
+            self.soldier_amount.hide()
+            self.soldier_icon.hide()
+        else:
+            self.soldier_amount.set_text(str(region.soldiers_amount))
+            self.soldier_amount.show()
+            self.soldier_icon.set_surface(region.owner.soldier_icon)
+            self.soldier_icon.show()
+
+        self.invade_btn.hide()
+        self.back_btn.hide()
+        self.import_btn.hide()
+
+        if self.scene.step.id == 20 and region.owner is self.scene.current_player:
+            self.choose_build_zone.update()
+        else:
+            self.choose_build_zone.hide()
+        if self.scene.step.id == 21 and self.scene.transferring:
+            if region.name in self.scene.transfert_from.neighbors and region.owner != self.scene.transfert_from.owner:
+                self.invade_btn.show()
+            elif region is self.scene.transfert_from:
+                self.back_btn.show()
+        elif self.scene.step.id == 22 and self.scene.transferring:
+            if region is self.scene.transfert_from:
+                self.back_btn.show()
+            elif region in self.scene.transfert_from.all_allied_neighbors:
+                self.import_btn.show()
 
 
 class CardsZone(BackgroundedZone):
@@ -540,23 +640,12 @@ class CardsZone(BackgroundedZone):
 
 class ChooseBuildZone(bp.Zone):
 
-    def __init__(self, game):
+    def __init__(self, parent):
 
         spacing = 7
         size = int((140 - spacing * 2) / 3)
-        bp.Zone.__init__(self, game.region_info_zone, visible=False, pos=(0, -6), sticky="midbottom",
+        bp.Zone.__init__(self, parent, visible=False, pos=(0, -6), sticky="midbottom",
                          size=(140, size), spacing=spacing)
-
-        def build(build_name):
-            if game.current_player.gold < 3:
-                return TmpMessage(game, text_id=97)
-            if build_name == "boat":
-                game.last_selected_region.add_boat()
-            else:
-                game.last_selected_region.structure.start_construction(build_name)
-                self.camp_btn.disable()
-                self.mine_btn.disable()
-            game.current_player.change_gold(-3)
 
         mine_background = pygame.Surface((size, size), pygame.SRCALPHA)
         mine_background.blit(Structure.DONE, (size / 2 - 15, size / 2 - 15))
@@ -567,12 +656,26 @@ class ChooseBuildZone(bp.Zone):
         boat_background.blit(boat_back, (40 - 68 / 2, 40 - 20 / 2))
         boat_background.blit(boat_front, (40 - 73 / 2, 43 - 26 / 2))
 
-        self.mine_btn = bp.Button(self, "", size=(size, size), background_image=mine_background,
-                                  command=bp.PrefilledFunction(build, "mine"))
-        self.baot_btn = bp.Button(self, "", size=(size, size), background_image=boat_background,
-                                  command=bp.PrefilledFunction(build, "boat"))
-        self.camp_btn = bp.Button(self, "", size=(size, size), background_image=camp_background,
-                                  command=bp.PrefilledFunction(build, "camp"))
+        class BuildButton(bp.Button):
+
+            def __init__(btn, image, name):
+
+                bp.Button.__init__(btn, self, "", size=(size, size), background_image=image, name=name)
+
+            def handle_validate(btn):
+
+                if self.scene.current_player.gold < 3:
+                    return TmpMessage(self.scene, text_id=97)
+                if btn.name == "boat":
+                    self.parent.last_target.add_boat()
+                else:
+                    self.parent.last_target.structure.start_construction(btn.name)
+                    self.camp_btn.disable()
+                    self.mine_btn.disable()
+                self.scene.current_player.change_gold(-3)
+        self.mine_btn = BuildButton(image=mine_background, name="mine")
+        self.baot_btn = BuildButton(image=boat_background, name="boat")
+        self.camp_btn = BuildButton(image=camp_background, name="camp")
         self.pack(axis="horizontal")
 
     def update(self):
@@ -922,16 +1025,16 @@ class SettingsMainZone(SettingsZone):
                         game.set_step(10)
                     if game.step.id == 10:
                         game.flag_btns[0].validate()
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         alaska = game.regions_list[0]
                         game.draw_pile.remove(alaska)
-                        game.map.region_select(alaska)
+                        game.region_info_zone.open(alaska)
                         game.rc_yes.validate()
                         game.flag_btns[2].validate()
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         alberta = game.regions_list[1]
                         game.draw_pile.remove(alberta)
-                        game.map.region_select(alberta)
+                        game.region_info_zone.open(alberta)
                         game.rc_yes.validate()
                         qs_zone.close_settings()
             PE_Button(qs_zone, text="1", translatable=False, command=quick_setup1)
@@ -944,22 +1047,22 @@ class SettingsMainZone(SettingsZone):
                         game.set_step(10)
                     if game.step.id == 10:
                         game.flag_btns[2].validate()
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         alaska = game.regions_list[0]
                         game.draw_pile.remove(alaska)
-                        game.map.region_select(alaska)
+                        game.region_info_zone.open(alaska)
                         game.rc_yes.validate()
                         game.flag_btns[3].validate()
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         groenland = game.regions_list[5]
                         game.draw_pile.remove(groenland)
-                        game.map.region_select(groenland)
+                        game.region_info_zone.open(groenland)
                         game.rc_yes.validate()
                         game.flag_btns[4].validate()
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         western = game.regions_list[6]
                         game.draw_pile.remove(western)
-                        game.map.region_select(western)
+                        game.region_info_zone.open(western)
                         game.rc_yes.validate()
                         qs_zone.close_settings()
             PE_Button(qs_zone, text="2", translatable=False, command=quick_setup2)
@@ -979,34 +1082,34 @@ class SettingsMainZone(SettingsZone):
                         alberta = game.regions_list[2]
 
                         game.flag_btns[4].validate()  # gray
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         game.draw_pile.remove(alaska)
-                        game.map.region_select(alaska)
+                        game.region_info_zone.open(alaska)
                         game.rc_yes.validate()
                         game.flag_btns[5].validate()  # purple
-                        game.draw_pile.append(game.map.selected_region)
+                        game.draw_pile.append(game.selected_region)
                         game.draw_pile.remove(alberta)
-                        game.map.region_select(alberta)
+                        game.region_info_zone.open(alberta)
                         game.rc_yes.validate()
 
-                        game.map.region_select(alaska)
+                        game.region_info_zone.open(alaska)
                         game.camp_btn.validate()
                         game.next_step()
 
-                        game.map.region_select(alberta)
+                        game.region_info_zone.open(alberta)
                         game.camp_btn.validate()
                         game.transfert(alberta)
-                        game.map.region_select(territoires)
+                        game.region_info_zone.open(territoires)
                         game.invade_btn.validate()
                         game.next_step()
                         game.transfert(alberta)
                         game.end_transfert(territoires)
                         game.next_step()
 
-                        game.map.region_select(alaska)
+                        game.region_info_zone.open(alaska)
                         game.transfert(alaska)
                         game.transfert(alaska)
-                        game.map.region_select(alberta)
+                        game.region_info_zone.open(alberta)
                         game.invade_btn.validate()
             PE_Button(qs_zone, text="3", translatable=False, command=quick_setup3)
             def quick_setup4():

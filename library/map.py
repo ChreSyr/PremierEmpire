@@ -4,7 +4,7 @@ from library.zones import RightClickZone
 from library.region import Region
 
 
-class Map(bp.Zone, bp.LinkableByMouse):
+class Map(bp.Zone, bp.LinkableByMouse):  # TODO : cleanup (not Linkable anymore)
 
     IMAGE = bp.image.load("images/map.png")
 
@@ -13,7 +13,6 @@ class Map(bp.Zone, bp.LinkableByMouse):
         bp.Zone.__init__(self, parent, size=bp.pygame.display.list_modes()[0], sticky="center")
         bp.LinkableByMouse.__init__(self, parent)
 
-        self.selected_region = None
         self.hovered_region = None
 
         self.background_layer = bp.Layer(self, bp.Image, name="background_layer", level=self.layers_manager.BACKGROUND)
@@ -27,21 +26,6 @@ class Map(bp.Zone, bp.LinkableByMouse):
         self.create_signal("REGION_UNSELECT")
 
         self.map_image = bp.Image(self, Map.IMAGE, sticky="center", layer=self.background_layer)
-
-        # SAIL
-        self.sail = bp.Circle(self, (0, 0, 0, 63), radius=0, center=(0, 0), visible=False,
-                              layer=self.regions_layer, ref=self.map_image)
-        def mapsail_open_animate():
-            self.sail.set_radius(self.sail.radius + 60)
-            if self.sail.radius >= 250:
-                self.sail_open_animator.cancel()
-        self.sail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
-        def mapsail_close_animate():
-            self.sail.set_radius(self.sail.radius - 60)
-            if self.sail.radius <= 0:
-                self.sail_close_animator.cancel()
-                self.sail.hide()
-        self.sail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
 
         self._create_regions()
 
@@ -147,29 +131,25 @@ class Map(bp.Zone, bp.LinkableByMouse):
 
     def region_select(self, region):
 
-        if self.selected_region is not None:
-            self.hovered_region.hide()
-        self.hovered_region = self.selected_region = region
+        self.hovered_region = region
         self.hovered_region.show()
         self.signal.REGION_SELECT.emit(region)
 
     def region_unselect(self):
 
-        if self.selected_region is None:
-            return
-
         self.hovered_region.hide()
-        self.selected_region = self.hovered_region = None
+        self.hovered_region = None
         self.signal.REGION_UNSELECT.emit()
 
     def handle_link(self):
+        return
 
         if self.parent.step.id < 20:
             return
 
         for region in self.parent.regions.values():
             if region.get_hovered():
-                if region is self.selected_region:
+                if region is self.scene.selected_region:
                     self.region_unselect()
                 else:
                     self.region_select(region)

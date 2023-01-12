@@ -16,8 +16,8 @@ from library.theme import set_cursor
 from library.images import FLAGS_BIG, SOLDIERS
 from library.buttons import PE_Button, RegionInfoButton, TransfertButton
 from library.player import Player
-from library.zones import BackgroundedZone, BoatZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone,\
-    NextStepZone, PlayerTurnZone, PlayZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone,\
+    NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, TmpMessage, WinnerInfoZone
 from library.map import Map
 from library.region import Structure
 
@@ -35,7 +35,6 @@ class Game(bp.Scene):
         self.flags = []
         self.current_player_id = 0
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
-        self.last_selected_region = None
 
         # SIGNALS
         self.create_signal("PLAYER_TURN")
@@ -189,58 +188,11 @@ class Game(bp.Scene):
         # PLAYER TURN
         self.playerturn_zone = None
 
-        # INFO COUNTRY
-        self.info_country_on_hover = False
-        self.region_info_zone = BackgroundedZone(self, size=(152, 152), visible=False, layer=self.game_layer,
-                                                 ref=self.map.map_image)
-        r2 = bp.Rectangle(self.region_info_zone, size=(self.region_info_zone.rect.w, 44),
-                          color=(0, 0, 0, 0), border_width=2, border_color="black")
-        self.invade_btn = TransfertButton(self, text_id=4)
-        self.back_btn = TransfertButton(self, text_id=19)
-        self.import_btn = TransfertButton(self, text_id=20)
-        class RegionTitle(TranslatableText):
-            def set_region(self, region):
-                if region.upper_name == self.text:
-                    return
-                self.set_ref_text(region.upper_name_id)
-        info_country_title = RegionTitle(self.region_info_zone, align_mode="center", sticky="center", ref=r2,
-                                         max_width=self.region_info_zone.rect.w - 10, text_id=48)
-        self.info_csa = bp.Text(self.region_info_zone, "", pos=(5, r2.rect.bottom + 5))
-        self.info_csi = bp.Image(self.region_info_zone, SOLDIERS["asia"],
-                                 ref=self.info_csa, pos=(4, -2), refloc="topright")
-        def handle_infocountry_change(region=None):
-            region = self.map.selected_region if region is None else region
-
-            self.region_info_zone.set_pos(midleft=(region.abs_rect.right + 5, region.abs_rect.centery))
-            info_country_title.set_region(region)
-            if region.owner is None:
-                self.info_csi.hide()
-                self.info_csa.hide()
-            else:
-                self.info_csi.show()
-                self.info_csa.show()
-                self.info_csi.set_surface(region.owner.soldier_icon)
-                self.info_csa.set_text(str(region.soldiers_amount))
-            self.region_info_zone.show()
-
-            self.invade_btn.hide()
-            self.back_btn.hide()
-            self.import_btn.hide()
-            if self.step.id == 21 and self.transferring:
-                if region.name in self.transfert_from.neighbors and region.owner != self.transfert_from.owner:
-                    self.invade_btn.show()
-                elif region is self.transfert_from:
-                    self.back_btn.show()
-            elif self.step.id == 22 and self.transferring:
-                if region is self.transfert_from:
-                    self.back_btn.show()
-                elif region in self.transfert_from.all_allied_neighbors:
-                    self.import_btn.show()
-        self.handle_infocountry_change = handle_infocountry_change
-        self.map.signal.REGION_SELECT.connect(handle_infocountry_change, owner=None)
+        # REGION INFO
+        self.region_info_zone = RegionInfoZone(self)
 
         # BOAT ZONE
-        self.info_boat_zone = BoatZone(self)
+        self.info_boat_zone = BoatInfoZone(self)
 
         # REGION CHOOSE
         def rc_next():
@@ -375,16 +327,13 @@ class Game(bp.Scene):
         self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
         bp.Button(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
                   background_image=Structure.BUILDS.subsurface(0, 60, 30, 30),
-                  command=bp.PackedFunctions(lambda: self.step.confirm(), self.map.region_unselect))
+                  command=bp.PackedFunctions(lambda: self.step.confirm(), self.region_info_zone.close))
         bp.Button(self.confirm_zone, size=(30, 30), background_color="red4", focus=-1,
-                  background_image=Structure.BUILDS.subsurface(30, 60, 30, 30), command=self.map.region_unselect)
+                  background_image=Structure.BUILDS.subsurface(30, 60, 30, 30), command=self.region_info_zone.close)
         self.confirm_zone.pack(adapt=True)
 
         # CARDS
         self.cards_zone = CardsZone(self)
-
-        # CHOOSE BUILD
-        self.choose_build_zone = ChooseBuildZone(self)
 
         # SOLDIERS TRANSFERT
         self.transfert_from = None
@@ -405,10 +354,6 @@ class Game(bp.Scene):
         self.step = None
         self.step_from_id = {}
         self._init_steps()
-
-        # SETUP
-        self.map.signal.REGION_SELECT.connect(self.handle_region_select, owner=self)
-        self.map.signal.REGION_UNSELECT.connect(self.handle_region_unselect, owner=self)
 
     def _init_steps(self):
 
@@ -506,13 +451,15 @@ class Game(bp.Scene):
         TmpMessage(self, text_id=34)
     connected_to_network = property(lambda self: lang_manager.is_connected_to_network, _set_connected_to_network)
     current_player = property(lambda self: self.players[self.current_player_id])
+    last_selected_region = property(lambda self: self.region_info_zone.last_target)
+    selected_region = property(lambda self: self.region_info_zone.target)
     transferring = property(lambda self: self.transfert_from is not None)
 
     def end_transfert(self, region=None):
 
         assert self.transferring
         if region is None:
-            region = self.map.selected_region
+            region = self.selected_region
         if region is None:
             region = self.temp_import_region
         assert region is not None
@@ -536,22 +483,22 @@ class Game(bp.Scene):
         self.transfert_from = None
         self.transfert_amount = 0
         self.transfert_zone.hide()
-        self.back_btn.hide()
-        self.invade_btn.hide()
-        self.back_btn.defocus()
+        # self.region_info_zone.back_btn.hide()
+        # self.region_info_zone.invade_btn.hide()
+        # self.region_info_zone.back_btn.defocus()
 
-        if region.owner is None:
-            self.info_csi.hide()
-            self.info_csa.hide()
-        else:
-            self.info_csi.set_surface(region.owner.soldier_icon)
-            self.info_csa.set_text(str(region.soldiers_amount))
-            self.info_csi.show()
-            self.info_csa.show()
+        # if region.owner is None:
+        #     self.info_csi.hide()
+        #     self.info_csa.hide()
+        # else:
+        #     self.info_csi.set_surface(region.owner.soldier_icon)
+        #     self.info_csa.set_text(str(region.soldiers_amount))
+        #     self.info_csi.show()
+        #     self.info_csa.show()
 
-        if self.map.selected_region is region:
-            self.back_btn.hide()
-            self.import_btn.hide()
+        # if self.selected_region is region:
+        #     self.back_btn.hide()
+        #     self.import_btn.hide()
 
         if self.step.id == 21 and self.winner_info_zone.is_hidden:
             if not self.current_player.can_attack():
@@ -564,17 +511,17 @@ class Game(bp.Scene):
 
         if self.step.id >= 20:
             if event.type == bp.MOUSEMOTION:
-                if self.map.selected_region is None and self.map.is_hovered:
+                return
+                if self.selected_region is None and self.map.is_hovered:
                     hovered = ctrl_hovered = None
                     for region in self.regions.values():
                         if region.get_hovered():
                             if self.map.hovered_region is region:
                                 hovered = region
                                 break
-                            if self.info_country_on_hover:
+                            if self.region_info_zone.open_on_hover:
                                 ctrl_hovered = region
-                                self.handle_infocountry_change(region)
-                                self.region_info_zone.show()
+                                self.region_info_zone.open(region)
 
                             hoverable = False
                             if self.step.id == 17:
@@ -622,72 +569,31 @@ class Game(bp.Scene):
                 if self.step.id > 2:
 
                     if bp.keyboard.mod.ctrl:
-                        self.info_country_on_hover = True
+                        self.region_info_zone.open_on_hover = True
 
             elif event.type == bp.KEYUP:
                 if self.step.id > 2:
 
                     if not bp.keyboard.mod.ctrl:
-                        self.info_country_on_hover = False
-                        if self.map.selected_region is None:
+                        self.region_info_zone.open_on_hover = False
+                        if self.selected_region is None:
                             self.region_info_zone.hide()
 
             elif event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
                 if self.step.id in (21, 22):
-                    if self.map.is_hovered:
-                        right_clicked = None
-                        for region in self.current_player.regions:
-                            if region.get_hovered():
-                                self.transfert(region)
-                                right_clicked = region
-                                break
-                        if right_clicked is None and self.transferring:
-                            for region_name in self.transfert_from.neighbors:
-                                region = self.regions[region_name]
-                                if region.owner != self.transfert_from.owner:
-                                    if region.get_hovered():
-                                        self.map.handle_link()
-
-    def handle_region_select(self, region):
-
-        if self.map.sail_close_animator.is_running:
-            self.map.sail_close_animator.cancel()
-        if self.map.sail_open_animator.is_running:
-            self.map.sail_open_animator.cancel()
-        self.map.sail.set_pos(center=region.rect.center)
-        self.map.sail.set_radius(60)
-        self.map.sail_open_animator.start()
-        self.map.sail.show()
-
-        self.last_selected_region = region
-
-        if self.step.id == 17:  # TODO : remove step 17
-            flag = self.flags[self.current_player_id]
-            if region.owner is not None:
-                flag.hide()
-                self.confirm_zone.hide()
-                return
-            flag.set_pos(midbottom=region.flag_midbottom)
-            flag.show()
-            self.confirm_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
-            self.confirm_zone.show()
-
-        if self.step.id == 20:
-            if region in self.current_player.regions:
-                 # self.choose_build_zone.set_pos(midright=(region.abs_rect.left - 5, region.abs_rect.centery))
-                self.choose_build_zone.update()
-            else:
-                self.choose_build_zone.hide()
-
-    def handle_region_unselect(self):
-
-        if self.map.sail_open_animator.is_running:
-            self.map.sail_open_animator.cancel()
-        self.map.sail_close_animator.start()
-
-        self.region_info_zone.hide()
-        self.confirm_zone.hide()
-        self.choose_build_zone.hide()
+                    # if self.map.is_hovered:
+                    right_clicked = None
+                    for region in self.current_player.regions:
+                        if region.get_hovered():
+                            self.transfert(region)
+                            right_clicked = region
+                            break
+                    if right_clicked is None and self.transferring:
+                        for region_name in self.transfert_from.neighbors:
+                            region = self.regions[region_name]
+                            if region.owner != self.transfert_from.owner:
+                                if region.get_hovered():
+                                    self.map.handle_link()
 
     def handle_resize(self):
 
@@ -702,6 +608,9 @@ class Game(bp.Scene):
     def next_player(self):
 
         set_build = False
+
+        if self.selected_region:
+            self.region_info_zone.close()
 
         if self.current_player_id == -1:
             # start of the game
@@ -790,7 +699,8 @@ class Game(bp.Scene):
 
         picked = self.draw_pile.pick()
 
-        self.map.region_select(picked)
+        self.region_info_zone.open(picked)
+        # self.map.region_select(picked)
 
         player = self.current_player
         player.choose_region_attemps += 1
@@ -809,8 +719,8 @@ class Game(bp.Scene):
 
         self.step = self.step_from_id[index]
 
-        if self.map.selected_region is not None:
-            self.map.region_unselect()
+        if self.selected_region is not None:
+            self.region_info_zone.close()
         self.step.start()
         if self.winner:
             return  # draw
@@ -843,7 +753,7 @@ class Game(bp.Scene):
         self.nextstep_zone.circle_animator.cancel()
         self.nextstep_zone.hide()
         self.time_left.pause()
-        self.map.region_unselect()
+        self.region_info_zone.close()
         self.winner_info_zone.show()
         self.winner_info_zone.panel.show()
         self.set_tuto_ref_text_id(45)
@@ -855,9 +765,9 @@ class Game(bp.Scene):
         if self.transferring:
             if self.transfert_from is region:
                 if region.soldiers_amount < 2:
-                    self.back_btn.command(region)
+                    self.region_info_zone.back_btn.command(region)  # TODO
                 else:
-                    self.map.region_unselect()
+                    self.region_info_zone.close()
                     amount = region.soldiers_amount - 1 if bp.keyboard.mod.maj else 1
                     self.transfert_amount += amount
                     region.rem_soldiers(amount)
@@ -866,12 +776,12 @@ class Game(bp.Scene):
             else:
                 if self.step.id == 22:
                     self.temp_import_region = region
-                    self.import_btn.validate()
+                    self.region_info_zone.import_btn.validate()
         else:
             if region.soldiers_amount < 2:
                 return
 
-            self.map.region_unselect()
+            self.region_info_zone.close()
             self.transfert_from = region
             amount = region.soldiers_amount - 1 if bp.keyboard.mod.maj else 1
             self.transfert_amount = amount

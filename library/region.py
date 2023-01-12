@@ -3,7 +3,7 @@ import random
 import baopig as bp
 import pygame
 from baopig.googletrans import dicts
-from .images import boat_back, boat_front, boat_front_hover
+from .images import load, boat_back, boat_front, boat_front_hover
 front = pygame.transform.smoothscale(boat_front, ((59, 20)))
 front_hover = pygame.transform.smoothscale(boat_front_hover, ((59, 20)))
 back = pygame.transform.smoothscale(boat_back, ((54, 17)))
@@ -19,7 +19,8 @@ class Structure(bp.Image):
 
     def __init__(self, region, image, center):
 
-        bp.Image.__init__(self, region.parent, image=image, center=center, visible=False, ref=region.parent.map_image)
+        bp.Image.__init__(self, region.parent, image=image, center=center, visible=False, touchable=False,
+                          ref=region.parent.map_image)
 
         self.region = region
         # State :
@@ -65,7 +66,7 @@ class Structure(bp.Image):
         self._state = 1
         self.show()
         self._name = build_name.upper()
-        self.icon = bp.Image(self.parent, getattr(Structure, self.name), name=build_name,
+        self.icon = bp.Image(self.parent, getattr(Structure, self.name), name=build_name, touchable=False,
                              center=self.rect.center - bp.Vector2(self.parent.map_image.rect.topleft),
                              ref=self.parent.map_image, layer=self.layer)
 
@@ -74,14 +75,10 @@ class WidgetWithInfoZone(bp.Focusable):
 
     def __init__(self, parent, info_zone):
 
-        bp.Focusable.__init__(self, parent)
+        if not hasattr(self, "_is_focused"):
+            bp.Focusable.__init__(self, parent)
 
         self.info_zone = info_zone
-
-    def handle_defocus(self):
-
-        self.info_zone.close()
-        self.handle_unhover()
 
     def handle_focus(self):
 
@@ -126,7 +123,7 @@ class Boat(bp.Zone, WidgetWithInfoZone):
             else:
                 ok = 0
 
-        layer = region.parent.frontof_regions_layer if region is region.parent.hovered_region else \
+        layer = region.parent.frontof_regions_layer if region.hover.is_visible else \
             region.parent.behind_regions_layer
 
         ref = region.parent.map_image
@@ -194,7 +191,7 @@ class Boat(bp.Zone, WidgetWithInfoZone):
         self._owner = None
 
 
-class Region(bp.Image):
+class Region(bp.Zone, WidgetWithInfoZone):
 
     def __init__(self, name_id, parent, center, flag_midbottom=None, build_center=None, neighbors=()):
 
@@ -202,10 +199,13 @@ class Region(bp.Image):
         self.upper_name = dicts["fr"][name_id]
         name = self.upper_name.lower().replace(" ", "_").replace("-", "_").replace("é", "e")
 
-        bp.Image.__init__(self, parent, bp.image.load(f"images/{name}.png"), center=center, name=name,
-                          visible=False, layer=parent.regions_layer, ref=parent.map_image)
+        hover = load(name)
+        bp.Zone.__init__(self, parent, size=hover.get_size(), center=center, name=name,
+                         layer=parent.regions_layer, ref=parent.map_image)
+        WidgetWithInfoZone.__init__(self, parent, info_zone=None)  # will be set at RegionInfoZone's construction
 
-        self.mask = bp.mask.from_surface(self.surface)
+        self.hover = bp.Image(self, hover, visible=False)
+        self.mask = bp.mask.from_surface(hover)
         self.structure = Structure(self, image=Structure.WIP,
                                    center=build_center if build_center is not None else center)
         if flag_midbottom is None:
@@ -246,41 +246,77 @@ class Region(bp.Image):
                 x, y = random.randint(padding, self.rect.w - padding), random.randint(padding, self.rect.h - padding)
                 ok = self.mask.get_at((x, y))
                 if ok == 1:
-                    pixel = self.surface.get_at((x, y))
+                    pixel = self.hover.surface.get_at((x, y))
                     if pixel != (207, 157, 89, 255):
                         ok = 0
-            layer = self.parent.frontof_regions_layer if self is self.parent.hovered_region else \
+            layer = self.parent.frontof_regions_layer if self.hover.is_visible else \
                 self.parent.behind_regions_layer
             self.owner.regions[self].append(
-                bp.Image(self.parent, self.owner.soldier_icon, layer=layer, ref=ref,
+                bp.Image(self.parent, self.owner.soldier_icon, layer=layer, ref=ref, touchable=False,
                          center=(x + self.rect.left - ref.rect.left, y + self.rect.top - ref.rect.top))
             )
 
         self.owner.soldiers_title.set_text(str(sum(len(s_list) for s_list in self.owner.regions.values())))
 
-    def get_hovered(self):
+    def collidemouse(self):
+
+        if self.is_hidden:
+            return False
 
         try:
             return self.mask.get_at((bp.mouse.x - self.abs_rect.left, bp.mouse.y - self.abs_rect.top)) == 1
         except IndexError:
             return False
 
-    def hide(self):
+    def get_hovered(self):  # TODO : replace by collidemouse()
 
-        with bp.paint_lock:
-            super().hide()
-            if self.owner is None:
-                return
+        try:
+            return self.mask.get_at((bp.mouse.x - self.abs_rect.left, bp.mouse.y - self.abs_rect.top)) == 1
+        except IndexError:
+            return False
 
+    def handle_focus(self):
+
+        super().handle_focus()
+
+        # solves a bug where a region is not highlighted when selected while another region was already selected
+        self.handle_hover()
+
+    def handle_hover(self):
+
+        if self.scene.selected_region != self:
+            return
+        if self.scene.step.id < 20:
+            return
+
+        self.hover.show()
+        if self.owner:
+            for s in self.owner.regions[self]:
+                s.swap_layer(self.parent.frontof_regions_layer)
+        if self.flag is not None:
+            self.flag.swap_layer(self.parent.frontof_regions_layer)
+        self.structure.swap_layer(self.parent.frontof_regions_layer)
+        if self.structure.icon is not None:
+            self.structure.icon.swap_layer(self.parent.frontof_regions_layer)
+        for boat in self.boats:
+            boat.swap_layer(self.parent.frontof_regions_layer)
+
+    def handle_unhover(self):
+
+        if self.is_focused:
+            return
+
+        self.hover.hide()
+        if self.owner:
             for s in self.owner.regions[self]:
                 s.swap_layer(self.parent.behind_regions_layer)
-            if self.flag is not None:
-                self.flag.swap_layer(self.parent.behind_regions_layer)
-            self.structure.swap_layer(self.parent.behind_regions_layer)
-            if self.structure.icon is not None:
-                self.structure.icon.swap_layer(self.parent.behind_regions_layer)
-            for boat in self.boats:
-                boat.swap_layer(self.parent.behind_regions_layer)
+        if self.flag is not None:
+            self.flag.swap_layer(self.parent.behind_regions_layer)
+        self.structure.swap_layer(self.parent.behind_regions_layer)
+        if self.structure.icon is not None:
+            self.structure.icon.swap_layer(self.parent.behind_regions_layer)
+        for boat in self.boats:
+            boat.swap_layer(self.parent.behind_regions_layer)
 
     def rem_soldiers(self, amount):
 
@@ -296,23 +332,6 @@ class Region(bp.Image):
 
         if self.soldiers_amount == 0:
             self.owner.unconquer(self)
-
-    def show(self):
-
-        with bp.paint_lock:
-            super().show()
-            if self.owner is None:
-                return
-
-            for s in self.owner.regions[self]:
-                s.swap_layer(self.parent.frontof_regions_layer)
-            if self.flag is not None:
-                self.flag.swap_layer(self.parent.frontof_regions_layer)
-            self.structure.swap_layer(self.parent.frontof_regions_layer)
-            if self.structure.icon is not None:
-                self.structure.icon.swap_layer(self.parent.frontof_regions_layer)
-            for boat in self.boats:
-                boat.swap_layer(self.parent.frontof_regions_layer)
 
     def update_all_allied_neighbors(self, allied_neighbors=None):
 

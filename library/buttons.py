@@ -364,4 +364,4 @@ class TransfertButton(RegionInfoButton):
 
         super().handle_validate()
 
-        self.scene.map.region_unselect()
+        self.scene.region_info_zone.close()
