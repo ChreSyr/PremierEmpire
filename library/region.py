@@ -301,6 +301,11 @@ class Region(bp.Zone, WidgetWithInfoZone):
         for boat in self.boats:
             boat.swap_layer(self.parent.frontof_regions_layer)
 
+    def handle_link(self):
+
+        if self.info_zone.sail.radius >= 250:
+            self.defocus()
+
     def handle_unhover(self):
 
         if self.is_focused:
