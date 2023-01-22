@@ -80,6 +80,8 @@ class WidgetWithInfoZone(bp.Focusable):
 
         self.info_zone = info_zone
 
+    has_infozone_open = property(lambda self: self.info_zone.is_visible)
+
     def handle_focus(self):
 
         self.info_zone.open(self)
@@ -176,10 +178,10 @@ class Boat(bp.Zone, WidgetWithInfoZone):
 
     def handle_unhover(self):
 
-        if self.is_focused:
+        if self.has_infozone_open:
             return
         self.front_hover.hide()
-        if self.region.is_hidden:
+        if self.region.hover.is_hidden:
             self.swap_layer(self.parent.behind_regions_layer)
 
     def remove_all_soldiers(self):
@@ -308,7 +310,7 @@ class Region(bp.Zone, WidgetWithInfoZone):
 
     def handle_unhover(self):
 
-        if self.is_focused:
+        if self.has_infozone_open:
             return
 
         self.hover.hide()
@@ -321,7 +323,8 @@ class Region(bp.Zone, WidgetWithInfoZone):
         if self.structure.icon is not None:
             self.structure.icon.swap_layer(self.parent.behind_regions_layer)
         for boat in self.boats:
-            boat.swap_layer(self.parent.behind_regions_layer)
+            if not boat.has_infozone_open:
+                boat.swap_layer(self.parent.behind_regions_layer)
 
     def rem_soldiers(self, amount):
 

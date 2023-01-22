@@ -275,13 +275,13 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         if self.is_hidden:
             return
 
-        self.target.handle_unhover()
-
         if self.sail_open_animator.is_running:
             self.sail_open_animator.cancel()
         self.sail_close_animator.start()
 
         self.hide()
+
+        self._target.handle_unhover()
 
     def open(self, target):
 

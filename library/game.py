@@ -589,6 +589,7 @@ class Game(bp.Scene):
                             right_clicked = region
                             break
                     if right_clicked is None and self.transferring:
+                        1/0
                         for region_name in self.transfert_from.neighbors:
                             region = self.regions[region_name]
                             if region.owner != self.transfert_from.owner:
@@ -761,6 +762,7 @@ class Game(bp.Scene):
     def transfert(self, region):
 
         self.playerturn_zone.hide()
+        self.region_info_zone.close()
 
         if self.transferring:
             if self.transfert_from is region:
@@ -781,7 +783,6 @@ class Game(bp.Scene):
             if region.soldiers_amount < 2:
                 return
 
-            self.region_info_zone.close()
             self.transfert_from = region
             amount = region.soldiers_amount - 1 if bp.keyboard.mod.maj else 1
             self.transfert_amount = amount
