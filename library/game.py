@@ -339,6 +339,7 @@ class Game(bp.Scene):
         self.transfert_zone = BackgroundedZone(self, size=(35, 24), visible=False,
                                                padding=4, spacing=4, layer=self.game_layer)
         self.transfert_amount = 0
+        self.temp_import_region = None
         self.transfert_title = bp.Text(self.transfert_zone, "")
         self.transfert_icon = bp.Image(self.transfert_zone, SOLDIERS["asia"])
         def handle_mouse_motion():
@@ -706,7 +707,10 @@ class Game(bp.Scene):
                     self.transfert_title.set_text(str(self.transfert_amount))
                     self.transfert_zone.pack(axis="horizontal", adapt=True)
             else:
-                if self.step.id == 22:
+                if self.step.id == 21:
+                    self.temp_import_region = region
+                    self.region_info_zone.invade_btn.validate()
+                elif self.step.id == 22:
                     self.temp_import_region = region
                     self.region_info_zone.import_btn.validate()
         else:
