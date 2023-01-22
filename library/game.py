@@ -336,6 +336,7 @@ class Game(bp.Scene):
 
         # SOLDIERS TRANSFERT
         self.transfert_from = None
+        self.transfert_owner = None
         self.transfert_zone = BackgroundedZone(self, size=(35, 24), visible=False,
                                                padding=4, spacing=4, layer=self.game_layer)
         self.transfert_amount = 0
@@ -468,7 +469,7 @@ class Game(bp.Scene):
         if region.owner is None:
             self.current_player.conquer(region)
             refused_soldiers = region.add_soldiers(self.transfert_amount)
-        elif region.owner is self.transfert_from.owner:
+        elif region.owner is self.transfert_owner:
             refused_soldiers = region.add_soldiers(self.transfert_amount)
         else:
             deaths = min(self.transfert_amount, region.nb_soldiers)
@@ -489,6 +490,7 @@ class Game(bp.Scene):
 
         else:
             self.transfert_from = None
+            self.transfert_owner = None
             self.transfert_amount = 0
             self.transfert_zone.hide()
 
@@ -710,10 +712,12 @@ class Game(bp.Scene):
                 return
 
             self.transfert_from = region
+            self.transfert_owner = region.owner
             amount = region.nb_soldiers - region.MIN if bp.keyboard.mod.maj else 1
             self.transfert_amount = amount
             region.rem_soldiers(amount)
-            self.transfert_icon.set_surface(region.owner.soldier_icon)
+            soldier_icon = region.owner.soldier_icon if region.owner else region.default_owner.soldier_icon
+            self.transfert_icon.set_surface(soldier_icon)
             self.transfert_title.set_text(str(self.transfert_amount))
             self.transfert_zone.pack(axis="horizontal", adapt=True)
             self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))

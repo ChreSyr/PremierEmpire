@@ -194,6 +194,7 @@ class Boat(bp.Zone, SoldiersContainer):
         self.owner.update_soldiers_title()
 
     all_allied_neighbors = property(lambda self: self.region.all_allied_neighbors)
+    default_owner = property(lambda self: self.owner if self.owner is not None else self.region.owner)
     nb_soldiers = property(lambda self: self._nb_soldiers)
     region = property(lambda self: self._region)
 
@@ -248,6 +249,26 @@ class Boat(bp.Zone, SoldiersContainer):
                 # 2 actions:
                 #   - pick troops
                 #   - move troops to allied neighbor
+
+                if self.region.owner != self.default_owner:
+                    return
+
+                ok = False
+
+                if self.scene.transferring:
+                    if self.region in self.scene.transfert_from.all_allied_neighbors:
+                        ok = True
+                else:
+                    if self.default_owner is self.scene.current_player:
+                        ok = True
+
+                if ok is True:
+                    return self.scene.transfert(self)
+                else:
+                    return
+
+
+                if self.default_owner is self.scene.current_player: pass
 
                 if self.owner is not None and self.owner != self.region.owner:
                     return
@@ -316,6 +337,7 @@ class Region(bp.Zone, SoldiersContainer):
         self.scene.regions[self.name] = self
         self.scene.draw_pile.append(self)
 
+    default_owner = property(lambda self: self.owner)
     game = property(lambda self: self.scene)
     nb_soldiers = property(lambda self: len(self.owner.regions[self]) if self.owner is not None else 0)
 

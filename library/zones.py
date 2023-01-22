@@ -304,7 +304,9 @@ class BoatInfoZone(InfoZone):
 
             def handle_validate(btn):
 
-                if self.target.region.owner != self.target.owner:
+                if self.target.owner and self.target.region.owner != self.target.owner:
+                    return
+                if self.target.owner is None and self.target.region.owner != self.scene.current_player:
                     return
 
                 with bp.paint_lock:
@@ -333,7 +335,8 @@ class BoatInfoZone(InfoZone):
 
             super().open(boat)
 
-            if boat.owner and boat.owner.continent != self.continent:
+            owner = boat.owner if boat.owner else boat.region.owner
+            if owner and owner.continent != self.continent:
                 self.continent = boat.owner.continent
                 for soldier in self.soldiers:
                     soldier.set_surface(SOLDIERS[self.continent])
@@ -349,7 +352,8 @@ class BoatInfoZone(InfoZone):
 
             self.region_title.set_region(boat.region)
 
-            if boat.owner == self.scene.current_player == boat.region.owner and self.scene.step.id == 22:
+            if self.scene.step.id == 22 and (boat.owner == self.scene.current_player == boat.region.owner or
+                                             (boat.owner is None and self.scene.current_player == boat.region.owner)):
                 self.minus.show()
                 self.plus.show()
             else:
@@ -404,7 +408,7 @@ class RegionInfoZone(InfoZone):
         else:
             self.choose_build_zone.hide()
         if self.scene.step.id == 21 and self.scene.transferring:
-            if region.name in self.scene.transfert_from.neighbors and region.owner != self.scene.transfert_from.owner:
+            if region.name in self.scene.transfert_from.neighbors and region.owner != self.scene.transfert_owner:
                 self.invade_btn.show()
             elif region is self.scene.transfert_from:
                 self.back_btn.show()
