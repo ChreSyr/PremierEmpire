@@ -3,9 +3,9 @@ import random
 import baopig as bp
 import pygame
 from baopig.googletrans import dicts
-from .images import load, boat_back, boat_front, boat_front_hover
+from library.images import load, boat_back, boat_front, boat_front_hover
 front = pygame.transform.smoothscale(boat_front, ((59, 20)))
-front_hover = pygame.transform.smoothscale(boat_front_hover, ((59, 20)))
+hover = pygame.transform.smoothscale(boat_front_hover, ((59, 20)))
 back = pygame.transform.smoothscale(boat_back, ((54, 17)))
 
 
@@ -73,22 +73,44 @@ class Structure(bp.Image):
 
 class WidgetWithInfoZone(bp.Focusable):
 
-    def __init__(self, parent, info_zone):
+    def __init__(self, parent, hover, info_zone):
 
         if not hasattr(self, "_is_focused"):
             bp.Focusable.__init__(self, parent)
 
+        self.hover = hover
         self.info_zone = info_zone
+        self.ignore_next_link = False
 
-    has_infozone_open = property(lambda self: self.info_zone.is_visible)
+    has_infozone_open = property(lambda self: self.info_zone.is_visible and self.info_zone.target is self)
 
     def handle_focus(self):
 
         self.info_zone.open(self)
+        self.ignore_next_link = True
+
+    def handle_hover(self):
+
+        if self.scene.step.id < 20:
+            return
+        self.hover.show()
+
+    def handle_link(self):
+
+        if self.ignore_next_link:
+            self.ignore_next_link = False
+        else:
+            self.defocus()
+
+    def handle_unhover(self):
+
+        if self.has_infozone_open:
+            return
+        self.hover.hide()
 
     def handle_link_motion(self, rel):
 
-        self.scene.map.handle_link_motion(rel)
+        self.scene.handle_link_motion(rel)
 
 
 class Boat(bp.Zone, WidgetWithInfoZone):
@@ -125,14 +147,11 @@ class Boat(bp.Zone, WidgetWithInfoZone):
             else:
                 ok = 0
 
-        layer = region.parent.frontof_regions_layer if region.hover.is_visible else \
-            region.parent.behind_regions_layer
-
         ref = region.parent.map_image
 
         top_padding = 11
 
-        bp.Zone.__init__(self, region.parent, layer=layer, ref=ref,
+        bp.Zone.__init__(self, region.parent, ref=ref,
                          size=(front.get_width(), front.get_height() + top_padding),
                          center=(x + region.rect.left - ref.rect.left,
                                  y + region.rect.top - ref.rect.top - top_padding / 2))
@@ -147,9 +166,10 @@ class Boat(bp.Zone, WidgetWithInfoZone):
                                                          top_padding))
         self.soldiers_zone = bp.Zone(self, size=(0, 22), sticky="midtop", spacing=-1)
         self.front = bp.Image(self, image=front, pos=(0, top_padding))
-        self.front_hover = bp.Image(self, image=front_hover, pos=(0, top_padding), visible=False)
 
-        WidgetWithInfoZone.__init__(self, self.parent, info_zone=self.scene.info_boat_zone)
+        WidgetWithInfoZone.__init__(self, self.parent,
+                                    hover=bp.Image(self, image=hover, pos=(0, top_padding), visible=False),
+                                    info_zone=self.scene.info_boat_zone)
 
         for i in range(random.randint(1, 5)):
             self.add_soldier()
@@ -171,19 +191,6 @@ class Boat(bp.Zone, WidgetWithInfoZone):
         self.soldiers_zone.pack(axis="horizontal")
         self.soldiers_zone.adapt()
 
-    def handle_hover(self):
-
-        self.front_hover.show()
-        self.swap_layer(self.parent.frontof_regions_layer)
-
-    def handle_unhover(self):
-
-        if self.has_infozone_open:
-            return
-        self.front_hover.hide()
-        if self.region.hover.is_hidden:
-            self.swap_layer(self.parent.behind_regions_layer)
-
     def remove_all_soldiers(self):
 
         self.owner.boats.remove(self)
@@ -203,10 +210,10 @@ class Region(bp.Zone, WidgetWithInfoZone):
 
         hover = load(name)
         bp.Zone.__init__(self, parent, size=hover.get_size(), center=center, name=name,
-                         layer=parent.regions_layer, ref=parent.map_image)
-        WidgetWithInfoZone.__init__(self, parent, info_zone=None)  # will be set at RegionInfoZone's construction
+                         layer=parent.background_layer, ref=parent.map_image)
+        WidgetWithInfoZone.__init__(self, parent, hover=bp.Image(self, hover, visible=False),
+                                    info_zone=None)  # will be set at RegionInfoZone's construction
 
-        self.hover = bp.Image(self, hover, visible=False)
         self.mask = bp.mask.from_surface(hover)
         self.structure = Structure(self, image=Structure.WIP,
                                    center=build_center if build_center is not None else center)
@@ -222,11 +229,7 @@ class Region(bp.Zone, WidgetWithInfoZone):
         self.flag = None
 
         self.scene.regions[self.name] = self
-        # if len(self.scene.draw_pile) < 8:  # TODO : remove
         self.scene.draw_pile.append(self)
-
-        # self.build_rect = bp.Rectangle(parent, color="red", pos=self.structure.rect.topleft, size=self.structure.rect.size)
-        # self.flag_rect = bp.Rectangle(parent, color="blue", midbottom=flag_midbottom, size=(36, 60))
 
     game = property(lambda self: self.scene)
     soldiers_amount = property(lambda self: len(self.owner.regions[self]) if self.owner is not None else 0)
@@ -249,12 +252,12 @@ class Region(bp.Zone, WidgetWithInfoZone):
                 ok = self.mask.get_at((x, y))
                 if ok == 1:
                     pixel = self.hover.surface.get_at((x, y))
-                    if pixel != (207, 157, 89, 255):
+                    # if pixel != (207, 157, 89, 255):
+                    #     ok = 0
+                    if pixel not in ((207, 157, 89, 255), (207, 146, 63, 255)):
                         ok = 0
-            layer = self.parent.frontof_regions_layer if self.hover.is_visible else \
-                self.parent.behind_regions_layer
             self.owner.regions[self].append(
-                bp.Image(self.parent, self.owner.soldier_icon, layer=layer, ref=ref, touchable=False,
+                bp.Image(self.parent, self.owner.soldier_icon, ref=ref, touchable=False,
                          center=(x + self.rect.left - ref.rect.left, y + self.rect.top - ref.rect.top))
             )
 
@@ -277,54 +280,11 @@ class Region(bp.Zone, WidgetWithInfoZone):
         except IndexError:
             return False
 
-    def handle_focus(self):
+    def handle_mousebuttondown(self, event):
 
-        super().handle_focus()
-
-        # solves a bug where a region is not highlighted when selected while another region was already selected
-        self.handle_hover()
-
-    def handle_hover(self):
-
-        if self.scene.selected_region != self:
-            return
-        if self.scene.step.id < 20:
-            return
-
-        self.hover.show()
-        if self.owner:
-            for s in self.owner.regions[self]:
-                s.swap_layer(self.parent.frontof_regions_layer)
-        if self.flag is not None:
-            self.flag.swap_layer(self.parent.frontof_regions_layer)
-        self.structure.swap_layer(self.parent.frontof_regions_layer)
-        if self.structure.icon is not None:
-            self.structure.icon.swap_layer(self.parent.frontof_regions_layer)
-        for boat in self.boats:
-            boat.swap_layer(self.parent.frontof_regions_layer)
-
-    def handle_link(self):
-
-        if self.info_zone.sail.radius >= 250:
-            self.defocus()
-
-    def handle_unhover(self):
-
-        if self.has_infozone_open:
-            return
-
-        self.hover.hide()
-        if self.owner:
-            for s in self.owner.regions[self]:
-                s.swap_layer(self.parent.behind_regions_layer)
-        if self.flag is not None:
-            self.flag.swap_layer(self.parent.behind_regions_layer)
-        self.structure.swap_layer(self.parent.behind_regions_layer)
-        if self.structure.icon is not None:
-            self.structure.icon.swap_layer(self.parent.behind_regions_layer)
-        for boat in self.boats:
-            if not boat.has_infozone_open:
-                boat.swap_layer(self.parent.behind_regions_layer)
+        if event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
+            if self.scene.step.id in (21, 22):
+                self.scene.transfert(self)
 
     def rem_soldiers(self, amount):
 

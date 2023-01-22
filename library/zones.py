@@ -231,21 +231,6 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         self.title_outline = bp.Rectangle(self, size=(self.rect.w, 44), color=(0, 0, 0, 0),
                                           border_width=2, border_color="black")
 
-        self.sail = bp.Circle(game.map, (0, 0, 0, 63), radius=0, center=(0, 0), visible=False,
-                              layer=game.map.regions_layer, ref=game.map.map_image)
-        self.sail.move_behind(game.map.regions_layer[0])
-        def mapsail_open_animate():
-            self.sail.set_radius(self.sail.radius + 60)
-            if self.sail.radius >= 250:
-                self.sail_open_animator.cancel()
-        self.sail_open_animator = bp.RepeatingTimer(.03, mapsail_open_animate)
-        def mapsail_close_animate():
-            self.sail.set_radius(self.sail.radius - 60)
-            if self.sail.radius <= 0:
-                self.sail_close_animator.cancel()
-                self.sail.hide()
-        self.sail_close_animator = bp.RepeatingTimer(.02, mapsail_close_animate)
-
     target = property(lambda self: None if self.is_hidden else self._target)
     last_target = property(lambda self: self._target)
 
@@ -275,10 +260,6 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         if self.is_hidden:
             return
 
-        if self.sail_open_animator.is_running:
-            self.sail_open_animator.cancel()
-        self.sail_close_animator.start()
-
         self.hide()
 
         self._target.handle_unhover()
@@ -290,17 +271,9 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         self._maintainer = target
         self._maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
 
-        if self.sail_close_animator.is_running:
-            self.sail_close_animator.cancel()
-        if self.sail_open_animator.is_running:
-            self.sail_open_animator.cancel()
-        self.sail.set_pos(center=target.rect.center)
-        self.sail.set_radius(60)
-        self.sail_open_animator.start()
-        self.sail.show()
-
-        self.set_pos(midleft=(target.abs_rect.right + 10, target.abs_rect.centery))
-        self.show()
+        with bp.paint_lock:
+            self.set_pos(midleft=(target.abs_rect.right + 10, target.abs_rect.centery))
+            self.show()
 
 
 class BoatInfoZone(InfoZone):
@@ -1458,7 +1431,7 @@ class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
 
     def handle_link_motion(self, rel):
 
-        self.scene.map.handle_link_motion(rel)
+        self.scene.handle_link_motion(rel)
 
     def handle_mousebuttondown(self, event):
 

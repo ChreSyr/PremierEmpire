@@ -33,3 +33,5 @@ FLAGS_BIG = {
 boat_back = load("boat_back")
 boat_front = load("boat_front")
 boat_front_hover = load("boat_front_hover")
+
+map_borders = load("map_borders")

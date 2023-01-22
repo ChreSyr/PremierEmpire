@@ -14,10 +14,10 @@ set_progression(.4)
 from library.memory import Memory
 from library.theme import set_cursor
 from library.images import FLAGS_BIG, SOLDIERS
-from library.buttons import PE_Button, RegionInfoButton, TransfertButton
+from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
-from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseBuildZone, GameSail, InfoLeftZone,\
-    NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, TmpMessage, WinnerInfoZone
+from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, GameSail, InfoLeftZone,\
+    NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, RightClickZone, TmpMessage, WinnerInfoZone
 from library.map import Map
 from library.region import Structure
 
@@ -223,7 +223,6 @@ class Game(bp.Scene):
         def yes():
             self.current_player.flag_region = self.current_player.cards[0] = self.last_selected_region
             flag = self.flags[self.current_player_id]
-            flag.swap_layer(map.behind_regions_layer)
             flag.set_pos(midbottom=self.last_selected_region.flag_midbottom +
                                    bp.Vector2(self.map.map_image.rect.topleft))
             flag.show()
@@ -507,94 +506,25 @@ class Game(bp.Scene):
             if not self.current_player.can_move_troops():
                 self.next_player()
 
-    def handle_event(self, event):
+    def handle_link_motion(self, rel):
 
-        if self.step.id >= 20:
-            if event.type == bp.MOUSEMOTION:
-                return
-                if self.selected_region is None and self.map.is_hovered:
-                    hovered = ctrl_hovered = None
-                    for region in self.regions.values():
-                        if region.get_hovered():
-                            if self.map.hovered_region is region:
-                                hovered = region
-                                break
-                            if self.region_info_zone.open_on_hover:
-                                ctrl_hovered = region
-                                self.region_info_zone.open(region)
+        if self.step.id >= 11:
 
-                            hoverable = False
-                            if self.step.id == 17:
-                                if region.owner is None:
-                                    hoverable = True
-                            if self.step.id == 20:
-                                if region.owner is self.current_player and region.structure.is_empty:
-                                    hoverable = True
-                            elif self.step.id == 21:
-                                if self.transferring:
-                                    if region is self.transfert_from:
-                                        hoverable = True
-                                    elif region.name in self.transfert_from.neighbors and \
-                                            region.owner != self.transfert_from.owner:
-                                        hoverable = True
-                                elif region in self.current_player.regions:
-                                    hoverable = True
-                            if self.step.id == 22:
-                                if self.transferring:
-                                    if region is self.transfert_from:
-                                        hoverable = True
-                                    elif region in self.transfert_from.all_allied_neighbors and \
-                                            region.owner is self.transfert_from.owner:
-                                        hoverable = True
-                                elif region in self.current_player.regions:
-                                    hoverable = True
-                            if hoverable:
-                                hovered = region
-                                if self.map.hovered_region is not None:
-                                    self.map.hovered_region.hide()
-                                self.map.hovered_region = region
-                                region.show()
-                                break
-                            if ctrl_hovered is not None:
-                                break
+            self.map.map_image.move(*rel)
 
-                    if hovered is None:
-                        if ctrl_hovered is None and self.region_info_zone.is_visible:
-                            self.region_info_zone.hide()
-                        if self.map.hovered_region is not None:
-                            self.map.hovered_region.hide()
-                            self.map.hovered_region = None
+    def handle_mousebuttondown(self, event):
 
-            elif event.type == bp.KEYDOWN:
-                if self.step.id > 2:
+        if event.button == 3 and self.step.id >= 11:
 
-                    if bp.keyboard.mod.ctrl:
-                        self.region_info_zone.open_on_hover = True
+            if not self.transferring:
 
-            elif event.type == bp.KEYUP:
-                if self.step.id > 2:
+                with bp.paint_lock:
 
-                    if not bp.keyboard.mod.ctrl:
-                        self.region_info_zone.open_on_hover = False
-                        if self.selected_region is None:
-                            self.region_info_zone.hide()
+                    def recenter():
+                        self.map.map_image.pos_manager.config(pos=(0, 0))
 
-            elif event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
-                if self.step.id in (21, 22):
-                    # if self.map.is_hovered:
-                    right_clicked = None
-                    for region in self.current_player.regions:
-                        if region.get_hovered():
-                            self.transfert(region)
-                            right_clicked = region
-                            break
-                    if right_clicked is None and self.transferring:
-                        1/0
-                        for region_name in self.transfert_from.neighbors:
-                            region = self.regions[region_name]
-                            if region.owner != self.transfert_from.owner:
-                                if region.get_hovered():
-                                    self.map.handle_link()
+                    rightclick_zone = RightClickZone(self, event)
+                    rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
 
     def handle_resize(self):
 

@@ -76,7 +76,6 @@ class Todo:
     @staticmethod
     def confirm_place_flag():
         flag = self.flags[self.current_player_id]
-        flag.swap_layer(map.behind_regions_layer)
         flag.show()
         # self.current_player.regions[self.last_selected_region] = 3  # 3 soldiers in this region
         self.current_player.conquer(self.last_selected_region)
