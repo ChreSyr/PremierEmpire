@@ -337,7 +337,7 @@ class BoatInfoZone(InfoZone):
 
             owner = boat.owner if boat.owner else boat.region.owner
             if owner and owner.continent != self.continent:
-                self.continent = boat.owner.continent
+                self.continent = owner.continent
                 for soldier in self.soldiers:
                     soldier.set_surface(SOLDIERS[self.continent])
 
