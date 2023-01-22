@@ -464,11 +464,12 @@ class Game(bp.Scene):
             region = self.temp_import_region
         assert region is not None
 
+        refused_soldiers = None
         if region.owner is None:
             self.current_player.conquer(region)
-            region.add_soldiers(self.transfert_amount)
+            refused_soldiers = region.add_soldiers(self.transfert_amount)
         elif region.owner is self.transfert_from.owner:
-            region.add_soldiers(self.transfert_amount)
+            refused_soldiers = region.add_soldiers(self.transfert_amount)
         else:
             deaths = min(self.transfert_amount, region.nb_soldiers)
             self.transfert_amount -= deaths
@@ -476,29 +477,20 @@ class Game(bp.Scene):
 
             if self.transfert_amount > 0:
                 self.current_player.conquer(region)
-                region.add_soldiers(self.transfert_amount)
+                refused_soldiers = region.add_soldiers(self.transfert_amount)
             self.transfert_amount = 0
             self.current_player.update_soldiers_title()
 
-        self.transfert_from = None
-        self.transfert_amount = 0
-        self.transfert_zone.hide()
-        # self.region_info_zone.back_btn.hide()
-        # self.region_info_zone.invade_btn.hide()
-        # self.region_info_zone.back_btn.defocus()
+        if refused_soldiers != None:
+            self.transfert_amount = refused_soldiers
+            self.transfert_title.set_text(str(self.transfert_amount))
+            self.transfert_zone.pack(axis="horizontal", adapt=True)
+            self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
 
-        # if region.owner is None:
-        #     self.info_csi.hide()
-        #     self.info_csa.hide()
-        # else:
-        #     self.info_csi.set_surface(region.owner.soldier_icon)
-        #     self.info_csa.set_text(str(region.nb_soldiers))
-        #     self.info_csi.show()
-        #     self.info_csa.show()
-
-        # if self.selected_region is region:
-        #     self.back_btn.hide()
-        #     self.import_btn.hide()
+        else:
+            self.transfert_from = None
+            self.transfert_amount = 0
+            self.transfert_zone.hide()
 
         if self.step.id == 21 and self.winner_info_zone.is_hidden:
             if not self.current_player.can_attack():
@@ -697,11 +689,11 @@ class Game(bp.Scene):
 
         if self.transferring:
             if self.transfert_from is region:
-                if region.nb_soldiers < 2:
+                if region.nb_soldiers <= region.MIN:
                     self.region_info_zone.back_btn.command(region)  # TODO
                 else:
                     self.region_info_zone.close()
-                    amount = region.nb_soldiers - 1 if bp.keyboard.mod.maj else 1
+                    amount = region.nb_soldiers - region.MIN if bp.keyboard.mod.maj else 1
                     self.transfert_amount += amount
                     region.rem_soldiers(amount)
                     self.transfert_title.set_text(str(self.transfert_amount))
@@ -714,11 +706,11 @@ class Game(bp.Scene):
                     self.temp_import_region = region
                     self.region_info_zone.import_btn.validate()
         else:
-            if region.nb_soldiers < 2:
+            if region.nb_soldiers <= region.MIN:
                 return
 
             self.transfert_from = region
-            amount = region.nb_soldiers - 1 if bp.keyboard.mod.maj else 1
+            amount = region.nb_soldiers - region.MIN if bp.keyboard.mod.maj else 1
             self.transfert_amount = amount
             region.rem_soldiers(amount)
             self.transfert_icon.set_surface(region.owner.soldier_icon)

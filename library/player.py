@@ -3,7 +3,7 @@ import baopig as bp
 load = bp.image.load
 from baopig.googletrans import dicts, lang_manager, TranslatableText
 from library.images import SOLDIERS
-from library.region import Structure
+from library.region import Structure, Boat, Region
 from library.zones import BackgroundedZone
 
 
@@ -115,11 +115,16 @@ class Player(bp.Communicative):
     def can_move_troops(self):
 
         for region, soldiers in self.regions.items():
-            if len(soldiers) > 1 and len(region.all_allied_neighbors) > 1:
-                return True
+            if len(soldiers) > 1:
+                if len(region.all_allied_neighbors) > 1:
+                    return True
+                for boat in region.boats:
+                    if boat.nb_soldiers == 0:
+                        return True
         for boat in self.boats:
             if boat.nb_soldiers > 0:
-                return True
+                if boat.region.owner is boat.owner:
+                    return True
         return False
 
     def can_play(self):
@@ -152,40 +157,48 @@ class Player(bp.Communicative):
 
     def conquer(self, region):
 
-        if region.flag is not None:
-            flag_owner = self.game.players[int(region.flag.name)]
-            gold_earned = flag_owner.gold
-            self.change_gold(+gold_earned)
-            flag_owner.change_gold(-gold_earned)
-            if flag_owner is not self:  # else, the player conquers an empty region where he left his flag
-                flag_owner.die()
+        if isinstance(region, Region):
+            if region.flag is not None:
+                flag_owner = self.game.players[int(region.flag.name)]
+                gold_earned = flag_owner.gold
+                self.change_gold(+gold_earned)
+                flag_owner.change_gold(-gold_earned)
+                if flag_owner is not self:  # else, the player conquers an empty region where he left his flag
+                    flag_owner.die()
 
-            alive_players = 0
-            for p in self.game.players.values():
-                if p.is_alive:
-                    alive_players += 1
-            if alive_players == 0:
-                raise AssertionError
-            if alive_players == 1:
-                assert self.is_alive
+                alive_players = 0
+                for p in self.game.players.values():
+                    if p.is_alive:
+                        alive_players += 1
+                if alive_players == 0:
+                    raise AssertionError
+                if alive_players == 1:
+                    assert self.is_alive
 
-                self.game.set_winner(self)
+                    self.game.set_winner(self)
 
-        elif region.owner is not None:
-            region.owner.unconquer(region)
+            elif region.owner is not None:
+                region.owner.unconquer(region)
 
-        self.regions[region] = []
-        self._update_neighboring_regions()
-        region.owner = self
+            self.regions[region] = []
+            self._update_neighboring_regions()
+            region.owner = self
 
-        region.update_all_allied_neighbors(set())
+            region.update_all_allied_neighbors(set())
+
+        else:
+            assert isinstance(region, Boat)
+            boat = region
+
+            self.boats.append(boat)
+            boat.owner = self
 
     def die(self):
 
         for region in tuple(self.regions):
             region.rem_soldiers(region.nb_soldiers)
         for boat in tuple(self.boats):
-            boat.remove_all_soldiers()
+            boat.rem_soldiers(boat.nb_soldiers)
         self.flag_region.flag = None
         self.flag.hide()
         for card in self.cards:

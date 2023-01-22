@@ -304,6 +304,9 @@ class BoatInfoZone(InfoZone):
 
             def handle_validate(btn):
 
+                if self.target.region.owner != self.target.owner:
+                    return
+
                 with bp.paint_lock:
                     if btn.text == "+":
                         if self.target.nb_soldiers < 5 and self.target.region.nb_soldiers > 1:
@@ -313,7 +316,7 @@ class BoatInfoZone(InfoZone):
                             self.soldiers_zone.pack(axis="horizontal")
                             self.soldiers_zone.adapt()
                     else:
-                        if self.target.nb_soldiers > 0 and self.target.region.owner is self.target.owner:
+                        if self.target.nb_soldiers > 0:
                             self.target.rem_soldiers(1)
                             self.target.region.add_soldiers(1)
                             self.soldiers[self.target.nb_soldiers].sleep()
@@ -330,7 +333,7 @@ class BoatInfoZone(InfoZone):
 
             super().open(boat)
 
-            if boat.region.owner.continent != self.continent:
+            if boat.owner.continent != self.continent:
                 self.continent = boat.owner.continent
                 for soldier in self.soldiers:
                     soldier.set_surface(SOLDIERS[self.continent])
@@ -346,7 +349,7 @@ class BoatInfoZone(InfoZone):
 
             self.region_title.set_region(boat.region)
 
-            if boat.region.owner == self.scene.current_player and self.scene.step.id == 22:
+            if boat.owner == self.scene.current_player == boat.region.owner and self.scene.step.id == 22:
                 self.minus.show()
                 self.plus.show()
             else:
