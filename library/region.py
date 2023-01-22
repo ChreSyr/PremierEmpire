@@ -282,6 +282,8 @@ class Region(bp.Zone, WidgetWithInfoZone):
 
     def handle_mousebuttondown(self, event):
 
+        if not self.scene.current_player is self.owner:
+            return
         if event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
             if self.scene.step.id in (21, 22):
                 self.scene.transfert(self)
