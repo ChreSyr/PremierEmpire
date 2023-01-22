@@ -164,30 +164,96 @@ class Boat(bp.Zone, WidgetWithInfoZone):
 
         self.back = bp.Image(self, image=back, pos=(front.get_width() / 2 - back.get_width() / 2,
                                                          top_padding))
+
         self.soldiers_zone = bp.Zone(self, size=(0, 22), sticky="midtop", spacing=-1)
+        self.soldiers = ()
+        for _ in range(5):
+            soldier = bp.Image(self.soldiers_zone, image=self.region.owner.soldier_icon)
+            soldier.sleep()
+            self.soldiers += (soldier,)
         self.front = bp.Image(self, image=front, pos=(0, top_padding))
 
         WidgetWithInfoZone.__init__(self, self.parent,
                                     hover=bp.Image(self, image=hover, pos=(0, top_padding), visible=False),
                                     info_zone=self.scene.info_boat_zone)
 
-        for i in range(random.randint(1, 5)):
-            self.add_soldier()
+        self.add_soldiers(random.randint(1, 5))
+        self.owner.update_soldiers_title()
 
+    all_allied_neighbors = property(lambda self: self.region.all_allied_neighbors)
     nb_soldiers = property(lambda self: self._nb_soldiers)
     owner = property(lambda self: self._owner)
     region = property(lambda self: self._region)
 
-    def add_soldier(self):
+    def add_soldiers(self, amount):
 
-        assert self.nb_soldiers < 5
+        assert self.nb_soldiers + amount <= 5
 
         if self.owner is None:
             self._owner = self.region.owner
             self.owner.boats.append(self)
 
-        self._nb_soldiers += 1
-        bp.Image(self.soldiers_zone, image=self.region.owner.soldier_icon)
+        old_nb_soldiers = self._nb_soldiers
+        self._nb_soldiers += amount
+
+        for i in range(amount):
+            self.soldiers[old_nb_soldiers + i].wake()
+        self.soldiers_zone.pack(axis="horizontal")
+        self.soldiers_zone.adapt()
+
+    def handle_mousebuttondown(self, event):
+
+        if event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
+
+            if self.scene.step.id == 21:  # attack
+                
+                return
+
+                # 3 actions :
+                #   - pick troops
+                #   - invade empty region
+                #   - invade enemy region
+
+                # cannot move troops
+                if self.scene.current_player is self.owner:
+                    if self.scene.transferring and self.scene.transfert_from != self:
+                        return
+
+                else:
+                    if self.owner is not None:
+                        if self.scene.transferring is False:
+                            return
+
+                self.scene.transfert(self)
+
+            elif self.scene.step.id == 22:  # movement
+
+                # 2 actions:
+                #   - pick troops
+                #   - move troops to allied neighbor
+
+                if self.scene.current_player != self.owner:
+                    return
+
+                if self.scene.transferring:
+                    if self.scene.transfert_from != self:
+                        if self.region not in self.scene.transfert_from.all_allied_neighbors:
+                            return
+
+                self.scene.transfert(self)
+
+    def rem_soldiers(self, amount):
+
+        assert self.nb_soldiers - amount >= 0
+
+        self._nb_soldiers -= amount
+
+        if self.nb_soldiers == 0:
+            self.owner.boats.remove(self)
+            self._owner = None
+
+        for i in range(amount):
+            self.soldiers_zone.default_layer[-1].sleep()
         self.soldiers_zone.pack(axis="horizontal")
         self.soldiers_zone.adapt()
 
@@ -232,7 +298,7 @@ class Region(bp.Zone, WidgetWithInfoZone):
         self.scene.draw_pile.append(self)
 
     game = property(lambda self: self.scene)
-    soldiers_amount = property(lambda self: len(self.owner.regions[self]) if self.owner is not None else 0)
+    nb_soldiers = property(lambda self: len(self.owner.regions[self]) if self.owner is not None else 0)
 
     def add_boat(self):
 
@@ -261,7 +327,7 @@ class Region(bp.Zone, WidgetWithInfoZone):
                          center=(x + self.rect.left - ref.rect.left, y + self.rect.top - ref.rect.top))
             )
 
-        self.owner.soldiers_title.set_text(str(sum(len(s_list) for s_list in self.owner.regions.values())))
+        self.owner.update_soldiers_title()
 
     def collidemouse(self):
 
@@ -316,7 +382,7 @@ class Region(bp.Zone, WidgetWithInfoZone):
 
         if self.owner is None:
             raise PermissionError("This country is unoccupied")
-        if self.soldiers_amount < amount:
+        if self.nb_soldiers < amount:
             raise PermissionError
 
         for i in range(amount):
@@ -324,7 +390,7 @@ class Region(bp.Zone, WidgetWithInfoZone):
 
         self.owner.update_soldiers_title()
 
-        if self.soldiers_amount == 0:
+        if self.nb_soldiers == 0:
             self.owner.unconquer(self)
 
     def update_all_allied_neighbors(self, allied_neighbors=None):

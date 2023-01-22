@@ -470,7 +470,7 @@ class Game(bp.Scene):
         elif region.owner is self.transfert_from.owner:
             region.add_soldiers(self.transfert_amount)
         else:
-            deaths = min(self.transfert_amount, region.soldiers_amount)
+            deaths = min(self.transfert_amount, region.nb_soldiers)
             self.transfert_amount -= deaths
             region.rem_soldiers(deaths)
 
@@ -492,7 +492,7 @@ class Game(bp.Scene):
         #     self.info_csa.hide()
         # else:
         #     self.info_csi.set_surface(region.owner.soldier_icon)
-        #     self.info_csa.set_text(str(region.soldiers_amount))
+        #     self.info_csa.set_text(str(region.nb_soldiers))
         #     self.info_csi.show()
         #     self.info_csa.show()
 
@@ -602,7 +602,7 @@ class Game(bp.Scene):
 
         for p in self.players.values():
             for r in tuple(p.regions):
-                r.rem_soldiers(r.soldiers_amount)
+                r.rem_soldiers(r.nb_soldiers)
             p.flag.kill()
         self.players = {}
         self.flags = []
@@ -697,11 +697,11 @@ class Game(bp.Scene):
 
         if self.transferring:
             if self.transfert_from is region:
-                if region.soldiers_amount < 2:
+                if region.nb_soldiers < 2:
                     self.region_info_zone.back_btn.command(region)  # TODO
                 else:
                     self.region_info_zone.close()
-                    amount = region.soldiers_amount - 1 if bp.keyboard.mod.maj else 1
+                    amount = region.nb_soldiers - 1 if bp.keyboard.mod.maj else 1
                     self.transfert_amount += amount
                     region.rem_soldiers(amount)
                     self.transfert_title.set_text(str(self.transfert_amount))
@@ -714,11 +714,11 @@ class Game(bp.Scene):
                     self.temp_import_region = region
                     self.region_info_zone.import_btn.validate()
         else:
-            if region.soldiers_amount < 2:
+            if region.nb_soldiers < 2:
                 return
 
             self.transfert_from = region
-            amount = region.soldiers_amount - 1 if bp.keyboard.mod.maj else 1
+            amount = region.nb_soldiers - 1 if bp.keyboard.mod.maj else 1
             self.transfert_amount = amount
             region.rem_soldiers(amount)
             self.transfert_icon.set_surface(region.owner.soldier_icon)

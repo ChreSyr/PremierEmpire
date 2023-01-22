@@ -117,6 +117,9 @@ class Player(bp.Communicative):
         for region, soldiers in self.regions.items():
             if len(soldiers) > 1 and len(region.all_allied_neighbors) > 1:
                 return True
+        for boat in self.boats:
+            if boat.nb_soldiers > 0:
+                return True
         return False
 
     def can_play(self):
@@ -180,7 +183,7 @@ class Player(bp.Communicative):
     def die(self):
 
         for region in tuple(self.regions):
-            region.rem_soldiers(region.soldiers_amount)
+            region.rem_soldiers(region.nb_soldiers)
         for boat in tuple(self.boats):
             boat.remove_all_soldiers()
         self.flag_region.flag = None
@@ -225,7 +228,8 @@ class Player(bp.Communicative):
 
     def update_soldiers_title(self):
 
-        soldiers_amount = sum(len(s_list) for s_list in self.regions.values())
+        nb_soldiers = sum(len(s_list) for s_list in self.regions.values())
+        nb_soldiers += sum(boat.nb_soldiers for boat in self.boats)
         if self.game.current_player is self:
-            soldiers_amount += self.game.transfert_amount
-        self.soldiers_title.set_text(str(soldiers_amount))
+            nb_soldiers += self.game.transfert_amount
+        self.soldiers_title.set_text(str(nb_soldiers))

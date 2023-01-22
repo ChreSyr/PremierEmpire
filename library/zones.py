@@ -290,18 +290,39 @@ class BoatInfoZone(InfoZone):
         self.region_title = self.RegionTitle(self, align_mode="center", sticky="midtop", ref=self.title_outline,
                                              pos=(0, 50), max_width=self.rect.w - 10, text_id=48)
 
-        self.soldiers_zone = bp.Zone(self, sticky="center", spacing=3, pos=(0, 9))
-        self.soldiers = []
         self.continent = "north_america"
+        self.soldiers_zone = bp.Zone(self, sticky="center", spacing=3, pos=(0, 9))
+        self.soldiers = ()
         for i in range(Boat.MAX):
             soldier = bp.Image(self.soldiers_zone, image=SOLDIERS[self.continent])
             soldier.sleep()
-            self.soldiers.append(soldier)
+            self.soldiers += (soldier,)
 
         self.set_style_for(PE_Button, width=25, height=25, padding=0)
-        self.minus = PE_Button(self, midleft=(6, self.soldiers_zone.rect.centery), text="-", translatable=False)
-        self.plus = PE_Button(self, midright=(self.rect.width - 6, self.soldiers_zone.rect.centery), text="+",
-                              translatable=False)
+
+        class PlusMinusButton(PE_Button):
+
+            def handle_validate(btn):
+
+                with bp.paint_lock:
+                    if btn.text == "+":
+                        if self.target.nb_soldiers < 5 and self.target.region.nb_soldiers > 1:
+                            self.target.add_soldiers(1)
+                            self.target.region.rem_soldiers(1)
+                            self.soldiers[self.target.nb_soldiers-1].wake()
+                            self.soldiers_zone.pack(axis="horizontal")
+                            self.soldiers_zone.adapt()
+                    else:
+                        if self.target.nb_soldiers > 0 and self.target.region.owner is self.target.owner:
+                            self.target.rem_soldiers(1)
+                            self.target.region.add_soldiers(1)
+                            self.soldiers[self.target.nb_soldiers].sleep()
+                            self.soldiers_zone.pack(axis="horizontal")
+                            self.soldiers_zone.adapt()
+
+        self.minus = PlusMinusButton(self, midleft=(6, self.soldiers_zone.rect.centery), text="-", translatable=False)
+        self.plus = PlusMinusButton(self, midright=(self.rect.width - 6, self.soldiers_zone.rect.centery), text="+",
+                                    translatable=False)
 
     def open(self, boat):
 
@@ -325,7 +346,7 @@ class BoatInfoZone(InfoZone):
 
             self.region_title.set_region(boat.region)
 
-            if boat.region.owner == self.scene.current_player:
+            if boat.region.owner == self.scene.current_player and self.scene.step.id == 22:
                 self.minus.show()
                 self.plus.show()
             else:
@@ -368,7 +389,7 @@ class RegionInfoZone(InfoZone):
             self.soldier_amount.hide()
             self.soldier_icon.hide()
         else:
-            self.soldier_amount.set_text(str(region.soldiers_amount))
+            self.soldier_amount.set_text(str(region.nb_soldiers))
             self.soldier_amount.show()
             self.soldier_icon.set_surface(region.owner.soldier_icon)
             self.soldier_icon.show()
