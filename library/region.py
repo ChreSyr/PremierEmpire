@@ -275,10 +275,41 @@ class Region(bp.Zone, WidgetWithInfoZone):
 
     def handle_mousebuttondown(self, event):
 
-        if not self.scene.current_player is self.owner:
-            return
         if event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
-            if self.scene.step.id in (21, 22):
+
+            if self.scene.step.id == 21:  # attack
+
+                # 3 actions :
+                #   - pick troops
+                #   - invade empty region
+                #   - invade enemy region
+
+                # cannot move troops
+                if self.scene.current_player is self.owner:
+                    if self.scene.transferring and self.scene.transfert_from != self:
+                        return
+
+                else:
+                    if self.owner is not None:
+                        if self.scene.transferring is False:
+                            return
+
+                self.scene.transfert(self)
+
+            elif self.scene.step.id == 22:  # movement
+
+                # 2 actions:
+                #   - pick troops
+                #   - move troops to allied neighbor
+
+                if self.scene.current_player != self.owner:
+                    return
+
+                if self.scene.transferring:
+                    if self.scene.transfert_from != self:
+                        if self not in self.scene.transfert_from.all_allied_neighbors:
+                            return
+
                 self.scene.transfert(self)
 
     def rem_soldiers(self, amount):
