@@ -363,8 +363,6 @@ class RegionInfoZone(InfoZone):
 
         InfoZone.__init__(self, game)
 
-        self.open_on_hover = False  # TODO : vérifier que ça marche
-
         self.region_title = self.RegionTitle(self, align_mode="center", sticky="center", ref=self.title_outline,
                                              max_width=self.rect.w - 10, text_id=48)
 

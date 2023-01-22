@@ -210,15 +210,6 @@ class Player(bp.Communicative):
         self.cards = [None] * 3
         self.is_alive = False
 
-    def has_fully_built(self):
-
-        # TODO : remove ? if we can build as many boats as we want, this is meaningless
-
-        for r in self.regions:
-            if r.structure.is_empty:
-                return False
-        return True
-
     def move_flag(self, region):
 
         if self.flag_region is not None:

@@ -690,7 +690,7 @@ class Game(bp.Scene):
         if self.transferring:
             if self.transfert_from is region:
                 if region.nb_soldiers <= region.MIN:
-                    self.region_info_zone.back_btn.command(region)  # TODO
+                    self.region_info_zone.back_btn.command(region)
                 else:
                     self.region_info_zone.close()
                     amount = region.nb_soldiers - region.MIN if bp.keyboard.mod.maj else 1
