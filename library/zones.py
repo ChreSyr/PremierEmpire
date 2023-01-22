@@ -812,12 +812,12 @@ class NextStepZone(bp.Zone):
                             ref=game.map)
 
 
-class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
+class PlayerTurnZone(BackgroundedZone, bp.Focusable):
 
     def __init__(self, game):
 
         BackgroundedZone.__init__(self, game, size=(650, 650), sticky="center", visible=False)
-        bp.LinkableByMouse.__init__(self, game)
+        bp.Focusable.__init__(self, game)
 
         self.flags = {}
 
@@ -865,9 +865,13 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
 
         game.map.signal.REGION_SELECT.connect(self.hide, owner=self)
 
-    def handle_link(self):
+    def handle_defocus(self):
 
         self.hide()
+
+    def handle_link(self):
+
+        self.defocus()
 
     def hide(self):
 
@@ -887,6 +891,8 @@ class PlayerTurnZone(BackgroundedZone, bp.LinkableByMouse):
         was_hidden = self.is_hidden
 
         super().show()
+
+        self.scene.focus(self)
 
         self.select_origin = self.select.rect.center
         self.select_dest = self.flags[self.scene.current_player.id].rect.center
