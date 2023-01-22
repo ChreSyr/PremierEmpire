@@ -273,13 +273,6 @@ class Region(bp.Zone, WidgetWithInfoZone):
         except IndexError:
             return False
 
-    def get_hovered(self):  # TODO : replace by collidemouse()
-
-        try:
-            return self.mask.get_at((bp.mouse.x - self.abs_rect.left, bp.mouse.y - self.abs_rect.top)) == 1
-        except IndexError:
-            return False
-
     def handle_mousebuttondown(self, event):
 
         if not self.scene.current_player is self.owner:
