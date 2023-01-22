@@ -7,7 +7,7 @@ import pygame
 from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
 from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button, PE_Button_Text, TransfertButton
-from library.region import Boat, Structure, back, front
+from library.region import Boat, Structure, back, front, hover
 
 
 class BackgroundedZone(bp.Zone):
@@ -282,16 +282,18 @@ class BoatInfoZone(InfoZone):
 
         InfoZone.__init__(self, game)
 
-        boat = pygame.Surface(front.get_size(), pygame.SRCALPHA)
-        boat.blit(back, (2, 0))
-        boat.blit(front, (0, 0))
-        bp.Image(self, sticky="center", ref=self.title_outline, image=boat)
-
-        self.region_title = self.RegionTitle(self, align_mode="center", sticky="midtop", ref=self.title_outline,
-                                             pos=(0, 50), max_width=self.rect.w - 10, text_id=48)
+        self.region_title = self.RegionTitle(self, align_mode="center", sticky="center", ref=self.title_outline,
+                         max_width=self.rect.w - 10, text_id=48)
 
         self.continent = "north_america"
-        self.soldiers_zone = bp.Zone(self, sticky="center", spacing=3, pos=(0, 9))
+
+        boat = pygame.Surface(front.get_size(), pygame.SRCALPHA)
+        boat.blit(back, (2, 0))
+        boat.blit(hover, (0, 0))
+        bp.Image(self, sticky="center", image=back, pos=(0, 6))
+        self.soldiers_zone = bp.Zone(self, sticky="center", pos=(0, -2), spacing=-1)
+        bp.Image(self, sticky="center", image=hover, pos=(0, 8))
+
         self.soldiers = ()
         for i in range(Boat.MAX):
             soldier = bp.Image(self.soldiers_zone, image=SOLDIERS[self.continent])
@@ -325,8 +327,8 @@ class BoatInfoZone(InfoZone):
                             self.soldiers_zone.pack(axis="horizontal")
                             self.soldiers_zone.adapt()
 
-        self.minus = PlusMinusButton(self, midleft=(6, self.soldiers_zone.rect.centery), text="-", translatable=False)
-        self.plus = PlusMinusButton(self, midright=(self.rect.width - 6, self.soldiers_zone.rect.centery), text="+",
+        self.minus = PlusMinusButton(self, midleft=(6, self.soldiers_zone.rect.centery + 5), text="-", translatable=False)
+        self.plus = PlusMinusButton(self, midright=(self.rect.width - 6, self.soldiers_zone.rect.centery + 5), text="+",
                                     translatable=False)
 
     def open(self, boat):
@@ -341,14 +343,7 @@ class BoatInfoZone(InfoZone):
                 for soldier in self.soldiers:
                     soldier.set_surface(SOLDIERS[self.continent])
 
-            for i in range(Boat.MAX):
-                if i < boat.nb_soldiers:
-                    self.soldiers[i].wake()
-                else:
-                    self.soldiers[i].sleep()
-
-            self.soldiers_zone.pack(axis="horizontal")
-            self.soldiers_zone.adapt()
+            self.update_nb_soldiers(boat)
 
             self.region_title.set_region(boat.region)
 
@@ -360,6 +355,17 @@ class BoatInfoZone(InfoZone):
                 self.minus.hide()
                 self.plus.hide()
 
+    def update_nb_soldiers(self, boat):
+
+            for i in range(Boat.MAX):
+                if i < boat.nb_soldiers:
+                    self.soldiers[i].wake()
+                else:
+                    self.soldiers[i].sleep()
+
+            self.soldiers_zone.pack(axis="horizontal")
+            self.soldiers_zone.adapt()
+
 
 class RegionInfoZone(InfoZone):
 
@@ -370,8 +376,9 @@ class RegionInfoZone(InfoZone):
         self.region_title = self.RegionTitle(self, align_mode="center", sticky="center", ref=self.title_outline,
                                              max_width=self.rect.w - 10, text_id=48)
 
-        self.soldier_amount = bp.Text(self, "", pos=(5, self.title_outline.rect.bottom + 5))
-        self.soldier_icon = bp.Image(self, SOLDIERS["asia"], ref=self.soldier_amount, pos=(4, -2), refloc="topright")
+        self.soldier_zone = bp.Zone(self, sticky="center", pos=(0, -10), spacing=5)
+        self.soldier_amount = bp.Text(self.soldier_zone, "")
+        self.soldier_icon = bp.Image(self.soldier_zone, SOLDIERS["asia"])
 
         game.region_info_zone = self
         self.invade_btn = TransfertButton(game, text_id=4)
@@ -391,13 +398,13 @@ class RegionInfoZone(InfoZone):
         self.region_title.set_region(region)
 
         if region.owner is None:
-            self.soldier_amount.hide()
-            self.soldier_icon.hide()
+            self.soldier_zone.hide()
         else:
             self.soldier_amount.set_text(str(region.nb_soldiers))
-            self.soldier_amount.show()
             self.soldier_icon.set_surface(region.owner.soldier_icon)
-            self.soldier_icon.show()
+            self.soldier_zone.pack(axis="horizontal")
+            self.soldier_zone.adapt()
+            self.soldier_zone.show()
 
         self.invade_btn.hide()
         self.back_btn.hide()

@@ -688,6 +688,7 @@ class Game(bp.Scene):
 
         self.playerturn_zone.hide()
         self.region_info_zone.close()
+        self.info_boat_zone.close()
 
         if self.transferring:
             if self.transfert_from is region:
