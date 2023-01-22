@@ -333,7 +333,7 @@ class BoatInfoZone(InfoZone):
 
             super().open(boat)
 
-            if boat.owner.continent != self.continent:
+            if boat.owner and boat.owner.continent != self.continent:
                 self.continent = boat.owner.continent
                 for soldier in self.soldiers:
                     soldier.set_surface(SOLDIERS[self.continent])
