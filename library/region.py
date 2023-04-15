@@ -89,6 +89,8 @@ class SoldiersContainer(bp.Focusable):
         self.owner = owner
         self._nb_soldiers = 0
 
+        self.hover.sleep()
+
     has_infozone_open = property(lambda self: self.info_zone.is_visible and self.info_zone.target is self)
 
     def add_soldiers(self, amount):
@@ -103,7 +105,7 @@ class SoldiersContainer(bp.Focusable):
 
         if self.scene.step.id < 20:
             return
-        self.hover.show()
+        self.hover.wake()
 
     def handle_link(self):
 
@@ -116,7 +118,7 @@ class SoldiersContainer(bp.Focusable):
 
         if self.has_infozone_open:
             return
-        self.hover.hide()
+        self.hover.sleep()
 
     def handle_link_motion(self, rel):
 
@@ -186,7 +188,7 @@ class Boat(bp.Zone, SoldiersContainer):
         self.front = bp.Image(self, image=front, pos=(0, top_padding))
 
         SoldiersContainer.__init__(self, self.parent, owner=region.owner,
-                                    hover=bp.Image(self, image=hover, pos=(0, top_padding), visible=False),
+                                    hover=bp.Image(self, image=hover, pos=(0, top_padding)),
                                     info_zone=self.scene.info_boat_zone)
 
         self.owner.boats.append(self)
@@ -294,7 +296,7 @@ class Region(bp.Zone, SoldiersContainer):
         hover = load(name)
         bp.Zone.__init__(self, parent, size=hover.get_size(), center=center, name=name,
                          layer=parent.background_layer, ref=parent.map_image)
-        SoldiersContainer.__init__(self, parent, owner=None, hover=bp.Image(self, hover, visible=False),
+        SoldiersContainer.__init__(self, parent, owner=None, hover=bp.Image(self, hover),
                                     info_zone=None)  # will be set at RegionInfoZone's construction
 
         self.mask = bp.mask.from_surface(hover)

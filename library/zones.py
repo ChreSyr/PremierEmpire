@@ -389,11 +389,18 @@ class RegionInfoZone(InfoZone):
         for region in game.regions.values():
             region.info_zone = self
 
+    def close(self):
+
+        super().close()
+        self._target.hover.sleep()
+
     def open(self, region=None):
 
         region = self.scene.selected_region if region is None else region
 
         super().open(region)
+
+        region.hover.wake()
 
         self.region_title.set_region(region)
 
