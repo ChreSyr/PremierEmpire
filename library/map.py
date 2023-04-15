@@ -82,7 +82,7 @@ class Map(bp.Zone):
                neighbors=("inde", "chine", "indonesie"))
         Region(71, self, center=(965, 267), flag_midbottom=(954, 263), build_center=(974, 272),
                neighbors=("chine", "siberie", "tchita", "kamchatka", "japon"))
-        Region(72, self, center=(1068, 263), flag_midbottom=(1078, 217), build_center=(1071, 266),
+        Region(72, self, center=(1068, 264), flag_midbottom=(1078, 217), build_center=(1071, 266),
                neighbors=("kamchatka", "mongolie"))
         Region(73, self, center=(961, 198), flag_midbottom=(954, 190), build_center=(943, 207),
                neighbors=("siberie", "mongolie", "kamchatka", "yakoutie"))

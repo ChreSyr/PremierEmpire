@@ -17,7 +17,7 @@ def set_progression(prc):
 
 pygame.init()
 screen_sizes = pygame.display.list_modes()
-fullscreen_size = screen_sizes[2]
+fullscreen_size = screen_sizes[0]
 loading_screen = True
 
 if loading_screen:
