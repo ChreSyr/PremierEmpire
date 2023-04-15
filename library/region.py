@@ -225,24 +225,24 @@ class Boat(bp.Zone, SoldiersContainer):
 
             if self.scene.step.id == 21:  # attack
                 
-                return
+                return  # TODO : boat_transfer
 
                 # 3 actions :
                 #   - pick troops
-                #   - invade empty region
-                #   - invade enemy region
+                #   - invade neighbor region
+                #   - invade region from card
 
                 # cannot move troops
-                if self.scene.current_player is self.owner:
-                    if self.scene.transferring and self.scene.transfert_from != self:
-                        return
+                # if self.scene.current_player is self.owner:
+                #     if self.scene.transferring and self.scene.transfert_from != self:
+                #         return
 
-                else:
-                    if self.owner is not None:
-                        if self.scene.transferring is False:
-                            return
+                # else:
+                #     if self.owner is not None:
+                #         if self.scene.transferring is False:
+                #             return
 
-                self.scene.transfert(self)
+                # self.scene.transfert(self)
 
             elif self.scene.step.id == 22:  # movement
 
@@ -264,30 +264,6 @@ class Boat(bp.Zone, SoldiersContainer):
 
                 if ok is True:
                     return self.scene.transfert(self)
-                else:
-                    return
-
-
-                if self.default_owner is self.scene.current_player: pass
-
-                if self.owner is not None and self.owner != self.region.owner:
-                    return
-
-                if self.scene.current_player != self.owner:
-                    if self.scene.transfert_from != self:
-                        return
-
-                if self.scene.transferring:
-                    if self.scene.transfert_from != self:
-                        if self.region not in self.scene.transfert_from.all_allied_neighbors:
-                            return
-
-                # if self.scene.current_player is self.owner:
-                #     if self.scene.transfert_from is self or self.scene.transferring is False:
-                #         if self.nb_soldiers == 1:
-                #             self.keep_owner_during_transfert = True
-
-                self.scene.transfert(self)
 
     def rem_soldiers(self, amount):
 
@@ -390,14 +366,19 @@ class Region(bp.Zone, SoldiersContainer):
                 #   - invade enemy region
 
                 # cannot move troops
-                if self.scene.current_player is self.owner:
+                if self.owner is None:
+                    if self.name not in self.scene.transfert_from.neighbors:
+                        return
+
+                elif self.owner is self.scene.current_player:
                     if self.scene.transferring and self.scene.transfert_from != self:
                         return
 
                 else:
-                    if self.owner is not None:
-                        if self.scene.transferring is False:
-                            return
+                    if not self.scene.transferring:
+                        return
+                    if self.name not in self.scene.transfert_from.neighbors:
+                        return
 
                 self.scene.transfert(self)
 
