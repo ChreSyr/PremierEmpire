@@ -104,6 +104,18 @@ class Player(bp.Communicative):
                         break
                 if can_attack:
                     break
+        if can_attack:
+            return can_attack
+
+        for boat in self.boats:
+            assert boat.nb_soldiers > 0
+        for card_region in self.cards:
+            if card_region is None:
+                continue
+            if card_region.owner != self:
+                can_attack = True
+                break
+
         return can_attack
 
     def can_build(self):

@@ -263,6 +263,7 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         self.hide()
 
         self._target.handle_unhover()
+        self._target.hover.sleep()
 
     def open(self, target):
 
@@ -274,6 +275,8 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         with bp.paint_lock:
             self.set_pos(midleft=(target.abs_rect.right + 10, target.abs_rect.centery))
             self.show()
+
+            target.hover.wake()
 
 
 class BoatInfoZone(InfoZone):
@@ -389,18 +392,11 @@ class RegionInfoZone(InfoZone):
         for region in game.regions.values():
             region.info_zone = self
 
-    def close(self):
-
-        super().close()
-        self._target.hover.sleep()
-
     def open(self, region=None):
 
         region = self.scene.selected_region if region is None else region
 
         super().open(region)
-
-        region.hover.wake()
 
         self.region_title.set_region(region)
 
@@ -422,14 +418,14 @@ class RegionInfoZone(InfoZone):
         else:
             self.choose_build_zone.hide()
         if self.scene.step.id == 21 and self.scene.transferring:
-            if region.name in self.scene.transfert_from.neighbors and region.owner != self.scene.transfert_owner:
+            if region.name in self.scene.transfert_destinations and region.owner != self.scene.transfert_owner:
                 self.invade_btn.show()
             elif region is self.scene.transfert_from:
                 self.back_btn.show()
         elif self.scene.step.id == 22 and self.scene.transferring:
             if region is self.scene.transfert_from:
                 self.back_btn.show()
-            elif region in self.scene.transfert_from.all_allied_neighbors:
+            elif region in self.scene.transfert_destinations:  # transfert_from.all_allied_neighbors
                 self.import_btn.show()
 
 
@@ -457,11 +453,7 @@ class CardsZone(BackgroundedZone):
             self.resize(*self.parent.little_slot_size)
             self.sell_btn.hide()
 
-        def increase(self):
-            self.resize(*self.parent.big_slot_size)
-            self.sell_btn.show()
-
-        def sell(self):
+        def discard(self):
             hand = self.parent.current_hand
             for i, card in enumerate(hand):
                 if card is self:
@@ -472,6 +464,13 @@ class CardsZone(BackgroundedZone):
 
             self.scene.discard_pile.append(self.region)
             self.kill()
+
+        def increase(self):
+            self.resize(*self.parent.big_slot_size)
+            self.sell_btn.show()
+
+        def sell(self):
+            self.discard()
             self.scene.current_player.change_gold(+2)
 
     class AddCardButton(PE_Button):

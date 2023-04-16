@@ -131,45 +131,17 @@ class SoldiersContainer(bp.Focusable):
 class Boat(bp.Zone, SoldiersContainer):
 
     MAX = 5
+    TOP_PADDING = 11
 
     def __init__(self, region):
 
-        ok = x = y = 0
-        while ok == 0:
-            x, y = random.randint(0, region.rect.w - 1), random.randint(0, region.rect.h - 1)
-            ok = region.mask.get_at((x, y))
-            if ok == 0:
-                ok = 1
-                abs_pos = pygame.Vector2(x, y) + region.rect.topleft
-                # local_pos = abs_pos - region.parent.map_image.rect.topleft
-                # try:
-                #     pixel2 = region.parent.map_image.surface.get_at((int(local_pos[0]), int(local_pos[1])))
-                # except IndexError:
-                #     ok = 0
-                #     continue
-                # if sum(pixel2[:3]) > 50:
-                #     ok = 0
-                #     continue
-                for neighbor_name in region.neighbors:
-                    neighbor = region.scene.regions[neighbor_name]
-                    local_pos = abs_pos - neighbor.rect.topleft
-                    try:
-                        if neighbor.mask.get_at(local_pos) == 1:
-                            ok = 0
-                            break
-                    except IndexError:
-                        pass
-            else:
-                ok = 0
-
         ref = region.parent.map_image
 
-        top_padding = 11
+        top_padding = Boat.TOP_PADDING
 
         bp.Zone.__init__(self, region.parent, ref=ref,
                          size=(front.get_width(), front.get_height() + top_padding),
-                         center=(x + region.rect.left - ref.rect.left,
-                                 y + region.rect.top - ref.rect.top - top_padding / 2))
+                         center= - bp.Vector2(ref.rect.topleft) + Boat.get_valid_center(region))
 
         self._region = region
         self._nb_soldiers = 0
@@ -221,51 +193,76 @@ class Boat(bp.Zone, SoldiersContainer):
 
         return refused_soldiers
 
+    def get_attack_destinations(self):
+        
+        if self.nb_soldiers == 0:
+            raise PermissionError("A boat cannot navigate without soldiers")
+    
+        destinations = tuple(card.name for card in self.owner.cards if card is not None and card.owner != self.owner)
+        return destinations
+
+    @staticmethod
+    def get_valid_center(region):
+
+        ok = x = y = 0
+        while ok == 0:
+            x, y = random.randint(0, region.rect.w - 1), random.randint(0, region.rect.h - 1)
+            ok = region.mask.get_at((x, y))
+            if ok == 0:
+                ok = 1
+                abs_pos = pygame.Vector2(x, y) + region.rect.topleft
+                for neighbor_name in region.neighbors:
+                    neighbor = region.scene.regions[neighbor_name]
+                    local_pos = abs_pos - neighbor.rect.topleft
+                    try:
+                        if neighbor.mask.get_at(local_pos) == 1:
+                            ok = 0
+                            break
+                    except IndexError:
+                        pass
+            else:
+                ok = 0
+
+        ans = x + region.rect.left, y + region.rect.top - Boat.TOP_PADDING / 2
+        return ans
+
+        ref = region.parent
+        return x + region.rect.left - ref.rect.left, y + region.rect.top - ref.rect.top - Boat.TOP_PADDING / 2
+
+    def handle_focus(self):
+
+        if self is self.scene.transfert_zone:  # don't open region info if this boat is being transferred
+            return
+
+        super().handle_focus()
+
     def handle_mousebuttondown(self, event):
 
-        if event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
+        if event.type == bp.MOUSEBUTTONDOWN and event.button in (1, 3):  # left or right click
 
             if self.scene.step.id == 21:  # attack
-                
-                return  # TODO : boat_transfer
 
-                # 3 actions :
-                #   - pick troops
-                #   - invade neighbor region
-                #   - invade region from card
-
-                # cannot move troops
-                # if self.scene.current_player is self.owner:
-                #     if self.scene.transferring and self.scene.transfert_from != self:
-                #         return
-
-                # else:
-                #     if self.owner is not None:
-                #         if self.scene.transferring is False:
-                #             return
-
-                # self.scene.transfert(self)
-
-            elif self.scene.step.id == 22:  # movement
-
-                # 2 actions:
-                #   - pick troops
-                #   - move troops to allied neighbor
-
-                if self.region.owner != self.default_owner:
-                    return
-
-                ok = False
+                # 1 action :
+                #   - pick boat
 
                 if self.scene.transferring:
-                    if self.region in self.scene.transfert_from.all_allied_neighbors:
-                        ok = True
-                else:
-                    if self.default_owner is self.scene.current_player:
-                        ok = True
+                    return
+                if self.owner != self.scene.current_player:
+                    return
 
-                if ok is True:
-                    return self.scene.transfert(self)
+                self.scene.transfert(self)
+
+            elif self.scene.step.id == 22 and event.button == 3:  # movement and right click
+
+                # 2 actions :
+                #   - pick soldiers from boat
+                #   - add soldiers to boat
+
+                if self.default_owner != self.scene.current_player:
+                    return
+
+                self.scene.transfert(self)
+
 
     def rem_soldiers(self, amount):
 
@@ -281,6 +278,12 @@ class Boat(bp.Zone, SoldiersContainer):
             self.soldiers_zone.default_layer[-1].sleep()
         self.soldiers_zone.pack(axis="horizontal")
         self.soldiers_zone.adapt()
+
+    def set_region(self, region):
+
+        self.region.boats.remove(self)
+        self._region = region
+        region.boats.append(self)
 
 
 class Region(bp.Zone, SoldiersContainer):
@@ -362,14 +365,16 @@ class Region(bp.Zone, SoldiersContainer):
 
             if self.scene.step.id == 21:  # attack
 
-                # 3 actions :
+                # 4 actions :
                 #   - pick troops
                 #   - invade empty region
                 #   - invade enemy region
+                #   - land boat
 
-                # cannot move troops
+                # cannot move troops if :
+
                 if self.owner is None:
-                    if self.name not in self.scene.transfert_from.neighbors:
+                    if self.name not in self.scene.transfert_destinations:
                         return
 
                 elif self.owner is self.scene.current_player:
@@ -379,7 +384,7 @@ class Region(bp.Zone, SoldiersContainer):
                 else:
                     if not self.scene.transferring:
                         return
-                    if self.name not in self.scene.transfert_from.neighbors:
+                    if self.name not in self.scene.transfert_destinations:
                         return
 
                 self.scene.transfert(self)
@@ -395,7 +400,7 @@ class Region(bp.Zone, SoldiersContainer):
 
                 if self.scene.transferring:
                     if self.scene.transfert_from != self:
-                        if self not in self.scene.transfert_from.all_allied_neighbors:
+                        if self not in self.scene.transfert_destinations:
                             return
 
                 self.scene.transfert(self)

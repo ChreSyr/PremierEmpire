@@ -16,6 +16,7 @@
 # RÈGLES :
 # TODO : Définir une utilité pour les cartes des régions occupées
 # TODO : Choisir si une région a un nombre max de bateaux du même peuple
+# TODO : Quand on achète une carte, on tire 3 cartes et on choisit celle qu'on veut
 
 # IDÉES :
 # NOTE for v.1.5 : jouer en réseau

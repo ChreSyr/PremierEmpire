@@ -19,7 +19,7 @@ from library.player import Player
 from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, GameSail, InfoLeftZone,\
     NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, RightClickZone, TmpMessage, WinnerInfoZone
 from library.map import Map
-from library.region import Structure
+from library.region import Structure, Boat
 
 set_progression(.5)
 
@@ -336,16 +336,18 @@ class Game(bp.Scene):
 
         # SOLDIERS TRANSFERT
         self.transfert_from = None
+        self.transfert_destinations = None
         self.transfert_owner = None
-        self.transfert_zone = BackgroundedZone(self, size=(35, 24), visible=False,
+        self.transfert_zone = None
+        self.transfert_info = BackgroundedZone(self, size=(35, 24), visible=False,
                                                padding=4, spacing=4, layer=self.game_layer)
         self.transfert_amount = 0
-        self.temp_import_region = None
-        self.transfert_title = bp.Text(self.transfert_zone, "")
-        self.transfert_icon = bp.Image(self.transfert_zone, SOLDIERS["asia"])
+        # self.temp_import_region = None
+        self.transfert_title = bp.Text(self.transfert_info, "")
+        self.transfert_icon = bp.Image(self.transfert_info, SOLDIERS["asia"])
         def handle_mouse_motion():
             if self.transferring:
-                self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
+                self.set_under_mouse(self.transfert_zone)
         bp.mouse.signal.MOUSEMOTION.connect(handle_mouse_motion, owner=None)
 
         # TODOS
@@ -461,38 +463,86 @@ class Game(bp.Scene):
         assert self.transferring
         if region is None:
             region = self.selected_region
-        if region is None:
-            region = self.temp_import_region
+        # if region is None:
+        #     region = self.temp_import_region
         assert region is not None
 
-        refused_soldiers = None
-        if region.owner is None:
-            self.current_player.conquer(region)
-            refused_soldiers = region.add_soldiers(self.transfert_amount)
-        elif region.owner is self.transfert_owner:
-            refused_soldiers = region.add_soldiers(self.transfert_amount)
-        else:
-            deaths = min(self.transfert_amount, region.nb_soldiers)
-            self.transfert_amount -= deaths
-            region.rem_soldiers(deaths)
+        if isinstance(self.transfert_zone, Boat):  # landing the boat
 
-            if self.transfert_amount > 0:
+            if self.transfert_from is region:  # landing back home
+                boat = self.transfert_zone
+                boat.set_pos(center=Boat.get_valid_center(region))
+
+            else:  # invade region
+
+                boat = self.transfert_zone
+                boat.set_pos(center=Boat.get_valid_center(region))
+                boat.set_region(region)
+                assert self.transfert_amount == boat.nb_soldiers
+                boat.rem_soldiers(self.transfert_amount)
+
+                if region.owner is None:
+                    self.current_player.conquer(region)
+                    region.add_soldiers(self.transfert_amount)
+
+                else:
+                    deaths = min(self.transfert_amount, region.nb_soldiers)
+                    self.transfert_amount -= deaths
+                    region.rem_soldiers(deaths)
+
+                    if self.transfert_amount > 0:
+                        self.current_player.conquer(region)
+                        region.add_soldiers(self.transfert_amount)
+                    self.current_player.update_soldiers_title()
+
+                discarded_card = None
+                for card in self.cards_zone.current_hand:
+                    if hasattr(card, "region") and card.region is region:
+                        discarded_card = card
+                        break
+                assert discarded_card is not None, PermissionError("A boat cannot navigate without using a card")
+                discarded_card.discard()
+
+            boat.layer.sort()
+
+            self.transfert_from = None
+            self.transfert_destinations = None
+            self.transfert_owner = None
+            self.transfert_zone = None
+            self.transfert_amount = 0
+            return
+
+        else:
+            refused_soldiers = None  # may happens when adding soldiers to boat
+            if region.owner is None:
                 self.current_player.conquer(region)
                 refused_soldiers = region.add_soldiers(self.transfert_amount)
-            self.transfert_amount = 0
-            self.current_player.update_soldiers_title()
+            elif region.owner is self.transfert_owner:
+                refused_soldiers = region.add_soldiers(self.transfert_amount)
+            else:
+                deaths = min(self.transfert_amount, region.nb_soldiers)
+                self.transfert_amount -= deaths
+                region.rem_soldiers(deaths)
 
-        if refused_soldiers != None:
+                if self.transfert_amount > 0:
+                    self.current_player.conquer(region)
+                    refused_soldiers = region.add_soldiers(self.transfert_amount)
+                self.transfert_amount = 0
+                self.current_player.update_soldiers_title()
+
+        if refused_soldiers is not None:
             self.transfert_amount = refused_soldiers
             self.transfert_title.set_text(str(self.transfert_amount))
-            self.transfert_zone.pack(axis="horizontal", adapt=True)
-            self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
+            self.transfert_info.pack(axis="horizontal", adapt=True)
+            self.set_under_mouse(self.transfert_zone)
 
         else:
             self.transfert_from = None
+            self.transfert_destinations = None
             self.transfert_owner = None
+            self.transfert_zone = None
             self.transfert_amount = 0
-            self.transfert_zone.hide()
+            self.transfert_info.hide()
 
         if self.step.id == 21 and self.winner_info_zone.is_hidden:
             if not self.current_player.can_attack():
@@ -666,6 +716,10 @@ class Game(bp.Scene):
         else:
             self.tuto_text = text_id
 
+    def set_under_mouse(self, widget):
+        widget.set_pos(topleft=(bp.mouse.x - widget.rect.w / 2 - self.map.rect.left,
+                                bp.mouse.y + 30 - self.map.rect.top))
+
     def set_winner(self, winner):
 
         if winner is None:
@@ -690,8 +744,61 @@ class Game(bp.Scene):
         self.region_info_zone.close()
         self.info_boat_zone.close()
 
-        if self.transferring:
-            if self.transfert_from is region:
+        if isinstance(region, Boat):
+
+            boat = region
+
+            if self.step.id == 21:  # boat transfert
+                assert not self.transferring
+                self.transfert_from = boat.region
+                self.transfert_destinations = boat.get_attack_destinations()
+                self.transfert_owner = boat.owner
+                self.transfert_amount = boat.nb_soldiers
+                self.transfert_zone = boat
+                boat.layer.move_on_top(boat)
+                self.set_under_mouse(self.transfert_zone)
+
+            elif self.step.id == 22:  # boat's soldiers transfert
+
+                # 2 actions :
+                #   - pick soldiers from boat
+                #   - add soldiers to boat
+
+                if boat.nb_soldiers <= boat.MIN:
+                    if self.transferring:
+                        self.end_transfert(boat)
+                    return
+
+                if self.transferring and self.transfert_from != boat:
+                    if boat.region.name in self.transfert_destinations:
+                        self.end_transfert(boat)
+                    return
+
+                region = boat.region
+                self.transfert_from = boat
+                self.transfert_destinations = region.all_allied_neighbors
+                self.transfert_destinations.add(region.name)
+                self.transfert_owner = region.owner
+                amount = boat.nb_soldiers - boat.MIN if bp.keyboard.mod.maj else 1
+                self.transfert_amount += amount
+                boat.rem_soldiers(amount)
+                soldier_icon = region.owner.soldier_icon
+                self.transfert_icon.set_surface(soldier_icon)
+                self.transfert_title.set_text(str(self.transfert_amount))
+                self.transfert_info.pack(axis="horizontal", adapt=True)
+                self.transfert_zone = self.transfert_info
+                self.set_under_mouse(self.transfert_zone)
+                self.transfert_info.show()
+
+            else:
+                raise PermissionError(f"Cannot transfert during step n°{self.step.id}")
+
+        elif self.transferring:
+
+            if isinstance(self.transfert_zone, Boat):  # landing the boat
+                self.end_transfert(region)
+
+            elif self.transfert_from is region:
                 if region.nb_soldiers <= region.MIN:
                     self.region_info_zone.back_btn.command(region)
                 else:
@@ -700,26 +807,32 @@ class Game(bp.Scene):
                     self.transfert_amount += amount
                     region.rem_soldiers(amount)
                     self.transfert_title.set_text(str(self.transfert_amount))
-                    self.transfert_zone.pack(axis="horizontal", adapt=True)
+                    self.transfert_info.pack(axis="horizontal", adapt=True)
             else:
                 if self.step.id == 21:
-                    self.temp_import_region = region
-                    self.region_info_zone.invade_btn.validate()
+                    self.end_transfert(region)
                 elif self.step.id == 22:
-                    self.temp_import_region = region
-                    self.region_info_zone.import_btn.validate()
+                    self.end_transfert(region)
+
         else:
             if region.nb_soldiers <= region.MIN:
                 return
 
             self.transfert_from = region
+            if self.step.id == 21:
+                self.transfert_destinations = region.neighbors
+            elif self.step.id == 22:
+                self.transfert_destinations = region.all_allied_neighbors
+            else:
+                raise PermissionError(f"Cannot transfert during step n°{self.step.id}")
             self.transfert_owner = region.owner
             amount = region.nb_soldiers - region.MIN if bp.keyboard.mod.maj else 1
             self.transfert_amount = amount
             region.rem_soldiers(amount)
-            soldier_icon = region.owner.soldier_icon if region.owner else region.default_owner.soldier_icon
+            soldier_icon = region.owner.soldier_icon
             self.transfert_icon.set_surface(soldier_icon)
             self.transfert_title.set_text(str(self.transfert_amount))
-            self.transfert_zone.pack(axis="horizontal", adapt=True)
-            self.transfert_zone.set_pos(topleft=(bp.mouse.x + 12, bp.mouse.y))
-            self.transfert_zone.show()
+            self.transfert_info.pack(axis="horizontal", adapt=True)
+            self.transfert_zone = self.transfert_info
+            self.set_under_mouse(self.transfert_zone)
+            self.transfert_info.show()
