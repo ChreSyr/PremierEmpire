@@ -1096,7 +1096,6 @@ class SettingsMainZone(SettingsZone):
                         qs_zone.close_settings()
 
                         alaska = game.regions_list[0]
-                        territoires = game.regions_list[1]
                         alberta = game.regions_list[2]
 
                         game.flag_btns[4].validate()  # gray
@@ -1111,24 +1110,18 @@ class SettingsMainZone(SettingsZone):
                         game.rc_yes.validate()
 
                         game.region_info_zone.open(alaska)
-                        game.camp_btn.validate()
-                        game.next_step()
+                        game.region_info_zone.choose_build_zone.camp_btn.validate()
+                        game.next_player()
 
-                        game.region_info_zone.open(alberta)
-                        game.camp_btn.validate()
-                        game.transfert(alberta)
-                        game.region_info_zone.open(territoires)
-                        game.invade_btn.validate()
-                        game.next_step()
-                        game.transfert(alberta)
-                        game.end_transfert(territoires)
-                        game.next_step()
+                        game.next_player()
 
-                        game.region_info_zone.open(alaska)
+                        game.next_step()
                         game.transfert(alaska)
                         game.transfert(alaska)
-                        game.region_info_zone.open(alberta)
-                        game.invade_btn.validate()
+                        game.transfert(alaska)
+                        game.transfert(alaska)
+                        game.end_transfert(alberta)
+
             PE_Button(qs_zone, text="3", translatable=False, command=quick_setup3)
             def quick_setup4():
                 with bp.paint_lock:
