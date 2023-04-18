@@ -348,16 +348,16 @@ class PE_Button(bp.Button):
 
 class RegionInfoButton(PE_Button):
 
-    def __init__(self, game, **kwargs):
+    def __init__(self, game, zone=None, **kwargs):
 
-        PE_Button.__init__(self, game.region_info_zone, midbottom=(76, 146), **kwargs)
+        PE_Button.__init__(self, game.region_info_zone if zone is None else zone, midbottom=(76, 146), **kwargs)
 
 
 class TransfertButton(RegionInfoButton):
 
-    def __init__(self, game, text_id):
+    def __init__(self, game, text_id, zone=None):
 
-        RegionInfoButton.__init__(self, game, text_id=text_id, command=game.end_transfert)
+        RegionInfoButton.__init__(self, game, text_id=text_id, zone=zone, command=game.end_transfert, visible=False)
 
 
     def handle_validate(self):
@@ -365,3 +365,4 @@ class TransfertButton(RegionInfoButton):
         super().handle_validate()
 
         self.scene.region_info_zone.close()
+        self.scene.info_boat_zone.close()

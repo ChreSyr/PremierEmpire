@@ -244,6 +244,8 @@ class Boat(bp.Zone, SoldiersContainer):
 
                 # 1 action :
                 #   - pick boat
+                if self.scene.transferring and self.owner != self.scene.current_player and event.button == 3:
+                    return self.scene.end_transfert(self)  # invading this boat
 
                 if self.scene.transferring:
                     return
@@ -262,7 +264,6 @@ class Boat(bp.Zone, SoldiersContainer):
                     return
 
                 self.scene.transfert(self)
-
 
     def rem_soldiers(self, amount):
 

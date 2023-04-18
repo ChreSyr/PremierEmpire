@@ -303,8 +303,6 @@ class BoatInfoZone(InfoZone):
             soldier.sleep()
             self.soldiers += (soldier,)
 
-        self.set_style_for(PE_Button, width=25, height=25, padding=0)
-
         class PlusMinusButton(PE_Button):
 
             def handle_validate(btn):
@@ -330,9 +328,13 @@ class BoatInfoZone(InfoZone):
                             self.soldiers_zone.pack(axis="horizontal")
                             self.soldiers_zone.adapt()
 
+        self.set_style_for(PlusMinusButton, width=25, height=25, padding=0)
+
         self.minus = PlusMinusButton(self, midleft=(6, self.soldiers_zone.rect.centery + 5), text="-", translatable=False)
         self.plus = PlusMinusButton(self, midright=(self.rect.width - 6, self.soldiers_zone.rect.centery + 5), text="+",
                                     translatable=False)
+        self.invade_btn = TransfertButton(game, zone=self, text_id=4)
+        self.import_btn = TransfertButton(game, zone=self, text_id=20)
 
     def open(self, boat):
 
@@ -357,6 +359,17 @@ class BoatInfoZone(InfoZone):
             else:
                 self.minus.hide()
                 self.plus.hide()
+
+            self.invade_btn.hide()
+            self.import_btn.hide()
+            if self.scene.transferring:
+                if self.scene.step.id == 21:
+                    if boat.owner != self.scene.transfert_owner and boat.region.owner is self.scene.transfert_owner:
+                        self.invade_btn.show()
+                elif self.scene.step.id == 22:
+                    if boat.region is self.scene.transfert_from or \
+                            boat.region in self.scene.transfert_destinations:
+                        self.import_btn.show()
 
     def update_nb_soldiers(self, boat):
 
@@ -384,9 +397,9 @@ class RegionInfoZone(InfoZone):
         self.soldier_icon = bp.Image(self.soldier_zone, SOLDIERS["asia"])
 
         game.region_info_zone = self
-        self.invade_btn = TransfertButton(game, text_id=4)
-        self.back_btn = TransfertButton(game, text_id=19)
-        self.import_btn = TransfertButton(game, text_id=20)
+        self.invade_btn = TransfertButton(game, zone=self, text_id=4)
+        self.back_btn = TransfertButton(game, zone=self, text_id=19)
+        self.import_btn = TransfertButton(game, zone=self, text_id=20)
         self.choose_build_zone = ChooseBuildZone(self)
 
         for region in game.regions.values():
@@ -425,7 +438,7 @@ class RegionInfoZone(InfoZone):
         elif self.scene.step.id == 22 and self.scene.transferring:
             if region is self.scene.transfert_from:
                 self.back_btn.show()
-            elif region in self.scene.transfert_destinations:  # transfert_from.all_allied_neighbors
+            elif region in self.scene.transfert_destinations:
                 self.import_btn.show()
 
 

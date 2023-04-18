@@ -455,7 +455,8 @@ class Game(bp.Scene):
     connected_to_network = property(lambda self: lang_manager.is_connected_to_network, _set_connected_to_network)
     current_player = property(lambda self: self.players[self.current_player_id])
     last_selected_region = property(lambda self: self.region_info_zone.last_target)
-    selected_region = property(lambda self: self.region_info_zone.target)
+    selected_region = property(lambda self: self.region_info_zone.target if self.region_info_zone.target
+                                            else self.info_boat_zone.target)
     transferring = property(lambda self: self.transfert_from is not None)
 
     def end_transfert(self, region=None):
