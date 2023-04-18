@@ -599,7 +599,7 @@ class Game(bp.Scene):
             set_build = True
             self.step.end()
 
-            if self.turn_index > 0 and self.current_player_id == len(self.players) - 1:
+            if self.turn_index >= 0 and self.current_player_id == len(self.players) - 1:
                 self.turn_index += 1
 
         self.current_player_id = (self.current_player_id + 1) % len(self.players)

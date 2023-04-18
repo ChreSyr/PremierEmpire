@@ -456,15 +456,17 @@ class CardsZone(BackgroundedZone):
                              max_width=self.content_rect.w - 6, align_mode="center")
 
             self.sell_btn = PE_Button(self, text="Vendre", translatable=False, pos=(0, -6), sticky="midbottom",
-                                      visible=cards_zone.current_slot_size == cards_zone.big_slot_size,
+                                      visible=False,  # cards_zone.current_slot_size == cards_zone.big_slot_size
                                       command=self.sell)
+            self.sell_btn.sleep()
 
             self.region = region
             self.slot_id = slot_id
+            self.purchase_turn = cards_zone.parent.turn_index
 
         def decrease(self):
             self.resize(*self.parent.little_slot_size)
-            self.sell_btn.hide()
+            self.sell_btn.sleep()
 
         def discard(self):
             hand = self.parent.current_hand
@@ -480,11 +482,16 @@ class CardsZone(BackgroundedZone):
 
         def increase(self):
             self.resize(*self.parent.big_slot_size)
-            self.sell_btn.show()
+            self.sell_btn.wake()
 
         def sell(self):
             self.discard()
             self.scene.current_player.change_gold(+2)
+
+        def update_sell_btn(self):
+
+            if self.parent.parent.turn_index > self.purchase_turn:
+                self.sell_btn.show()
 
     class AddCardButton(PE_Button):
 
@@ -642,6 +649,11 @@ class CardsZone(BackgroundedZone):
 
         # Update add buttons
         self.update()
+
+        # Update sell button visibility
+        for slot in self.current_hand:
+            if isinstance(slot, CardsZone.Card):
+                slot.update_sell_btn()
 
     def reset(self):
 
