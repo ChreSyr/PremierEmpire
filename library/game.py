@@ -343,7 +343,6 @@ class Game(bp.Scene):
         self.transfert_info = BackgroundedZone(self, size=(35, 24), visible=False,
                                                padding=4, spacing=4, layer=self.game_layer)
         self.transfert_amount = 0
-        # self.temp_import_region = None
         self.transfert_title = bp.Text(self.transfert_info, "")
         self.transfert_icon = bp.Image(self.transfert_info, SOLDIERS["asia"])
         def handle_mouse_motion():
@@ -464,19 +463,17 @@ class Game(bp.Scene):
         assert self.transferring
         if region is None:
             region = self.selected_region
-        # if region is None:
-        #     region = self.temp_import_region
         assert region is not None
 
         if isinstance(self.transfert_zone, Boat):  # landing the boat
 
-            if self.transfert_from is region:  # landing back home
-                boat = self.transfert_zone
+            boat = self.transfert_zone
+
+            if self.transfert_from is region and boat.owner is region.owner:  # landing back home
                 boat.set_pos(center=Boat.get_valid_center(region))
 
             else:  # invade region
 
-                boat = self.transfert_zone
                 boat.set_pos(center=Boat.get_valid_center(region))
                 boat.set_region(region)
                 assert self.transfert_amount == boat.nb_soldiers
@@ -513,7 +510,6 @@ class Game(bp.Scene):
             self.transfert_owner = None
             self.transfert_zone = None
             self.transfert_amount = 0
-            return
 
         else:
             refused_soldiers = None  # may happen when adding soldiers to boat
@@ -535,19 +531,19 @@ class Game(bp.Scene):
                 self.transfert_amount = 0
                 self.current_player.update_soldiers_title()
 
-        if refused_soldiers is not None:
-            self.transfert_amount = refused_soldiers
-            self.transfert_title.set_text(str(self.transfert_amount))
-            self.transfert_info.pack(axis="horizontal", adapt=True)
-            self.set_under_mouse(self.transfert_zone)
+            if refused_soldiers is not None:
+                self.transfert_amount = refused_soldiers
+                self.transfert_title.set_text(str(self.transfert_amount))
+                self.transfert_info.pack(axis="horizontal", adapt=True)
+                self.set_under_mouse(self.transfert_zone)
 
-        else:
-            self.transfert_from = None
-            self.transfert_destinations = None
-            self.transfert_owner = None
-            self.transfert_zone = None
-            self.transfert_amount = 0
-            self.transfert_info.hide()
+            else:
+                self.transfert_from = None
+                self.transfert_destinations = None
+                self.transfert_owner = None
+                self.transfert_zone = None
+                self.transfert_amount = 0
+                self.transfert_info.hide()
 
         if self.step.id == 21 and self.winner_info_zone.is_hidden:
             if not self.current_player.can_attack():
