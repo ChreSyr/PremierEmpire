@@ -183,6 +183,9 @@ class Boat(bp.Zone, SoldiersContainer):
             self.owner = self.region.owner
             self.owner.boats.append(self)
 
+            for soldier_image in self.soldiers:
+                soldier_image.set_surface(self.owner.soldier_icon)
+
         old_nb_soldiers = self._nb_soldiers
         self._nb_soldiers += amount
 

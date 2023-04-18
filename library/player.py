@@ -201,10 +201,6 @@ class Player(bp.Communicative):
 
         else:
             assert isinstance(region, Boat)
-            boat = region
-
-            self.boats.append(boat)
-            boat.owner = self
 
     def die(self):
 
