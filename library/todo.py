@@ -4,7 +4,6 @@
 # TODO : Tester le jeu sur un Chromebook (si possible)
 
 # BUGS :
-# TODO : solve : un jour une couleur n'avait plus de soldat mais le compteur était à 2
 # TODO : solve : un jour une équipe n'avait plus de soldat mais le tour d'attaque n'a pas été skip
 
 # NOUVEAUTÉS :

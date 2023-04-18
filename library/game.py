@@ -229,6 +229,7 @@ class Game(bp.Scene):
             self.current_player.conquer(self.last_selected_region)
             self.current_player.move_flag(self.last_selected_region)
             self.last_selected_region.add_soldiers(3)
+            self.current_player.update_soldiers_title()
             rc_next()
         self.rc_yes = RegionInfoButton(self, text_id=21, command=yes)
         self.rc_no = RegionInfoButton(self, text_id=22, command=no)
@@ -488,7 +489,9 @@ class Game(bp.Scene):
                 else:
                     deaths = min(self.transfert_amount, region.nb_soldiers)
                     self.transfert_amount -= deaths
+                    attacked_player = region.owner
                     region.rem_soldiers(deaths)
+                    attacked_player.update_soldiers_title()
 
                     if self.transfert_amount > 0:
                         self.current_player.conquer(region)
@@ -513,7 +516,7 @@ class Game(bp.Scene):
             return
 
         else:
-            refused_soldiers = None  # may happens when adding soldiers to boat
+            refused_soldiers = None  # may happen when adding soldiers to boat
             if region.owner is None:
                 self.current_player.conquer(region)
                 refused_soldiers = region.add_soldiers(self.transfert_amount)
@@ -522,7 +525,9 @@ class Game(bp.Scene):
             else:
                 deaths = min(self.transfert_amount, region.nb_soldiers)
                 self.transfert_amount -= deaths
+                attacked_player = region.owner
                 region.rem_soldiers(deaths)
+                attacked_player.update_soldiers_title()
 
                 if self.transfert_amount > 0:
                     self.current_player.conquer(region)
