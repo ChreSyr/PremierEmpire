@@ -442,30 +442,44 @@ class RegionInfoZone(InfoZone):
                 self.import_btn.show()
 
 
+class CardTemplate(BackgroundedZone):
+
+    FULL_SIZE = (152, int(152 * 1.6))
+    COMPACT_SIZE = (152, 44)
+
+    def __init__(self, parent, region, **kwargs):
+
+        if "size" not in kwargs:
+            kwargs["size"] = self.FULL_SIZE
+
+        BackgroundedZone.__init__(self, parent, **kwargs)
+
+        self.region = region
+
+        self.title_zone = BackgroundedZone(self, size=CardTemplate.COMPACT_SIZE)
+        self.title = TranslatableText(self.title_zone, text_id=region.upper_name_id, sticky="center",
+                                      max_width=self.content_rect.w - 6, align_mode="center")
+
+
 class CardsZone(BackgroundedZone):
 
-    class Card(BackgroundedZone):
+    class Card(CardTemplate):
 
         def __init__(self, cards_zone, region, slot_id):
 
-            BackgroundedZone.__init__(self, cards_zone, size=cards_zone.current_slot_size,
-                                      pos=cards_zone.add_buttons[slot_id].rect.topleft)
+            CardTemplate.__init__(self, cards_zone, region=region, size=cards_zone.current_slot_size,
+                                  pos=cards_zone.add_buttons[slot_id].rect.topleft)
 
-            title_zone = BackgroundedZone(self, size=cards_zone.little_slot_size)
-            TranslatableText(title_zone, text_id=region.upper_name_id, sticky="center",
-                             max_width=self.content_rect.w - 6, align_mode="center")
+            self.slot_id = slot_id
+            self.purchase_turn = self.scene.turn_index
 
             self.sell_btn = PE_Button(self, text="Vendre", translatable=False, pos=(0, -6), sticky="midbottom",
-                                      visible=False,  # cards_zone.current_slot_size == cards_zone.big_slot_size
+                                      visible=False,  # cards_zone.current_slot_size == CardTemplate.FULL_SIZE
                                       command=self.sell)
             self.sell_btn.sleep()
 
-            self.region = region
-            self.slot_id = slot_id
-            self.purchase_turn = cards_zone.parent.turn_index
-
         def decrease(self):
-            self.resize(*self.parent.little_slot_size)
+            self.resize(*CardTemplate.COMPACT_SIZE)
             self.sell_btn.sleep()
 
         def discard(self):
@@ -481,7 +495,7 @@ class CardsZone(BackgroundedZone):
             self.kill()
 
         def increase(self):
-            self.resize(*self.parent.big_slot_size)
+            self.resize(*CardTemplate.FULL_SIZE)
             self.sell_btn.wake()
 
         def sell(self):
@@ -490,7 +504,7 @@ class CardsZone(BackgroundedZone):
 
         def update_sell_btn(self):
 
-            if self.parent.parent.turn_index > self.purchase_turn:
+            if self.scene.turn_index > self.purchase_turn:
                 self.sell_btn.show()
 
     class AddCardButton(PE_Button):
@@ -520,7 +534,7 @@ class CardsZone(BackgroundedZone):
         )
 
         def __init__(self, cards_zone, slot_id):
-            PE_Button.__init__(self, cards_zone, text="+", translatable=False, size=cards_zone.little_slot_size,
+            PE_Button.__init__(self, cards_zone, text="+", translatable=False, size=CardTemplate.COMPACT_SIZE,
                                command=self.buy_card)
             self.slot_id = slot_id
 
@@ -530,17 +544,11 @@ class CardsZone(BackgroundedZone):
             if self.disable_sail.is_visible:
                 return
 
-            assert self.scene.current_player.cards[self.slot_id] is None
-            picked = self.scene.draw_pile.pick()
-
-            card = CardsZone.Card(self.parent, region=picked, slot_id=self.slot_id)
-            self.parent.current_hand[self.slot_id] = card
-
-            self.scene.current_player.cards[self.slot_id] = picked
-            self.scene.current_player.change_gold(-3)
+            self.scene.choose_card_zone.slot_destination = self.slot_id
+            self.scene.choose_card_zone.show()
 
         def decrease(self):
-            self.resize(*self.parent.little_slot_size)
+            self.resize(*CardTemplate.COMPACT_SIZE)
 
         def handle_link(self):
 
@@ -550,7 +558,7 @@ class CardsZone(BackgroundedZone):
             super().handle_link()
 
         def increase(self):
-            self.resize(*self.parent.big_slot_size)
+            self.resize(*CardTemplate.FULL_SIZE)
 
         def set_touchable_by_mouse(self, val):
 
@@ -568,9 +576,6 @@ class CardsZone(BackgroundedZone):
             text_style={"font_height": 35},
             padding=0,
         )
-
-        self.little_slot_size = (152, 44)
-        self.big_slot_size = (152, int(152 * 1.6))
 
         self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase,
                                  text_style={"font_height": 35}, padding=0)
@@ -590,8 +595,16 @@ class CardsZone(BackgroundedZone):
         game.signal.PLAYER_TURN.connect(self.handle_player_turn, owner=self)
         game.draw_pile.signal.UPDATE.connect(self.update, owner=self)
 
-    current_slot_size = property(lambda self: self.big_slot_size if self.is_open else self.little_slot_size)
+    current_slot_size = property(lambda self: CardTemplate.FULL_SIZE if self.is_open else CardTemplate.COMPACT_SIZE)
     is_open = property(lambda self: self.rect.height > 150)
+
+    def add_card(self, region, slot_id):  # called by ChooseCardZone.Card.handle_link()
+
+        card = self.Card(self, region=region, slot_id=slot_id)
+        self.current_hand[slot_id] = card
+
+        self.scene.current_player.cards[slot_id] = region
+        self.scene.current_player.change_gold(-3)
 
     def decrease(self):
 
@@ -612,7 +625,7 @@ class CardsZone(BackgroundedZone):
         for btn in self.add_buttons:
             btn.increase()
 
-        self.resize_height(self.big_slot_size[1] + self.padding.top * 2)
+        self.resize_height(CardTemplate.FULL_SIZE[1] + self.padding.top * 2)
 
         self.toggler.set_text("-")
         self.toggler.command = self.decrease
@@ -1517,3 +1530,67 @@ class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
 
                 rightclick_zone = RightClickZone(self.scene, event)
                 rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
+
+
+class ChooseCardZone(BackgroundedZone):
+
+    # TODO : if not choosen when timer ends, closes this zone and selects a random region
+
+    NB_PICKS = 4
+
+    class Card(CardTemplate, bp.LinkableByMouse):
+
+        HOVER_COLOR = bp.Vector3(BackgroundedZone.STYLE["background_color"]) * .8
+
+        def __init__(self, parent, *args, **kwargs):
+
+            CardTemplate.__init__(self, parent, *args, **kwargs)
+            bp.LinkableByMouse.__init__(self, parent)
+
+        def handle_hover(self):
+
+            self.set_background_color(self.HOVER_COLOR)
+            self.title_zone.set_background_color(self.HOVER_COLOR)
+
+        def handle_link(self):
+
+            print(self.region)
+            self.parent.hide()
+
+            self.scene.cards_zone.add_card(self.region, self.parent.slot_destination)
+
+        def handle_unhover(self):
+
+            self.set_background_color(BackgroundedZone.STYLE["background_color"])
+            self.title_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
+
+        def set_region(self, region):
+
+            self.region = region
+            self.title.set_ref_text(region.upper_name_id)
+
+    def __init__(self, game,  **kwargs):
+
+        spacing = 60
+        border_width = BackgroundedZone.STYLE["border_width"]
+
+        BackgroundedZone.__init__(self, game, sticky="center", layer=game.extra_layer, visible=False,
+                                  padding=spacing + border_width, spacing=spacing, **kwargs)
+
+        self.cards = [self.Card(self, game.regions["alaska"]) for _ in range(self.NB_PICKS)]
+        self.slot_destination = None
+        self.pack(axis="horizontal")
+        self.adapt()
+
+        game.sail.add_target(self)
+
+    def show(self):
+
+        for card in self.cards:
+            picked = self.scene.draw_pile.pick()
+            if picked is None:
+                card.hide()
+            else:
+                card.set_region(picked)
+
+        super().show()

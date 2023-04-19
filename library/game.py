@@ -16,7 +16,7 @@ from library.theme import set_cursor
 from library.images import FLAGS_BIG, SOLDIERS
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
-from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, GameSail, InfoLeftZone,\
+from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseCardZone, GameSail, InfoLeftZone,\
     NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, RightClickZone, TmpMessage, WinnerInfoZone
 from library.map import Map
 from library.region import Structure, Boat
@@ -30,7 +30,7 @@ class Game(bp.Scene):
 
         bp.Scene.__init__(self, app, background_color=(96, 163, 150), can_select=False)
 
-        self.regions = {}
+        self.regions = {}  # regions by region_name -> {"alaska": Alaska(...), "alberta: Aberta(...), ...}
         self.regions_list = None
         self.flags = []
         self.current_player_id = 0
@@ -334,6 +334,7 @@ class Game(bp.Scene):
 
         # CARDS
         self.cards_zone = CardsZone(self)
+        self.choose_card_zone = ChooseCardZone(self)
 
         # SOLDIERS TRANSFERT
         self.transfert_from = None

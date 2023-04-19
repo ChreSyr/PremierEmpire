@@ -4,16 +4,13 @@
 # TODO : Tester le jeu sur un Chromebook (si possible)
 
 # BUGS :
+# TODO : solve : quand le game.sail est activé, on peut encore déplacer la map et faire un clic droit pour la recenter
 
 # NOUVEAUTÉS :
 # TODO : permettre de paramétrer la quantité d'animations
 # TODO : quand les règles seront terminées, faire un tutoriel
 
-# RÈGLES :
-# TODO : Définir une utilité pour les cartes des régions occupées
-# TODO : Choisir si une région a un nombre max de bateaux du même peuple
-# TODO : Quand on achète une carte, on tire 3 cartes et on choisit celle qu'on veut
-# TODO : Après un tour, on peut revendre un bateau pour 1 pièce
+# RÈGLES
 # TODO : Quand on transporte un bateau, on peut emmener le drapeau avec
 
 # IDÉES :
