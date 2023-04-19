@@ -1003,12 +1003,26 @@ class ProgressTracker(bp.Zone):
         self.progress_rect.resize_width(int(self.logo.rect.width * progress))
 
 
-class SettingsZone(BackgroundedZone):
+class ClosableZone(BackgroundedZone):  # TODO : SettingZone is a ClosableZone
+
+    def __init__(self, game,  **kwargs):
+
+        BackgroundedZone.__init__(self, game, sticky="center", layer=game.extra_layer, visible=False, **kwargs)
+
+        PE_Button(self, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False, size=(40, 40),
+                  background_color=(150, 20, 20), command=self.close)
+
+        game.sail.add_target(self)
+
+    def close(self):
+        """Stuff to do when the X button is pressed"""
+
+
+class SettingsZone(ClosableZone):
 
     def __init__(self, game, behind=None, padding=(90, 60), **kwargs):
 
-        BackgroundedZone.__init__(self, game, spacing=20, sticky="center", padding=padding,
-                                  layer=game.extra_layer, **kwargs)
+        ClosableZone.__init__(self, game, spacing=20, padding=padding, **kwargs)
 
         self.game = game
         self.behind = behind
@@ -1016,13 +1030,9 @@ class SettingsZone(BackgroundedZone):
         if behind:
             PE_Button(self, text="<", pos=(10, 10), layer_level=2, translatable=False, size=(40, 40),
                       command=self.hide, text_style={"font_height": 35}, padding=0)
-
-        PE_Button(self, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False, size=(40, 40),
-                  background_color=(150, 20, 20), command=self.close_settings)
+            self.show()
 
         self.main_layer = bp.Layer(self)
-
-        game.sail.add_target(self)
 
     def pack_and_adapt(self):
 
@@ -1032,9 +1042,9 @@ class SettingsZone(BackgroundedZone):
             self.resize(width=max(self.rect.width, self.behind.rect.width),
                         height=max(self.rect.height, self.behind.rect.height))
 
-    def close_settings(self):
+    def close(self):
         if self.behind is not None:
-            self.behind.close_settings()
+            self.behind.close()
         self.hide()
 
 
@@ -1042,7 +1052,7 @@ class SettingsMainZone(SettingsZone):
 
     def __init__(self, game):
 
-        SettingsZone.__init__(self, game, visible=False)
+        SettingsZone.__init__(self, game)
 
         # NEW GAME
         def newgame():
@@ -1079,7 +1089,7 @@ class SettingsMainZone(SettingsZone):
                         game.draw_pile.remove(alberta)
                         game.region_info_zone.open(alberta)
                         game.rc_yes.validate()
-                        qs_zone.close_settings()
+                        qs_zone.close()
             PE_Button(qs_zone, text="1", translatable=False, command=quick_setup1)
             def quick_setup2():
                 with bp.paint_lock:
@@ -1107,7 +1117,7 @@ class SettingsMainZone(SettingsZone):
                         game.draw_pile.remove(western)
                         game.region_info_zone.open(western)
                         game.rc_yes.validate()
-                        qs_zone.close_settings()
+                        qs_zone.close()
             PE_Button(qs_zone, text="2", translatable=False, command=quick_setup2)
             def quick_setup3():
                 with bp.paint_lock:
@@ -1118,7 +1128,7 @@ class SettingsMainZone(SettingsZone):
                         game.set_step(10)
                     if game.step.id == 10:
 
-                        qs_zone.close_settings()
+                        qs_zone.close()
 
                         alaska = game.regions_list[0]
                         alberta = game.regions_list[2]
@@ -1168,7 +1178,7 @@ class SettingsMainZone(SettingsZone):
                         game.rc_yes.validate()
                         game.flag_btns[5].validate()
                         game.rc_yes.validate()
-                        qs_zone.close_settings()
+                        qs_zone.close()
             PE_Button(qs_zone, text="4", translatable=False, command=quick_setup4)
             qs_zone.pack_and_adapt()
             self.qs_btn.command = qs_zone.show
