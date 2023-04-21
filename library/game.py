@@ -341,8 +341,8 @@ class Game(bp.Scene):
         self.transfert_destinations = None
         self.transfert_owner = None
         self.transfert_zone = None
-        self.transfert_info = BackgroundedZone(self, size=(35, 24), visible=False,
-                                               padding=4, spacing=4, layer=self.game_layer)
+        self.transfert_info = BackgroundedZone(self.map, size=(35, 24), visible=False,
+                                               padding=4, spacing=4)
         self.transfert_amount = 0
         self.transfert_title = bp.Text(self.transfert_info, "")
         self.transfert_icon = bp.Image(self.transfert_info, SOLDIERS["asia"])
@@ -720,6 +720,7 @@ class Game(bp.Scene):
             self.tuto_text = text_id
 
     def set_under_mouse(self, widget):
+        widget.layer.move_on_top(widget)
         widget.set_pos(topleft=(bp.mouse.x - widget.rect.w / 2 - self.map.rect.left,
                                 bp.mouse.y + 30 - self.map.rect.top))
 
@@ -758,7 +759,6 @@ class Game(bp.Scene):
                 self.transfert_owner = boat.owner
                 self.transfert_amount = boat.nb_soldiers
                 self.transfert_zone = boat
-                boat.layer.move_on_top(boat)
                 self.set_under_mouse(self.transfert_zone)
 
             elif self.step.id == 22:  # boat's soldiers transfert
