@@ -67,7 +67,7 @@ class Player(bp.Communicative):
         self.gold = 6
         self.regions = {}  # ex: {Region("alaska"): (Soldier1, Soldier2, Soldier3)}
         self.neighboring_regions = set()
-        self.cards = [None] * 3
+        self.cards = [None] * self.game.CARDS_PER_HAND
         self.boats = []
 
         z = BackgroundedZone(game.info_right_zone, size=("100%", 104), pos=(0, 1000))
@@ -121,7 +121,7 @@ class Player(bp.Communicative):
     def can_build(self):
         """ Return True if, after selling all its cards, a player has at least 3 gold """
 
-        num_cards = 3 - self.cards.count(None)
+        num_cards = 3 - self.cards.count(None)  # TODO : game.BUILD_PRICE
         return self.gold + num_cards * 2 >= 3
 
     def can_move_troops(self):
@@ -201,7 +201,7 @@ class Player(bp.Communicative):
         for card in self.cards:
             if card is not None:
                 self.game.discard_pile.append(card)
-        self.cards = [None] * 3
+        self.cards = [None] * self.game.CARDS_PER_HAND
         self.is_alive = False
 
         # check for game end

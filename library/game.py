@@ -27,6 +27,7 @@ set_progression(.5)
 class Game(bp.Scene):
 
     CARD_PRICE = 3
+    CARDS_PER_HAND = 3
 
     def __init__(self, app):
 

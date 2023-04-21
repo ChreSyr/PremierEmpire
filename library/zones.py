@@ -579,13 +579,19 @@ class CardsZone(BackgroundedZone):
 
         self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase,
                                  text_style={"font_height": 35}, padding=0)
-        self.add1 = self.AddCardButton(self, slot_id=0)
-        self.add2 = self.AddCardButton(self, slot_id=1)
-        self.add3 = self.AddCardButton(self, slot_id=2)
-        self.add_buttons = [self.add1, self.add2, self.add3]
 
-        self.hands = {}  # self.hands[a_player] -> 3 widgets (Card or AddCardButton)
-        self.current_hand = [self.add1, self.add2, self.add3]
+        self.add_buttons = []
+        for i in range(game.CARDS_PER_HAND):
+            self.add_buttons.append(self.AddCardButton(self, slot_id=i))
+
+        # self.add_buttons = [
+        #     self.AddCardButton(self, slot_id=0),
+        #     self.AddCardButton(self, slot_id=1),
+        #     self.AddCardButton(self, slot_id=2),
+        # ]
+
+        self.hands = {}  # self.hands[a_player] -> CARDS_PER_HAND widgets (Card or AddCardButton)
+        self.current_hand = self.add_buttons.copy()
 
         self.default_layer.pack(axis="horizontal")
         self.adapt(self.default_layer)
@@ -646,7 +652,7 @@ class CardsZone(BackgroundedZone):
 
         except KeyError:
             flag_region_card = self.Card(self, region=self.scene.current_player.flag_region, slot_id=0)
-            self.current_hand = bp.pybao.WeakList((flag_region_card, self.add2, self.add3))
+            self.current_hand = bp.pybao.WeakList((flag_region_card,) + tuple(self.add_buttons[1:]))
             self.hands[self.scene.current_player] = self.current_hand
 
         for slot in self.current_hand:
@@ -680,7 +686,7 @@ class CardsZone(BackgroundedZone):
         if self.current_player is None:
             return
 
-        if self.current_player.gold < 3 or not self.scene.draw_pile:
+        if self.current_player.gold < self.scene.CARD_PRICE or not self.scene.draw_pile:
             for btn in self.add_buttons:
                 btn.disable()
         else:
