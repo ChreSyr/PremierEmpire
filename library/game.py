@@ -13,7 +13,7 @@ set_progression(.4)
 
 from library.memory import Memory
 from library.theme import set_cursor
-from library.images import FLAGS_BIG, SOLDIERS
+from library.images import FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
 from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseCardZone, GameSail, InfoLeftZone,\
@@ -357,6 +357,9 @@ class Game(bp.Scene):
         # SOLDIERS TRANSFER
         self.transfer = Transfer(self)
 
+        # RIGHT CLICK ZONE
+        self.right_click_zone = RightClickZone(self)
+
         # TODOS
         self.step = None
         self.step_from_id = {}
@@ -563,8 +566,9 @@ class Game(bp.Scene):
 
     def handle_event(self, event):
 
-        if event.type == bp.KEYDOWN and event.key == bp.K_SPACE:
-            self.cards_zone.set_border("red", 10)
+        if event.type == bp.MOUSEBUTTONDOWN and event.button == 3:  # right click
+            if not self.right_click_zone.collidemouse():
+                self.right_click_zone.hide()
 
     def handle_link_motion(self, rel):
 
@@ -580,11 +584,13 @@ class Game(bp.Scene):
 
                 with bp.paint_lock:
 
-                    def recenter():
-                        self.map.pos_manager.config(pos=(0, 0))
 
-                    rightclick_zone = RightClickZone(self, event)
-                    rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
+                    # rightclick_zone = RightClickZone(self, event)
+                    # rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
+
+                    # self.scene.right_click_zone.reset()
+                    # self.scene.right_click_zone.add_btn(btn_text_id=93, btn_command=recenter)
+                    self.scene.right_click_zone.open(mode=RightClickZone.INGAME_MODE)
 
     def handle_resize(self):
 

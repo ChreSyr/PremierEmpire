@@ -121,13 +121,13 @@ class GameSail(bp.Circle):
 
 class RightClickZone(BackgroundedZone, bp.Focusable):
 
-    def __init__(self, game, mouse_event, **kwargs):
+    INGAME_MODE = 0
+    LANG_MODE = 1
 
-        BackgroundedZone.__init__(self, game, layer=game.extra_layer, pos=mouse_event.pos,
-                                  padding=(2, 6), **kwargs)
+    def __init__(self, game):
+
+        BackgroundedZone.__init__(self, game, layer=game.extra_layer, visible=False, padding=(2, 6))
         bp.Focusable.__init__(self, game)
-
-        game.focus(self)
 
     def add_btn(self, btn_text_id, btn_command):
 
@@ -151,7 +151,7 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
             def handle_validate(btn):
 
                 super().handle_validate()
-                btn.parent.kill()
+                btn.parent.hide()
 
         RightClickButton(self, text_id=btn_text_id, command=btn_command, pos=(0, 10000),
                          background_color=(0, 0, 0, 0), size=(220, 32), padding=2,
@@ -162,7 +162,26 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
     def handle_defocus(self):
 
         if self.scene.focused_widget.parent is not self:
-            self.kill()
+            self.hide()
+
+    def open(self, mode):
+
+        self.scene.right_click_zone.reset()
+
+        if mode == self.INGAME_MODE:
+            def recenter():
+                self.scene.map.pos_manager.config(pos=(0, 0))
+            self.scene.right_click_zone.add_btn(btn_text_id=93, btn_command=recenter)
+
+        self.layer.move_on_top(self)
+        self.set_pos(topleft=bp.mouse.pos)
+        self.show()
+        self.scene.focus(self)
+
+    def reset(self):
+
+        for child in tuple(self.children):
+            child.kill()
 
 
 class TmpMessage(BackgroundedZone, KillOnClick):
@@ -1334,8 +1353,12 @@ class SettingsLanguageZone(SettingsZone):
                         btn.kill()
                         self.pack_and_adapt()
 
-                    rightclick_zone = RightClickZone(game, event)
-                    rightclick_zone.add_btn(btn_text_id=14, btn_command=delete)
+                    # rightclick_zone = RightClickZone(game, event)
+                    # rightclick_zone.add_btn(btn_text_id=14, btn_command=delete)
+
+                    # self.scene.right_click_zone.reset()
+                    # self.scene.right_click_zone.add_btn(btn_text_id=14, btn_command=delete)
+                    self.scene.right_click_zone.open(mode=RightClickZone.LANG_MODE)
 
             def handle_validate(btn):
 
@@ -1574,11 +1597,15 @@ class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
 
             with bp.paint_lock:
 
-                def recenter():
-                    self.scene.map.map_image.pos_manager.config(pos=(0, 0))
+                # def recenter():
+                #     self.scene.map.map_image.pos_manager.config(pos=(0, 0))
 
-                rightclick_zone = RightClickZone(self.scene, event)
-                rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
+                # rightclick_zone = RightClickZone(self.scene, event)
+                # rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
+
+                # self.scene.right_click_zone.reset()
+                # self.scene.right_click_zone.add_btn(btn_text_id=93, btn_command=recenter)
+                self.scene.right_click_zone.open(mode=RightClickZone.INGAME_MODE)
 
 
 class ChooseCardZone(BackgroundedZone):
