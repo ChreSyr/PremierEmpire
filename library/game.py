@@ -558,7 +558,7 @@ class Game(bp.Scene):
 
         if self.step.id >= 11:
 
-            self.map.map_image.move(*rel)
+            self.map.move(*rel)
 
     def handle_mousebuttondown(self, event):
 

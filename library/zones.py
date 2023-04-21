@@ -862,7 +862,7 @@ class NextStepZone(bp.Zone):
         self.circle_animator = bp.RepeatingTimer(.04, nextsail_animate)
         self.circle = bp.Circle(self, (0, 0, 0, 63), radius=game.auto_rect.centery, sticky="center")
         self.text = bp.Text(self, "HELLO !!", font_height=50, font_color="orange", font_bold=True, sticky="center",
-                            ref=game.map)
+                            ref=game)
 
 
 class PlayerTurnZone(BackgroundedZone, bp.Focusable):
