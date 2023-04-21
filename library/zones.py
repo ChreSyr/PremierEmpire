@@ -243,6 +243,10 @@ class InfoZone(BackgroundedZone, bp.Focusable):
             return self.close()
 
         widget = focused
+
+        if widget.is_asleep:
+            return self.close()
+
         while True:
 
             if widget is self:
@@ -364,11 +368,11 @@ class BoatInfoZone(InfoZone):
             self.import_btn.hide()
             if self.scene.transferring:
                 if self.scene.step.id == 21:
-                    if boat.owner != self.scene.transfer_owner and boat.region.owner is self.scene.transfer_owner:
+                    if boat.owner != self.scene.transfer.owner and boat.region.owner is self.scene.transfer.owner:
                         self.invade_btn.show()
                 elif self.scene.step.id == 22:
-                    if boat.region is self.scene.transfer_from or \
-                            boat.region in self.scene.transfer_destinations:
+                    if boat.region is self.scene.transfer.from_region or \
+                            boat.region.name in self.scene.transfer.destination_names:
                         self.import_btn.show()
 
     def update_nb_soldiers(self, boat):
@@ -431,14 +435,14 @@ class RegionInfoZone(InfoZone):
         else:
             self.choose_build_zone.hide()
         if self.scene.step.id == 21 and self.scene.transferring:
-            if region.name in self.scene.transfer_destinations and region.owner != self.scene.transfer_owner:
+            if region.name in self.scene.transfer.destination_names and region.owner != self.scene.transfer.owner:
                 self.invade_btn.show()
-            elif region is self.scene.transfer_from:
+            elif region is self.scene.transfer.from_region:
                 self.back_btn.show()
         elif self.scene.step.id == 22 and self.scene.transferring:
-            if region is self.scene.transfer_from:
+            if region is self.scene.transfer.from_region:
                 self.back_btn.show()
-            elif region in self.scene.transfer_destinations:
+            elif region.name in self.scene.transfer.destination_names:
                 self.import_btn.show()
 
 
@@ -708,8 +712,9 @@ class CardsZone(BackgroundedZone):
     def update_invade_btns(self):
 
         def can_invade(region):
-            return self.scene.transferring and isinstance(self.scene.transfer_zone, Boat) and \
-                   region.name in self.scene.transfer_destinations and region.owner != self.scene.transfer_owner
+            # mode == 1 for Transfer.BOAT_MODE
+            return self.scene.transferring and self.scene.transfer.mode == 1 and \
+                    region.name in self.scene.transfer.destination_names and region.owner != self.scene.transfer.owner
 
         for card in self.current_hand:
             if not hasattr(card, "region"):
@@ -1196,10 +1201,10 @@ class SettingsMainZone(SettingsZone):
                         game.next_player()
 
                         game.next_step()
-                        game.transfer(alaska)
-                        game.transfer(alaska)
-                        game.transfer(alaska)
-                        game.transfer(alaska)
+                        game.start_transfer(alaska)
+                        game.start_transfer(alaska)
+                        game.start_transfer(alaska)
+                        game.start_transfer(alaska)
                         game.end_transfer(alberta)
 
             PE_Button(qs_zone, text="3", translatable=False, command=quick_setup3)
@@ -1626,30 +1631,3 @@ class ChooseCardZone(BackgroundedZone):
                 card.set_region(picked)
 
         super().show()
-
-
-class TransferZone(bp.Zone):
-
-    SOLDIERS_MODE = 0
-    BOAT_MODE = 1
-
-    STYLE = bp.Zone.STYLE.substyle()
-    STYLE.modify(
-        padding=4,
-        spacing=4,
-        border_color=BackgroundedZone.STYLE["border_color"],
-    )
-
-    def __init__(self, game):
-
-        bp.Zone.__init__(self, game, visible=False)
-
-    def set_mode(self, mode, **kwargs):
-
-        if mode == self.SOLDIERS_MODE:
-            self.set_background_color(BackgroundedZone.STYLE["background_color"])
-            self.set_border(width=BackgroundedZone.STYLE["border_width"])
-
-        elif mode == self.BOAT_MODE:
-            self.set_background_color((0, 0, 0, 0))
-            self.set_border(width=0)

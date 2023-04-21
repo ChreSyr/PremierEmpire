@@ -199,13 +199,12 @@ class Boat(bp.Zone, SoldiersContainer):
 
         return refused_soldiers
 
-    def get_attack_destinations(self):
+    def get_destination_names(self):
         
         if self.nb_soldiers == 0:
             raise PermissionError("A boat cannot navigate without soldiers")
     
-        destinations = tuple(card.name for card in self.owner.cards if card is not None and card.owner != self.owner)
-        return destinations
+        return tuple(card.name for card in self.owner.cards if card is not None and card.owner != self.owner)
 
     @staticmethod
     def get_valid_center(region):
@@ -237,7 +236,7 @@ class Boat(bp.Zone, SoldiersContainer):
 
     def handle_focus(self):
 
-        if self is self.scene.transfer_zone:  # don't open region info if this boat is being transferred
+        if self is self.scene.transfer.boat:  # don't open boat info if this boat is being transferred
             return
 
         super().handle_focus()
@@ -258,7 +257,7 @@ class Boat(bp.Zone, SoldiersContainer):
                 if self.owner != self.scene.current_player:
                     return
 
-                self.scene.transfer(self)
+                self.scene.start_transfer(self)
 
             elif self.scene.step.id == 22 and event.button == 3:  # movement and right click
 
@@ -269,7 +268,7 @@ class Boat(bp.Zone, SoldiersContainer):
                 if self.default_owner != self.scene.current_player:
                     return
 
-                self.scene.transfer(self)
+                self.scene.start_transfer(self)
 
     def rem_soldiers(self, amount):
 
@@ -381,22 +380,22 @@ class Region(bp.Zone, SoldiersContainer):
                 # cannot move troops if :
 
                 if self.owner is None:
-                    if self.name not in self.scene.transfer_destinations:
+                    if self.name not in self.scene.transfer.destination_names:
                         return
 
                 elif self.owner is self.scene.current_player:
-                    if self.scene.transferring and self.scene.transfer_from != self:
+                    if self.scene.transferring and self.scene.transfer.from_region != self:
                         return
 
                 else:
                     if not self.scene.transferring:
                         return
-                    if self is self.scene.transfer_from:  # mostly for rapatriate boat to a region with different owner
-                        return self.scene.transfer(self)
-                    if self.name not in self.scene.transfer_destinations:
+                    if self is self.scene.transfer.from_region:  # mostly for rapatriate boat to a region with different owner
+                        return self.scene.start_transfer(self)
+                    if self.name not in self.scene.transfer.destination_names:
                         return
 
-                self.scene.transfer(self)
+                self.scene.start_transfer(self)
 
             elif self.scene.step.id == 22:  # movement
 
@@ -408,11 +407,11 @@ class Region(bp.Zone, SoldiersContainer):
                     return
 
                 if self.scene.transferring:
-                    if self.scene.transfer_from != self:
-                        if self not in self.scene.transfer_destinations:
+                    if self.scene.transfer.from_region != self:
+                        if self.name not in self.scene.transfer.destination_names:
                             return
 
-                self.scene.transfer(self)
+                self.scene.start_transfer(self)
 
     def rem_soldiers(self, amount):
 
@@ -429,11 +428,11 @@ class Region(bp.Zone, SoldiersContainer):
 
     def update_all_allied_neighbors(self, allied_neighbors=None):
 
-        allied_neighbors.add(self)
-        for r_name in self.neighbors:
-            r = self.game.regions[r_name]
-            if r.owner is self.owner:  # r is an allied neighbour
-                if r in allied_neighbors:
+        allied_neighbors.add(self.name)
+        for region_name in self.neighbors:
+            region = self.game.regions[region_name]
+            if region.owner is self.owner:  # region is an allied neighbour
+                if region.name in allied_neighbors:
                     continue
-                r.update_all_allied_neighbors(allied_neighbors)
+                region.update_all_allied_neighbors(allied_neighbors)
         self.all_allied_neighbors = allied_neighbors

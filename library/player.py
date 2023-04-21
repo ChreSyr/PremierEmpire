@@ -86,7 +86,7 @@ class Player(bp.Communicative):
     nb_soldiers = property(lambda self:
                                sum(len(s_list) for s_list in self.regions.values()) +
                                sum(boat.nb_soldiers for boat in self.boats) +
-                               (self.game.transfer_amount if self.game.current_player is self else 0)
+                               (self.game.transfer.amount if self.game.current_player is self else 0)
                            )
 
     def _update_neighboring_regions(self):
@@ -229,7 +229,7 @@ class Player(bp.Communicative):
         assert not s_list, "A region must be empty before it is unconquered"
         self._update_neighboring_regions()
         old_owner, region.owner = region.owner, None
-        region.all_allied_neighbors = {region}
+        region.all_allied_neighbors = {region.name}
 
         for neighbour_name in region.neighbors:
             neighbour = self.game.regions[neighbour_name]
@@ -243,5 +243,5 @@ class Player(bp.Communicative):
         # nb_soldiers = sum(len(s_list) for s_list in self.regions.values())
         # nb_soldiers += sum(boat.nb_soldiers for boat in self.boats)
         # if self.game.current_player is self:
-        #     nb_soldiers += self.game.transfer_amount
+        #     nb_soldiers += self.game.transfer.amount
         # self.soldiers_title.set_text(str(nb_soldiers))
