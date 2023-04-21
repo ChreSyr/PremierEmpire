@@ -477,9 +477,16 @@ class CardsZone(BackgroundedZone):
                                       command=self.sell)
             self.sell_btn.sleep()
 
+            def invade():
+                self.scene.end_transfert(region=region)
+                cards_zone.decrease()
+            self.invade_btn = PE_Button(self, text_id=4, pos=(0, -6), sticky="midbottom", visible=False, command=invade)
+            self.invade_btn.sleep()
+
         def decrease(self):
             self.resize(*CardTemplate.COMPACT_SIZE)
             self.sell_btn.sleep()
+            self.invade_btn.sleep()
 
         def discard(self):
             hand = self.parent.current_hand
@@ -496,6 +503,7 @@ class CardsZone(BackgroundedZone):
         def increase(self):
             self.resize(*CardTemplate.FULL_SIZE)
             self.sell_btn.wake()
+            self.invade_btn.wake()
 
         def sell(self):
             self.discard()
@@ -691,6 +699,25 @@ class CardsZone(BackgroundedZone):
         else:
             for btn in self.add_buttons:
                 btn.enable()
+
+        for card in self.current_hand:
+            if not hasattr(card, "region"):
+                continue
+            card.invade_btn.hide()
+
+    def update_invade_btns(self):
+
+        def can_invade(region):
+            return self.scene.transferring and isinstance(self.scene.transfert_zone, Boat) and \
+                   region.name in self.scene.transfert_destinations and region.owner != self.scene.transfert_owner
+
+        for card in self.current_hand:
+            if not hasattr(card, "region"):
+                continue
+            if can_invade(card.region):
+                card.invade_btn.show()
+            else:
+                card.invade_btn.hide()
 
 
 class ChooseBuildZone(bp.Zone):

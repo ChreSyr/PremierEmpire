@@ -535,6 +535,8 @@ class Game(bp.Scene):
             self.transfert_zone = None
             self.transfert_amount = 0
 
+            self.cards_zone.update_invade_btns()
+
         else:
             refused_soldiers = None  # may happen when adding soldiers to boat
             if region.owner is None:
@@ -577,6 +579,11 @@ class Game(bp.Scene):
         elif self.step.id == 22:
             if not self.current_player.can_move_troops():
                 self.next_player()
+
+    def handle_event(self, event):
+
+        if event.type == bp.KEYDOWN and event.key == bp.K_SPACE:
+            self.cards_zone.update_invade_btns()
 
     def handle_link_motion(self, rel):
 
@@ -819,6 +826,8 @@ class Game(bp.Scene):
 
             else:
                 raise PermissionError(f"Cannot transfert during step n°{self.step.id}")
+
+            self.cards_zone.update_invade_btns()
 
         elif self.transferring:
 
