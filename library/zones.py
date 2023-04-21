@@ -321,7 +321,7 @@ class BoatInfoZone(InfoZone):
         bp.Image(self, sticky="center", image=hover, pos=(0, 8))
 
         self.soldiers = ()
-        for i in range(Boat.MAX):
+        for i in range(self.scene.SOLDIERS_PER_BOAT):
             soldier = bp.Image(self.soldiers_zone, image=SOLDIERS[self.continent])
             soldier.sleep()
             self.soldiers += (soldier,)
@@ -396,7 +396,7 @@ class BoatInfoZone(InfoZone):
 
     def update_nb_soldiers(self, boat):
 
-            for i in range(Boat.MAX):
+            for i in range(self.scene.SOLDIERS_PER_BOAT):
                 if i < boat.nb_soldiers:
                     self.soldiers[i].wake()
                 else:
