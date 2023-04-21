@@ -473,8 +473,7 @@ class CardsZone(BackgroundedZone):
             self.slot_id = slot_id
             self.purchase_turn = self.scene.turn_index
 
-            self.sell_btn = PE_Button(self, text="Vendre", translatable=False, pos=(0, -6), sticky="midbottom",
-                                      visible=False,  # cards_zone.current_slot_size == CardTemplate.FULL_SIZE
+            self.sell_btn = PE_Button(self, text_id=98, pos=(0, -6), sticky="midbottom", visible=False,
                                       command=self.sell)
             self.sell_btn.sleep()
 

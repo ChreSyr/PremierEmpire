@@ -95,4 +95,5 @@ texts = [
     "Impossible d'acheter une carte :\nLa pioche est vide",
     "Égalité !",
     "Impossible de construire un bâtiment :\nVous n'avez pas assez d'or",
+    "Vendre",
 ]

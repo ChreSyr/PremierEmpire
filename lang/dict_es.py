@@ -95,4 +95,5 @@ texts = [
     "No se pudo comprar una carta :\nLa pila de robo está vacía",
     "Empate !",
     "Imposible construir un edificio :\nNo tienes suficiente oro",
+    "Vender",
 ]
