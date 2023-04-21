@@ -98,8 +98,11 @@ class SoldiersContainer(bp.Focusable):
 
     def handle_focus(self):
 
-        self.info_zone.open(self)
-        self.ignore_next_link = True
+        if self.scene.step.id >= 20:
+            self.info_zone.open(self)
+            self.ignore_next_link = True
+        else:
+            self.defocus()
 
     def handle_hover(self):
 
