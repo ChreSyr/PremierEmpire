@@ -500,7 +500,7 @@ class CardsZone(BackgroundedZone):
 
         def sell(self):
             self.discard()
-            self.scene.current_player.change_gold(+2)
+            self.scene.current_player.change_gold( + self.scene.CARD_SELL_PRICE)
 
         def update_sell_btn(self):
 
@@ -720,7 +720,7 @@ class ChooseBuildZone(bp.Zone):
 
             def handle_validate(btn):
 
-                if self.scene.current_player.gold < 3:
+                if self.scene.current_player.gold < self.scene.BUILD_PRICE:
                     return TmpMessage(self.scene, text_id=97)
                 if btn.name == "boat":
                     self.parent.last_target.add_boat()
@@ -728,7 +728,7 @@ class ChooseBuildZone(bp.Zone):
                     self.parent.last_target.structure.start_construction(btn.name)
                     self.camp_btn.disable()
                     self.mine_btn.disable()
-                self.scene.current_player.change_gold(-3)
+                self.scene.current_player.change_gold( - self.scene.BUILD_PRICE)
         self.mine_btn = BuildButton(image=mine_background, name="mine")
         self.baot_btn = BuildButton(image=boat_background, name="boat")
         self.camp_btn = BuildButton(image=camp_background, name="camp")
@@ -1022,7 +1022,7 @@ class ProgressTracker(bp.Zone):
         self.progress_rect.resize_width(int(self.logo.rect.width * progress))
 
 
-class ClosableZone(BackgroundedZone):  # TODO : SettingZone is a ClosableZone
+class ClosableZone(BackgroundedZone):
 
     def __init__(self, game,  **kwargs):
 
@@ -1280,7 +1280,7 @@ class SettingsLanguageZone(SettingsZone):
                 if btn.lang_id == lang_manager.language:
                     return  # can't delete the current language
 
-                if event.button == 3:
+                if event.button == 3:  # right click
 
                     def delete():
                         dict_path = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}{os.sep}lang{os.sep}" \
@@ -1527,7 +1527,7 @@ class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
 
     def handle_mousebuttondown(self, event):
 
-        if event.button == 3:
+        if event.button == 3:  # right click
 
             with bp.paint_lock:
 

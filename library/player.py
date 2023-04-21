@@ -64,7 +64,7 @@ class Player(bp.Communicative):
         self.flag_region = None
         self.choose_region_attemps = 0
 
-        self.gold = 6
+        self.gold = game.START_GOLD
         self.regions = {}  # ex: {Region("alaska"): (Soldier1, Soldier2, Soldier3)}
         self.neighboring_regions = set()
         self.cards = [None] * self.game.CARDS_PER_HAND
@@ -119,10 +119,10 @@ class Player(bp.Communicative):
         return False
 
     def can_build(self):
-        """ Return True if, after selling all its cards, a player has at least 3 gold """
+        """ Return True if, after selling all its cards, a player has enough gold to build """
 
-        num_cards = 3 - self.cards.count(None)  # TODO : game.BUILD_PRICE
-        return self.gold + num_cards * 2 >= 3
+        num_cards = self.game.CARDS_PER_HAND - self.cards.count(None)
+        return self.gold + num_cards * self.game.CARD_SELL_PRICE >= self.game.BUILD_PRICE
 
     def can_move_troops(self):
 

@@ -26,8 +26,15 @@ set_progression(.5)
 
 class Game(bp.Scene):
 
-    CARD_PRICE = 3
+    BUILD_PRICE = 3
     CARDS_PER_HAND = 3
+    CARD_PRICE = 3
+    CARD_SELL_PRICE = 2
+    MAX_CHOOSE_REGION_ATTEMPTS = 3
+    PRODUCTION_CAMP = 3
+    PRODUCTION_MINE = 3
+    START_GOLD = 6
+    START_SOLDIERS = 3
 
     def __init__(self, app):
 
@@ -60,7 +67,6 @@ class Game(bp.Scene):
         self.gameinfo_layer = bp.Layer(self, level=1, weight=3)
         self.gametuto_layer = bp.Layer(self, level=1, weight=4)
         self.extra_layer = bp.Layer(self, level=2, weight=2)
-        # self.progress_layer = bp.Layer(self, level=2, weight=3)
 
         # TUTORIAL
         self.tutoring = False
@@ -242,7 +248,7 @@ class Game(bp.Scene):
             flag.show()
             self.current_player.conquer(self.last_selected_region)
             self.current_player.move_flag(self.last_selected_region)
-            self.last_selected_region.add_soldiers(3)
+            self.last_selected_region.add_soldiers(self.START_SOLDIERS)
             self.current_player.update_soldiers_title()
             rc_next()
         self.rc_yes = RegionInfoButton(self, text_id=21, command=yes)
@@ -701,7 +707,7 @@ class Game(bp.Scene):
 
         player = self.current_player
         player.choose_region_attemps += 1
-        if player.choose_region_attemps < 3:
+        if player.choose_region_attemps < self.MAX_CHOOSE_REGION_ATTEMPTS:
             self.rc_yes.show()
             self.rc_no.show()
         else:

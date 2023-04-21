@@ -56,9 +56,9 @@ class Structure(bp.Image):
     def produce(self):
         
         if self.icon.name == "mine":
-            self.region.owner.change_gold(+3)
+            self.region.owner.change_gold( + self.scene.PRODUCTION_MINE)
         elif self.icon.name == "camp":
-            self.region.add_soldiers(3)
+            self.region.add_soldiers( + self.scene.PRODUCTION_CAMP)
             self.region.owner.update_soldiers_title()
 
     def start_construction(self, build_name):
