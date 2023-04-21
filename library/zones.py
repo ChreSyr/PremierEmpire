@@ -1632,7 +1632,6 @@ class ChooseCardZone(BackgroundedZone):
 
         def handle_link(self):
 
-            print(self.region)
             self.parent.hide()
 
             self.scene.cards_zone.add_card(self.region, self.parent.slot_destination)

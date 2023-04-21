@@ -1,10 +1,9 @@
 
 import baopig as bp
-import pygame
 
 load = bp.image.load
 from baopig.googletrans import dicts, lang_manager, TranslatableText
-from library.images import SOLDIERS
+from library.images import FLAGS, SOLDIERS
 from library.region import Structure, Boat, Region
 from library.zones import BackgroundedZone
 
@@ -13,7 +12,7 @@ class Flag(bp.Image, bp.LinkableByMouse):
 
     def __init__(self, player):
 
-        bp.Image.__init__(self, player.game.map, image=Player.FLAGS[player.continent], name=str(player.id),
+        bp.Image.__init__(self, player.game.map, image=FLAGS[player.continent], name=str(player.id),
                           touchable=False, visible=False, ref=player.game.map.map_image)
         bp.LinkableByMouse.__init__(self, self.parent)
 
@@ -21,16 +20,21 @@ class Flag(bp.Image, bp.LinkableByMouse):
         self.game = player.game
         self.player = player
 
+        scale = 1.1
+        self.center = None
+        self.hover = bp.transform.smoothscale(self.surface, size=bp.Vector2(self.rect.size) * scale)
+
     def handle_hover(self):
 
-        surf = bp.Surface(self.rect.size)
-        surf.fill("red")
-
-        self.set_surface(surf)
+        self.center = self.rect.center
+        self.set_surface(self.hover)
+        self.set_pos(center=self.center)
 
     def handle_unhover(self):
 
-        self.set_surface(Player.FLAGS[self.player.continent])
+        self.set_surface(FLAGS[self.player.continent])
+        self.set_pos(center=self.center)
+        self.center = None
 
     def handle_mousebuttondown(self, event):
 
@@ -66,18 +70,6 @@ class Player(bp.Communicative):
         "south_america": (243, 0, 0),    # Violet
         "africa": (108, 124, 111),       # Gris
         "oceania": (214, 0, 153),        # Rouge
-    }
-    f = load("images/flags.png")
-    w, h = f.get_size()
-    w = w / 3
-    h = h / 2
-    FLAGS = {
-        "north_america": f.subsurface(0, 0, w, h),
-        "europa": f.subsurface(w, 0, w, h),
-        "asia": f.subsurface( 2 *w, 0, w, h),
-        "south_america": f.subsurface(0, h, w, h),
-        "africa": f.subsurface(w, h, w, h),
-        "oceania": f.subsurface( 2 *w, h, w, h),
     }
 
     def __init__(self, game, continent):

@@ -156,7 +156,7 @@ class Boat(bp.Zone, SoldiersContainer):
 
         self.soldiers_zone = bp.Zone(self, size=(0, 22), sticky="midtop", spacing=-1)
         self.soldiers = ()
-        for _ in range(5):
+        for _ in range(5):  # TODO : SOLDIERS_PER_BOAT
             soldier = bp.Image(self.soldiers_zone, image=self.region.owner.soldier_icon)
             soldier.sleep()
             self.soldiers += (soldier,)

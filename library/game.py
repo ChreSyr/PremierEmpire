@@ -13,7 +13,7 @@ set_progression(.4)
 
 from library.memory import Memory
 from library.theme import set_cursor
-from library.images import FLAGS_BIG
+from library.images import FLAGS, FLAGS_BIG
 from library.buttons import PE_Button, RegionInfoButton
 from library.player import Player
 from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseCardZone, GameSail, InfoLeftZone,\
@@ -35,7 +35,7 @@ class Game(bp.Scene):
     MAX_CHOOSE_REGION_ATTEMPTS = 3
     PRODUCTION_CAMP = 3
     PRODUCTION_MINE = 3
-    START_GOLD = 6
+    START_GOLD = 60
     START_SOLDIERS = 3
 
     def __init__(self, app):
@@ -306,7 +306,7 @@ class Game(bp.Scene):
             def __init__(btn, continent, pos):
                 bp.Button.__init__(btn, self.choose_color_zone, center=pos)
                 btn.continent = continent
-                btn.flag = bp.Image(btn, Player.FLAGS[continent], sticky="center")
+                btn.flag = bp.Image(btn, FLAGS[continent], sticky="center")
                 btn.flag2 = bp.Image(btn, FLAGS_BIG[continent], sticky="center", visible=False)
                 btn.flag2.resize(int(btn.flag.rect.width * 1.5), int(btn.flag.rect.height * 1.5))
             def disable(btn):
@@ -528,7 +528,7 @@ class Game(bp.Scene):
 
             self.current_player.flag.show()
             self.current_player.flag.set_touchable_by_mouse(False)
-            self.transfer.zone.flag_note.sleep()
+            self.transfer.zone.flag.sleep()
 
         else:
             refused_soldiers = None  # may happen when adding soldiers to boat

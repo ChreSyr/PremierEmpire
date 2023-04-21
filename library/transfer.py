@@ -1,7 +1,8 @@
 
 import baopig as bp
-from library.images import SOLDIERS
+from library.images import FLAGS, SOLDIERS
 from library.zones import BackgroundedZone
+from library.region import Boat, front, back
 
 
 class Transfer:
@@ -19,15 +20,16 @@ class Transfer:
         self._amount = 0
         self.boat = None
         self.has_flag = False
-        self.zone = TransferZone(game)
+        self.zone = TransferZone(game, self)
 
     amount = property(lambda self: self._amount)
 
     def add_flag(self):
 
         self.has_flag = True
-        self.zone.flag_note.wake()
-        self.zone.flag_note.layer.move_on_top(self.zone.flag_note)
+        self.zone.flag.set_surface(FLAGS[self.owner.continent])
+        self.zone.flag.wake()
+        self.zone.flag.layer.move_on_top(self.zone.flag)
         self.zone.pack(axis="horizontal", adapt=True)
         self.zone.set_under_mouse()
 
@@ -57,24 +59,31 @@ class Transfer:
 
 class TransferZone(bp.Zone):
 
-    STYLE = bp.Zone.STYLE.substyle()
-    STYLE.modify(
-        padding=4,
-        spacing=4,
-        border_color=BackgroundedZone.STYLE["border_color"],
-    )
-
-    def __init__(self, game):
+    def __init__(self, game, transfer):
 
         bp.Zone.__init__(self, game, visible=False, layer=game.extra_layer)
 
+        self.transfer = transfer
+
         # Soldiers mode
-        self.title = bp.Text(self, "")
-        self.icon = bp.Image(self, SOLDIERS["asia"])
+        self.soldiers_zone = BackgroundedZone(self, padding=4, spacing=4)
+        self.title = bp.Text(self.soldiers_zone, "")
+        self.icon = bp.Image(self.soldiers_zone, SOLDIERS["asia"])
 
         # Boat mode
-        self.flag_note = bp.Text(self, " + drapeau")  # TODO : change or translate
-        self.flag_note.sleep()
+        self.boat_zone = bp.Zone(self, size=(front.get_width(), front.get_height() + Boat.TOP_PADDING))
+        self.back = bp.Image(self.boat_zone, image=back,
+                             pos=(front.get_width() / 2 - back.get_width() / 2, Boat.TOP_PADDING))
+        self.soldiers_in_boat_zone = bp.Zone(self.boat_zone, size=(0, 22), sticky="midtop", spacing=-1)
+        self.soldiers_in_boat = ()
+        for _ in range(5):  # TODO : SOLDIERS_PER_BOAT
+            soldier = bp.Image(self.soldiers_in_boat_zone, image=SOLDIERS["north_america"])
+            soldier.sleep()
+            self.soldiers_in_boat += (soldier,)
+        self.front = bp.Image(self.boat_zone, image=front, pos=(0, Boat.TOP_PADDING))
+
+        self.flag = bp.Image(self, FLAGS["north_america"])  # TODO : change or translate
+        self.flag.sleep()
 
         bp.mouse.signal.MOUSEMOTION.connect(self.handle_mouse_motion, owner=self)
 
@@ -85,19 +94,33 @@ class TransferZone(bp.Zone):
 
     def set_mode(self, mode):
 
-        if mode == Transfer.SOLDIERS_MODE or mode == Transfer.BOAT_MODE:
-            self.set_background_color(BackgroundedZone.STYLE["background_color"])
-            self.set_border(width=BackgroundedZone.STYLE["border_width"])
+        if mode == Transfer.SOLDIERS_MODE:
 
-            game = self.scene
-            self.icon.set_surface(game.transfer.owner.soldier_icon)
-            self.title.set_text(str(game.transfer.amount))
-            self.pack(axis="horizontal", adapt=True)
+            self.soldiers_zone.wake()
+            self.boat_zone.sleep()
+
+            self.icon.set_surface(self.transfer.owner.soldier_icon)
+            self.title.set_text(str(self.transfer.amount))
+            self.soldiers_zone.pack(axis="horizontal", adapt=True)
+            self.adapt()
             self.set_under_mouse()
 
         elif mode == Transfer.BOAT_MODE:
-            self.set_background_color((0, 0, 0, 0))
-            self.set_border(width=0)
+
+            self.soldiers_zone.sleep()
+            self.boat_zone.wake()
+
+            for i, soldier_image in enumerate(self.soldiers_in_boat):
+                if i < self.transfer.amount:
+                    soldier_image.set_surface(self.transfer.owner.soldier_icon)
+                    soldier_image.wake()
+                else:
+                    soldier_image.sleep()
+            self.soldiers_in_boat_zone.pack(axis="horizontal")
+            self.soldiers_in_boat_zone.adapt()
+
+            self.adapt()
+            self.set_under_mouse()
 
         else:
             raise PermissionError(f"Wrong mode : {mode}")
