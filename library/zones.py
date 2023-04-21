@@ -8,7 +8,7 @@ import pygame
 from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
 from library.loading import logo, fullscreen_size, screen_sizes
 from library.buttons import PE_Button, PE_Button_Text, TransferButton
-from library.region import Boat, Structure, back, front, hover
+from library.region import SoldiersContainer, Structure, back, front, hover
 
 
 class BackgroundedZone(bp.Zone):
@@ -230,7 +230,44 @@ class Warning(BackgroundedZone):
 # --
 
 
-class InfoZone(BackgroundedZone, bp.Focusable):
+class MaintainableByFocus:  # TODO : move to baopig
+    """ Class for widgets who need to be open as long as they have a focused maintainer """
+
+    def __init__(self, is_valid_maintainer):
+
+        self._maintainer_ref = lambda: None  # this is the child that is focused
+        self.is_valid_maintainer = is_valid_maintainer
+
+    maintainer = property(lambda self: self._maintainer_ref())
+
+    def _handle_maintainer_defocus(self):
+
+        self.maintainer.signal.DEFOCUS.disconnect(self._handle_maintainer_defocus)
+
+        focused_widget = self.scene.focused_widget
+        if focused_widget is None:
+            return self.close()
+
+        if self.is_valid_maintainer(focused_widget):
+            self._maintainer_ref = focused_widget.get_weakref()
+            self.maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
+
+        else:
+            self.close()
+
+    def close(self):
+        """ Stuff to do when there is no focused maintainer anymore """
+
+    def open(self, maintainer):
+
+        if not self.is_valid_maintainer(maintainer):
+            raise PermissionError(f"Invalid maintainer : {maintainer}")
+
+        self._maintainer_ref = maintainer.get_weakref()
+        self.maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
+
+
+class InfoZone(BackgroundedZone, bp.Focusable, MaintainableByFocus):
 
     class RegionTitle(TranslatableText):
 
@@ -245,16 +282,33 @@ class InfoZone(BackgroundedZone, bp.Focusable):
                                   ref=game.map.map_image)
         bp.Focusable.__init__(self, game)
 
-        self._target = None
-        self._maintainer = None
+        def is_valid_maintainer(widget):
+
+            if isinstance(widget, SoldiersContainer) and self.target is None:
+                return True
+
+            if widget.is_asleep:  # usefull in this particular case
+                return False
+
+            while True:
+
+                if widget is self:
+                    return True
+
+                widget = widget.parent
+                if widget.scene == widget:
+                    return False
+        MaintainableByFocus.__init__(self, is_valid_maintainer=is_valid_maintainer)
+
+        self._target_ref = lambda: None
 
         self.title_outline = bp.Rectangle(self, size=(self.rect.w, 44), color=(0, 0, 0, 0),
                                           border_width=2, border_color="black")
 
-    target = property(lambda self: None if self.is_hidden else self._target)
-    last_target = property(lambda self: self._target)
+    target = property(lambda self: None if self.is_hidden else self._target_ref())
+    last_target = property(lambda self: self._target_ref())
 
-    def _handle_maintainer_defocus(self):
+    def _handle_maintainer_defocus_tbr(self):
 
         self._maintainer.signal.DEFOCUS.disconnect(self._handle_maintainer_defocus)
 
@@ -264,7 +318,7 @@ class InfoZone(BackgroundedZone, bp.Focusable):
 
         widget = focused
 
-        if widget.is_asleep:
+        if widget.is_asleep:  # usefull in this particular case
             return self.close()
 
         while True:
@@ -284,17 +338,19 @@ class InfoZone(BackgroundedZone, bp.Focusable):
         if self.is_hidden:
             return
 
-        self.hide()
+        self.target.handle_unhover()
+        self.target.hover.sleep()
 
-        self._target.handle_unhover()
-        self._target.hover.sleep()
+        self.hide()
 
     def open(self, target):
 
-        self._target = target
+        self._target_ref = lambda: None
+        super().open(maintainer=target)
+        self._target_ref = target.get_weakref()
 
-        self._maintainer = target
-        self._maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
+        # self._maintainer = target
+        # self._maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
 
         with bp.paint_lock:
             self.set_pos(midleft=(target.abs_rect.right + 10, target.abs_rect.centery))
@@ -487,13 +543,13 @@ class CardTemplate(BackgroundedZone):
 
 class CardsZone(BackgroundedZone):
 
-    class Card(CardTemplate, bp.HoverableByMouse):
+    class Card(CardTemplate, bp.LinkableByMouse):
 
         def __init__(self, cards_zone, region, slot_id):
 
             CardTemplate.__init__(self, cards_zone, region=region, size=cards_zone.current_slot_size,
                                   pos=cards_zone.add_buttons[slot_id].rect.topleft)
-            bp.HoverableByMouse.__init__(self, cards_zone)
+            bp.LinkableByMouse.__init__(self, cards_zone)
 
             self.slot_id = slot_id
             self.purchase_turn = self.scene.turn_index
@@ -528,6 +584,10 @@ class CardsZone(BackgroundedZone):
         def handle_hover(self):
 
             self.region.hover.wake()
+
+        def handle_link(self):
+
+            self.parent.increase()
 
         def handle_unhover(self):
 
@@ -756,6 +816,78 @@ class CardsZone(BackgroundedZone):
                 card.invade_btn.show()
             else:
                 card.invade_btn.hide()
+
+
+class ChooseCardZone(BackgroundedZone):
+
+    NB_PICKS = 4
+
+    class Card(CardTemplate, bp.LinkableByMouse):
+
+        HOVER_COLOR = bp.Vector3(BackgroundedZone.STYLE["background_color"]) * .8
+
+        def __init__(self, parent, *args, **kwargs):
+
+            CardTemplate.__init__(self, parent, *args, **kwargs)
+            bp.LinkableByMouse.__init__(self, parent)
+
+        def handle_hover(self):
+
+            self.set_background_color(self.HOVER_COLOR)
+            self.title_zone.set_background_color(self.HOVER_COLOR)
+
+        def handle_link(self):
+
+            self.parent.hide()
+
+            self.scene.cards_zone.add_card(self.region, self.parent.slot_destination)
+
+            for card in self.parent.cards:
+                if card is self:
+                    continue
+                self.scene.discard_pile.append(card.region)
+
+        def handle_unhover(self):
+
+            self.set_background_color(BackgroundedZone.STYLE["background_color"])
+            self.title_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
+
+        def set_region(self, region):
+
+            self.region = region
+            self.title.set_ref_text(region.upper_name_id)
+
+    def __init__(self, game,  **kwargs):
+
+        spacing = 60
+        border_width = BackgroundedZone.STYLE["border_width"]
+
+        BackgroundedZone.__init__(self, game, sticky="center", layer=game.extra_layer, visible=False,
+                                  padding=spacing + border_width, spacing=spacing, **kwargs)
+
+        self.cards = [self.Card(self, game.regions["alaska"]) for _ in range(self.NB_PICKS)]
+        self.slot_destination = None
+        self.pack(axis="horizontal")
+        self.adapt()
+
+        game.sail.add_target(self)
+
+    def random_choice(self):
+
+        valid_choices = tuple(card for card in self.cards if card is not None)
+        choice = random.choice(valid_choices)
+        choice.handle_link()
+
+    def show(self):
+
+        for card in self.cards:
+            picked = self.scene.draw_pile.pick()
+            if picked is None:
+                card.hide()
+            else:
+                card.set_region(picked)
+
+        super().show()
 
 
 class ChooseBuildZone(bp.Zone):
@@ -1610,75 +1742,3 @@ class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
                 # self.scene.right_click_zone.reset()
                 # self.scene.right_click_zone.add_btn(btn_text_id=93, btn_command=recenter)
                 self.scene.right_click_zone.open(mode=RightClickZone.INGAME_MODE)
-
-
-class ChooseCardZone(BackgroundedZone):
-
-    NB_PICKS = 4
-
-    class Card(CardTemplate, bp.LinkableByMouse):
-
-        HOVER_COLOR = bp.Vector3(BackgroundedZone.STYLE["background_color"]) * .8
-
-        def __init__(self, parent, *args, **kwargs):
-
-            CardTemplate.__init__(self, parent, *args, **kwargs)
-            bp.LinkableByMouse.__init__(self, parent)
-
-        def handle_hover(self):
-
-            self.set_background_color(self.HOVER_COLOR)
-            self.title_zone.set_background_color(self.HOVER_COLOR)
-
-        def handle_link(self):
-
-            self.parent.hide()
-
-            self.scene.cards_zone.add_card(self.region, self.parent.slot_destination)
-
-            for card in self.parent.cards:
-                if card is self:
-                    continue
-                self.scene.discard_pile.append(card.region)
-
-        def handle_unhover(self):
-
-            self.set_background_color(BackgroundedZone.STYLE["background_color"])
-            self.title_zone.set_background_color(BackgroundedZone.STYLE["background_color"])
-
-        def set_region(self, region):
-
-            self.region = region
-            self.title.set_ref_text(region.upper_name_id)
-
-    def __init__(self, game,  **kwargs):
-
-        spacing = 60
-        border_width = BackgroundedZone.STYLE["border_width"]
-
-        BackgroundedZone.__init__(self, game, sticky="center", layer=game.extra_layer, visible=False,
-                                  padding=spacing + border_width, spacing=spacing, **kwargs)
-
-        self.cards = [self.Card(self, game.regions["alaska"]) for _ in range(self.NB_PICKS)]
-        self.slot_destination = None
-        self.pack(axis="horizontal")
-        self.adapt()
-
-        game.sail.add_target(self)
-
-    def random_choice(self):
-
-        valid_choices = tuple(card for card in self.cards if card is not None)
-        choice = random.choice(valid_choices)
-        choice.handle_link()
-
-    def show(self):
-
-        for card in self.cards:
-            picked = self.scene.draw_pile.pick()
-            if picked is None:
-                card.hide()
-            else:
-                card.set_region(picked)
-
-        super().show()
