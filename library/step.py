@@ -1,4 +1,3 @@
-import baopig
 
 
 class Step:
@@ -70,36 +69,3 @@ class Step_ChooseColor(Step):
         self.game.choose_color_zone.hide()
         self.game.info_top_zone.show()
         self.game.info_right_zone.show()
-
-
-class Todo:
-    @staticmethod
-    def confirm_place_flag():
-        flag = self.flags[self.current_player_id]
-        flag.show()
-        # self.current_player.regions[self.last_selected_region] = 3  # 3 soldiers in this region
-        self.current_player.conquer(self.last_selected_region)
-        self.current_player.move_flag(self.last_selected_region)
-        self.last_selected_region.add_soldiers(3)
-        if len(self.players) == self.nb_players:
-            self.next_turn()
-        else:
-            self.set_todo("choose color")
-
-    def __init__(todo, id, text="", confirm=None, f_start=(), f_end=()):
-        todo.id = id
-        todo.text = text
-        todo.confirm = confirm
-        todo.need_confirmation = confirm is not None
-        todo.f_start = f_start
-        todo.f_end = f_end
-        self.todo_from_id[id] = todo
-        self.todo_from_text[text] = todo
-
-    def start(todo):
-        for f in todo.f_start:
-            f()
-
-    def end(todo):
-        for f in todo.f_end:
-            f()
