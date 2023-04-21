@@ -569,7 +569,7 @@ class Game(bp.Scene):
                 with bp.paint_lock:
 
                     def recenter():
-                        self.map.map_image.pos_manager.config(pos=(0, 0))
+                        self.map.pos_manager.config(pos=(0, 0))
 
                     rightclick_zone = RightClickZone(self, event)
                     rightclick_zone.add_btn(btn_text_id=93, btn_command=recenter)
