@@ -391,6 +391,8 @@ class Region(bp.Zone, SoldiersContainer):
                 else:
                     if not self.scene.transferring:
                         return
+                    if self is self.scene.transfert_from:  # mostly for rapatriate boat to a region with different owner
+                        return self.scene.transfert(self)
                     if self.name not in self.scene.transfert_destinations:
                         return
 

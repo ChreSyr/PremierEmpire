@@ -471,7 +471,7 @@ class Game(bp.Scene):
 
             boat = self.transfert_zone
 
-            if self.transfert_from is region and boat.owner is region.owner:  # landing back home
+            if self.transfert_from is region:  # landing back home
                 boat.set_pos(center=Boat.get_valid_center(region))
 
             else:  # invade region
