@@ -494,16 +494,16 @@ class Game(bp.Scene):
 
                 else:
                     deaths = min(self.transfer.amount, region.nb_soldiers)
-                    self.transfer.amount -= deaths
+                    attackers_left = self.transfer.amount - deaths
                     attacked_player = region.owner
                     region.rem_soldiers(deaths)
                     attacked_player.update_soldiers_title()
                     if attacked_player.nb_soldiers == 0:
                         attacked_player.die(attacker=self.current_player)
 
-                    if self.transfer.amount > 0:
+                    if attackers_left > 0:
                         self.current_player.conquer(region)
-                        region.add_soldiers(self.transfer.amount)
+                        region.add_soldiers(attackers_left)
                     self.current_player.update_soldiers_title()
 
                 if region.owner is self.current_player:  # region is conquered
