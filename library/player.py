@@ -83,6 +83,12 @@ class Player(bp.Communicative):
 
         self.create_signal("CHANGE_GOLD")
 
+    nb_soldiers = property(lambda self:
+                               sum(len(s_list) for s_list in self.regions.values()) +
+                               sum(boat.nb_soldiers for boat in self.boats) +
+                               (self.game.transfert_amount if self.game.current_player is self else 0)
+                           )
+
     def _update_neighboring_regions(self):
 
         self.neighboring_regions = set()
@@ -173,22 +179,8 @@ class Player(bp.Communicative):
         if isinstance(region, Region):
             if region.flag is not None:
                 flag_owner = self.game.players[int(region.flag.name)]
-                gold_earned = flag_owner.gold
-                self.change_gold(+gold_earned)
-                flag_owner.change_gold(-gold_earned)
                 if flag_owner is not self:  # else, the player conquers an empty region where he left his flag
-                    flag_owner.die()
-
-                alive_players = 0
-                for p in self.game.players.values():
-                    if p.is_alive:
-                        alive_players += 1
-                if alive_players == 0:
-                    raise AssertionError
-                if alive_players == 1:
-                    assert self.is_alive
-
-                    self.game.set_winner(self)
+                    flag_owner.die(attacker=self)
 
             elif region.owner is not None:
                 region.owner.unconquer(region)
@@ -202,7 +194,10 @@ class Player(bp.Communicative):
         else:
             assert isinstance(region, Boat)
 
-    def die(self):
+    def die(self, attacker):
+
+        attacker.change_gold( + self.gold)
+        self.change_gold( - self.gold)
 
         for region in tuple(self.regions):
             region.rem_soldiers(region.nb_soldiers)
@@ -213,11 +208,20 @@ class Player(bp.Communicative):
         for card in self.cards:
             if card is not None:
                 self.game.discard_pile.append(card)
-        if not self.game.draw_pile:
-            self.game.draw_pile.merge_with_discard_pile()
-            self.game.draw_pile.shuffle()
         self.cards = [None] * 3
         self.is_alive = False
+
+        # check for game end
+        alive_players = 0
+        for p in self.game.players.values():
+            if p.is_alive:
+                alive_players += 1
+        if alive_players == 0:
+            raise AssertionError
+        if alive_players == 1:
+            assert attacker.is_alive
+
+            self.game.set_winner(attacker)
 
     def move_flag(self, region):
 
@@ -240,6 +244,8 @@ class Player(bp.Communicative):
                 neighbour.update_all_allied_neighbors(set())
 
     def update_soldiers_title(self):
+
+        return self.soldiers_title.set_text(str(self.nb_soldiers))
 
         nb_soldiers = sum(len(s_list) for s_list in self.regions.values())
         nb_soldiers += sum(boat.nb_soldiers for boat in self.boats)

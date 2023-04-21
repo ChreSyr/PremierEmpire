@@ -146,6 +146,17 @@ class Game(bp.Scene):
                     pile.append(self.discard_pile.pop())
 
             def pick(pile):
+
+                if len(pile) == 0:
+
+                    if len(self.discard_pile) == 0:
+                        return None
+
+                    pile.merge_with_discard_pile()
+                    pile.shuffle()
+
+                return pile.pop()
+
                 try:
                     card = pile.pop()
                     if len(pile) == 0:
@@ -491,6 +502,8 @@ class Game(bp.Scene):
                     attacked_player = region.owner
                     region.rem_soldiers(deaths)
                     attacked_player.update_soldiers_title()
+                    if attacked_player.nb_soldiers == 0:
+                        attacked_player.die(attacker=self.current_player)
 
                     if self.transfert_amount > 0:
                         self.current_player.conquer(region)
@@ -526,6 +539,8 @@ class Game(bp.Scene):
                 attacked_player = region.owner
                 region.rem_soldiers(deaths)
                 attacked_player.update_soldiers_title()
+                if attacked_player.nb_soldiers == 0:
+                    attacked_player.die(attacker=self.current_player)
 
                 if self.transfert_amount > 0:
                     self.current_player.conquer(region)
