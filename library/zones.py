@@ -541,7 +541,7 @@ class CardTemplate(BackgroundedZone):
                                       max_width=self.content_rect.w - 6, align_mode="center")
 
 
-class CardsZone(BackgroundedZone):
+class CardsZone(BackgroundedZone, bp.Focusable, MaintainableByFocus):
 
     class Card(CardTemplate, bp.LinkableByMouse):
 
@@ -560,7 +560,7 @@ class CardsZone(BackgroundedZone):
 
             def invade():
                 self.scene.end_transfer(region=region)
-                cards_zone.decrease()
+                cards_zone.close()
             self.invade_btn = PE_Button(self, text_id=4, pos=(0, -6), sticky="midbottom", visible=False, command=invade)
             self.invade_btn.sleep()
 
@@ -587,7 +587,7 @@ class CardsZone(BackgroundedZone):
 
         def handle_link(self):
 
-            self.parent.increase()
+            self.parent.open()
 
         def handle_unhover(self):
 
@@ -673,6 +673,18 @@ class CardsZone(BackgroundedZone):
     def __init__(self, game):
 
         BackgroundedZone.__init__(self, game, sticky="midbottom", pos=(0, 2), visible=False, padding=8, spacing=4)
+        bp.Focusable.__init__(self, game)
+
+        def is_valid_maintainer(widget):
+
+            while True:
+                if widget is self:
+                    return True
+
+                widget = widget.parent
+                if widget.scene == widget:
+                    return False
+        MaintainableByFocus.__init__(self, is_valid_maintainer)
 
         self.set_style_for(
             self.AddCardButton,
@@ -680,18 +692,12 @@ class CardsZone(BackgroundedZone):
             padding=0,
         )
 
-        self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.increase,
+        self.toggler = PE_Button(self, text="^", translatable=False, size=(44, 44), command=self.open,
                                  text_style={"font_height": 35}, padding=0)
 
         self.add_buttons = []
         for i in range(game.CARDS_PER_HAND):
             self.add_buttons.append(self.AddCardButton(self, slot_id=i))
-
-        # self.add_buttons = [
-        #     self.AddCardButton(self, slot_id=0),
-        #     self.AddCardButton(self, slot_id=1),
-        #     self.AddCardButton(self, slot_id=2),
-        # ]
 
         self.hands = {}  # self.hands[a_player] -> CARDS_PER_HAND widgets (Card or AddCardButton)
         self.current_hand = self.add_buttons.copy()
@@ -718,7 +724,7 @@ class CardsZone(BackgroundedZone):
         self.scene.current_player.cards[slot_id] = region
         self.scene.current_player.change_gold( - self.scene.CARD_PRICE)
 
-    def decrease(self):
+    def close(self):
 
         for slot in self.current_hand:
             slot.decrease()
@@ -728,19 +734,11 @@ class CardsZone(BackgroundedZone):
         self.resize_height(44 + self.padding.top * 2)
 
         self.toggler.set_text("^")
-        self.toggler.command = self.increase
+        self.toggler.command = self.open
 
-    def increase(self):
+    def handle_focus(self):
 
-        for slot in self.current_hand:
-            slot.increase()
-        for btn in self.add_buttons:
-            btn.increase()
-
-        self.resize_height(CardTemplate.FULL_SIZE[1] + self.padding.top * 2)
-
-        self.toggler.set_text("-")
-        self.toggler.command = self.decrease
+        self.open(maintainer=self)
 
     def handle_player_turn(self):
 
@@ -748,7 +746,7 @@ class CardsZone(BackgroundedZone):
             return
 
         if self.is_open:
-            self.decrease()
+            self.close()
 
         for slot in self.current_hand:
             slot.hide()
@@ -779,6 +777,23 @@ class CardsZone(BackgroundedZone):
         for slot in self.current_hand:
             if isinstance(slot, CardsZone.Card):
                 slot.update_sell_btn()
+
+    def open(self, maintainer=None):
+
+        if maintainer is None:
+            return self.scene.focus(self)
+
+        super().open(maintainer)
+
+        for slot in self.current_hand:
+            slot.increase()
+        for btn in self.add_buttons:
+            btn.increase()
+
+        self.resize_height(CardTemplate.FULL_SIZE[1] + self.padding.top * 2)
+
+        self.toggler.set_text("-")
+        self.toggler.command = self.close
 
     def reset(self):
 
