@@ -617,6 +617,9 @@ class CardsZone(BackgroundedZone):
 
     def add_card(self, region, slot_id):  # called by ChooseCardZone.Card.handle_link()
 
+        if self.scene.transferring and self.scene.transfer.mode == 1:  # BOAT_MODE
+            self.scene.transfer.destination_names += (region.name,)
+
         card = self.Card(self, region=region, slot_id=slot_id)
         self.current_hand[slot_id] = card
 
@@ -704,17 +707,14 @@ class CardsZone(BackgroundedZone):
             for btn in self.add_buttons:
                 btn.enable()
 
-        for card in self.current_hand:
-            if not hasattr(card, "region"):
-                continue
-            card.invade_btn.hide()
+        self.update_invade_btns()
 
     def update_invade_btns(self):
 
         def can_invade(region):
             # mode == 1 for Transfer.BOAT_MODE
             return self.scene.transferring and self.scene.transfer.mode == 1 and \
-                    region.name in self.scene.transfer.destination_names and region.owner != self.scene.transfer.owner
+                   region.name in self.scene.transfer.destination_names and region.owner != self.scene.transfer.owner
 
         for card in self.current_hand:
             if not hasattr(card, "region"):
