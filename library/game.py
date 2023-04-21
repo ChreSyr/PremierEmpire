@@ -36,7 +36,7 @@ class Game(bp.Scene):
     PRODUCTION_CAMP = 3
     PRODUCTION_MINE = 3
     SOLDIERS_PER_BOAT = 5
-    START_GOLD = 60
+    START_GOLD = 6
     START_SOLDIERS = 3
 
     def __init__(self, app):
@@ -779,6 +779,8 @@ class Game(bp.Scene):
                 boat.sleep()
                 self.transfer.set_mode(Transfer.BOAT_MODE, amount=boat.nb_soldiers)
 
+                self.current_player.flag.set_touchable_by_mouse(True)
+
             elif self.step.id == 22:  # boat's soldiers transfer
 
                 # 2 actions :
@@ -808,8 +810,6 @@ class Game(bp.Scene):
                 raise PermissionError(f"Cannot transfer during step n°{self.step.id}")
 
             self.cards_zone.update_invade_btns()
-
-            self.current_player.flag.set_touchable_by_mouse(True)
 
         elif self.transferring:
 
