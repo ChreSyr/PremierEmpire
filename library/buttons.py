@@ -353,11 +353,11 @@ class RegionInfoButton(PE_Button):
         PE_Button.__init__(self, game.region_info_zone if zone is None else zone, midbottom=(76, 146), **kwargs)
 
 
-class TransfertButton(RegionInfoButton):
+class TransferButton(RegionInfoButton):
 
     def __init__(self, game, text_id, zone=None):
 
-        RegionInfoButton.__init__(self, game, text_id=text_id, zone=zone, command=game.end_transfert, visible=False)
+        RegionInfoButton.__init__(self, game, text_id=text_id, zone=zone, command=game.end_transfer, visible=False)
 
 
     def handle_validate(self):

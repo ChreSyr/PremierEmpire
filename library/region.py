@@ -237,7 +237,7 @@ class Boat(bp.Zone, SoldiersContainer):
 
     def handle_focus(self):
 
-        if self is self.scene.transfert_zone:  # don't open region info if this boat is being transferred
+        if self is self.scene.transfer_zone:  # don't open region info if this boat is being transferred
             return
 
         super().handle_focus()
@@ -251,14 +251,14 @@ class Boat(bp.Zone, SoldiersContainer):
                 # 1 action :
                 #   - pick boat
                 if self.scene.transferring and self.owner != self.scene.current_player and event.button == 3:
-                    return self.scene.end_transfert(self)  # invading this boat
+                    return self.scene.end_transfer(self)  # invading this boat
 
                 if self.scene.transferring:
                     return
                 if self.owner != self.scene.current_player:
                     return
 
-                self.scene.transfert(self)
+                self.scene.transfer(self)
 
             elif self.scene.step.id == 22 and event.button == 3:  # movement and right click
 
@@ -269,7 +269,7 @@ class Boat(bp.Zone, SoldiersContainer):
                 if self.default_owner != self.scene.current_player:
                     return
 
-                self.scene.transfert(self)
+                self.scene.transfer(self)
 
     def rem_soldiers(self, amount):
 
@@ -381,22 +381,22 @@ class Region(bp.Zone, SoldiersContainer):
                 # cannot move troops if :
 
                 if self.owner is None:
-                    if self.name not in self.scene.transfert_destinations:
+                    if self.name not in self.scene.transfer_destinations:
                         return
 
                 elif self.owner is self.scene.current_player:
-                    if self.scene.transferring and self.scene.transfert_from != self:
+                    if self.scene.transferring and self.scene.transfer_from != self:
                         return
 
                 else:
                     if not self.scene.transferring:
                         return
-                    if self is self.scene.transfert_from:  # mostly for rapatriate boat to a region with different owner
-                        return self.scene.transfert(self)
-                    if self.name not in self.scene.transfert_destinations:
+                    if self is self.scene.transfer_from:  # mostly for rapatriate boat to a region with different owner
+                        return self.scene.transfer(self)
+                    if self.name not in self.scene.transfer_destinations:
                         return
 
-                self.scene.transfert(self)
+                self.scene.transfer(self)
 
             elif self.scene.step.id == 22:  # movement
 
@@ -408,11 +408,11 @@ class Region(bp.Zone, SoldiersContainer):
                     return
 
                 if self.scene.transferring:
-                    if self.scene.transfert_from != self:
-                        if self not in self.scene.transfert_destinations:
+                    if self.scene.transfer_from != self:
+                        if self not in self.scene.transfer_destinations:
                             return
 
-                self.scene.transfert(self)
+                self.scene.transfer(self)
 
     def rem_soldiers(self, amount):
 
