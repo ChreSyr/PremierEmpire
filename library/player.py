@@ -100,30 +100,23 @@ class Player(bp.Communicative):
 
     def can_attack(self):
 
-        can_attack = False
         for region, soldiers in self.regions.items():
             if len(soldiers) > 1:
                 for neighbour_name in region.neighbors:
                     neighbour = self.game.regions[neighbour_name]
                     if neighbour.owner != region.owner:
-                        can_attack = True
-                        break
-                if can_attack:
-                    break
-        if can_attack:
-            return can_attack
+                        return True  # can attack with a soldiers transfer
 
         if self.boats:
-            for boat in self.boats:
-                assert boat.nb_soldiers > 0
-            for card_region in self.cards:
-                if card_region is None:
+            for region in self.cards:
+                if region is None:
+                    if self.gold >= self.game.CARD_PRICE:
+                        return True  # can buy a card and then attack with a boat
                     continue
-                if card_region.owner != self:
-                    can_attack = True
-                    break
+                if region.owner != self:
+                    return True  # can attack with a boat
 
-        return can_attack
+        return False
 
     def can_build(self):
         """ Return True if, after selling all its cards, a player has at least 3 gold """
@@ -247,8 +240,8 @@ class Player(bp.Communicative):
 
         return self.soldiers_title.set_text(str(self.nb_soldiers))
 
-        nb_soldiers = sum(len(s_list) for s_list in self.regions.values())
-        nb_soldiers += sum(boat.nb_soldiers for boat in self.boats)
-        if self.game.current_player is self:
-            nb_soldiers += self.game.transfert_amount
-        self.soldiers_title.set_text(str(nb_soldiers))
+        # nb_soldiers = sum(len(s_list) for s_list in self.regions.values())
+        # nb_soldiers += sum(boat.nb_soldiers for boat in self.boats)
+        # if self.game.current_player is self:
+        #     nb_soldiers += self.game.transfert_amount
+        # self.soldiers_title.set_text(str(nb_soldiers))

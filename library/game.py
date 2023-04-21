@@ -26,6 +26,8 @@ set_progression(.5)
 
 class Game(bp.Scene):
 
+    CARD_PRICE = 3
+
     def __init__(self, app):
 
         bp.Scene.__init__(self, app, background_color=(96, 163, 150), can_select=False)

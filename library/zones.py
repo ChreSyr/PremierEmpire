@@ -604,7 +604,7 @@ class CardsZone(BackgroundedZone):
         self.current_hand[slot_id] = card
 
         self.scene.current_player.cards[slot_id] = region
-        self.scene.current_player.change_gold(-3)
+        self.scene.current_player.change_gold( - self.scene.CARD_PRICE)
 
     def decrease(self):
 
