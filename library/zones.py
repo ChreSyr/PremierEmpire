@@ -467,12 +467,13 @@ class CardTemplate(BackgroundedZone):
 
 class CardsZone(BackgroundedZone):
 
-    class Card(CardTemplate):
+    class Card(CardTemplate, bp.HoverableByMouse):
 
         def __init__(self, cards_zone, region, slot_id):
 
             CardTemplate.__init__(self, cards_zone, region=region, size=cards_zone.current_slot_size,
                                   pos=cards_zone.add_buttons[slot_id].rect.topleft)
+            bp.HoverableByMouse.__init__(self, cards_zone)
 
             self.slot_id = slot_id
             self.purchase_turn = self.scene.turn_index
@@ -503,6 +504,17 @@ class CardsZone(BackgroundedZone):
 
             self.scene.discard_pile.append(self.region)
             self.kill()
+
+        def handle_hover(self):
+
+            self.region.hover.wake()
+
+        def handle_unhover(self):
+
+            if self.region.has_infozone_open:
+                return
+
+            self.region.hover.sleep()
 
         def increase(self):
             self.resize(*CardTemplate.FULL_SIZE)
