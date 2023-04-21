@@ -677,7 +677,7 @@ class CardsZone(BackgroundedZone):
             self.current_hand = self.hands[self.scene.current_player]
 
         except KeyError:
-            flag_region_card = self.Card(self, region=self.scene.current_player.flag_region, slot_id=0)
+            flag_region_card = self.Card(self, region=self.scene.current_player.flag.region, slot_id=0)
             self.current_hand = bp.pybao.WeakList((flag_region_card,) + tuple(self.add_buttons[1:]))
             self.hands[self.scene.current_player] = self.current_hand
 

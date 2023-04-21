@@ -18,9 +18,18 @@ class Transfer:
         self.mode = None
         self._amount = 0
         self.boat = None
+        self.has_flag = False
         self.zone = TransferZone(game)
 
     amount = property(lambda self: self._amount)
+
+    def add_flag(self):
+
+        self.has_flag = True
+        self.zone.flag_note.wake()
+        self.zone.flag_note.layer.move_on_top(self.zone.flag_note)
+        self.zone.pack(axis="horizontal", adapt=True)
+        self.zone.set_under_mouse()
 
     def end(self):
 
@@ -31,6 +40,7 @@ class Transfer:
         self.mode = None
         self._amount = 0
         self.boat = None
+        self.has_flag = False
 
     def set_amount(self, amount):
 
@@ -61,6 +71,10 @@ class TransferZone(bp.Zone):
         # Soldiers mode
         self.title = bp.Text(self, "")
         self.icon = bp.Image(self, SOLDIERS["asia"])
+
+        # Boat mode
+        self.flag_note = bp.Text(self, " + drapeau")  # TODO : change or translate
+        self.flag_note.sleep()
 
         bp.mouse.signal.MOUSEMOTION.connect(self.handle_mouse_motion, owner=self)
 

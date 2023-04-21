@@ -195,7 +195,7 @@ class Game(bp.Scene):
 
         self.draw_pile = Pile()  # pioche
         self.discard_pile = Pile()  # défausse
-        map = self.map = Map(self)
+        self.map = Map(self)
 
         # NEXT STEP ANIMATION
         self.nextstep_zone = NextStepZone(self)
@@ -228,7 +228,7 @@ class Game(bp.Scene):
                     self.playerturn_zone = PlayerTurnZone(self)
                 self.next_player()
                 count = 0
-                while self.current_player.flag_region is not None:
+                while self.current_player.flag.region is not None:
                     self.next_player()
                     count += 1
                     if count == self.nb_players:
@@ -243,13 +243,9 @@ class Game(bp.Scene):
             self.discard_pile.append(self.last_selected_region)
             rc_next()
         def yes():
-            self.current_player.flag_region = self.current_player.cards[0] = self.last_selected_region
-            flag = self.flags[self.current_player_id]
-            flag.set_pos(midbottom=self.last_selected_region.flag_midbottom +
-                                   bp.Vector2(self.map.map_image.rect.topleft))
-            flag.show()
+            self.current_player.flag.set_region(self.last_selected_region)
+            self.current_player.cards[0] = self.last_selected_region
             self.current_player.conquer(self.last_selected_region)
-            self.current_player.move_flag(self.last_selected_region)
             self.last_selected_region.add_soldiers(self.START_SOLDIERS)
             self.current_player.update_soldiers_title()
             rc_next()
@@ -510,6 +506,10 @@ class Game(bp.Scene):
                         region.add_soldiers(self.transfer.amount)
                     self.current_player.update_soldiers_title()
 
+                if region.owner is self.current_player:  # region is conquered
+                    if self.transfer.has_flag:
+                        self.current_player.flag.set_region(region)
+
                 discarded_card = None
                 for card in self.cards_zone.current_hand:
                     if hasattr(card, "region") and card.region is region:
@@ -522,6 +522,10 @@ class Game(bp.Scene):
             
             self.transfer.end()  # reset transfer
             self.cards_zone.update_invade_btns()  # hide invade button
+
+            self.current_player.flag.show()
+            self.current_player.flag.set_touchable_by_mouse(False)
+            self.transfer.zone.flag_note.sleep()
 
         else:
             refused_soldiers = None  # may happen when adding soldiers to boat
@@ -795,6 +799,8 @@ class Game(bp.Scene):
                 raise PermissionError(f"Cannot transfer during step n°{self.step.id}")
 
             self.cards_zone.update_invade_btns()
+
+            self.current_player.flag.set_touchable_by_mouse(True)
 
         elif self.transferring:
 

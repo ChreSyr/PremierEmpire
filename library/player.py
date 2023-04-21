@@ -1,10 +1,52 @@
 
 import baopig as bp
+import pygame
+
 load = bp.image.load
 from baopig.googletrans import dicts, lang_manager, TranslatableText
 from library.images import SOLDIERS
 from library.region import Structure, Boat, Region
 from library.zones import BackgroundedZone
+
+
+class Flag(bp.Image, bp.LinkableByMouse):
+
+    def __init__(self, player):
+
+        bp.Image.__init__(self, player.game.map, image=Player.FLAGS[player.continent], name=str(player.id),
+                          touchable=False, visible=False, ref=player.game.map.map_image)
+        bp.LinkableByMouse.__init__(self, self.parent)
+
+        self.region = None
+        self.game = player.game
+        self.player = player
+
+    def handle_hover(self):
+
+        surf = bp.Surface(self.rect.size)
+        surf.fill("red")
+
+        self.set_surface(surf)
+
+    def handle_unhover(self):
+
+        self.set_surface(Player.FLAGS[self.player.continent])
+
+    def handle_mousebuttondown(self, event):
+
+        if event.button == 3:  # right click
+            self.hide()
+            self.game.transfer.add_flag()
+
+    def set_region(self, region):
+
+        if self.region is not None:
+            self.region.flag = None
+        self.region = region
+        region.flag = self
+
+        self.set_pos(midbottom=region.flag_midbottom + bp.Vector2(self.parent.map_image.rect.topleft))
+        self.show()
 
 
 class Player(bp.Communicative):
@@ -59,9 +101,7 @@ class Player(bp.Communicative):
 
         self.color = Player.COLORS[continent]
         self.soldier_icon = SOLDIERS[continent]
-        self.flag = bp.Image(game.map, Player.FLAGS[continent], name=str(self.id), touchable=False,
-                             visible=False, ref=game.map.map_image)
-        self.flag_region = None
+        self.flag = Flag(self)
         self.choose_region_attemps = 0
 
         self.gold = game.START_GOLD
@@ -196,7 +236,7 @@ class Player(bp.Communicative):
             region.rem_soldiers(region.nb_soldiers)
         for boat in tuple(self.boats):
             boat.rem_soldiers(boat.nb_soldiers)
-        self.flag_region.flag = None
+        self.flag.region.flag = None
         self.flag.hide()
         for card in self.cards:
             if card is not None:
@@ -215,13 +255,6 @@ class Player(bp.Communicative):
             assert attacker.is_alive
 
             self.game.set_winner(attacker)
-
-    def move_flag(self, region):
-
-        if self.flag_region is not None:
-            self.flag_region.flag = None
-        self.flag_region = region
-        region.flag = self.flag
 
     def unconquer(self, region):
 
