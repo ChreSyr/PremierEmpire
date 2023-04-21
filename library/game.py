@@ -608,6 +608,7 @@ class Game(bp.Scene):
 
         self.nextstep_zone.resize_width(self.rect.height)
         self.nextstep_zone.circle.set_radius(self.auto_rect.centery)
+        self.nextstep_zone.set_pos(x=-self.rect.h)
 
     def next_player(self):
 
