@@ -228,6 +228,7 @@ class Player(bp.Communicative):
             region.rem_soldiers(region.nb_soldiers)
         for boat in tuple(self.boats):
             boat.rem_soldiers(boat.nb_soldiers)
+        self.update_soldiers_title()
         self.flag.region.flag = None
         self.flag.hide()
         for card in self.cards:

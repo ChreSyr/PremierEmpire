@@ -288,14 +288,6 @@ class PE_Button(bp.Button):
             surf = btnimg_manager.get_resized_background(self.rect.size, color=self.background_color)
         self.set_background_image(surf)
 
-        # disable_surf = btnimg_manager.colored_back.copy()
-        # disable_surf.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MIN)
-        # if disable_surf.get_size() != self.rect.size:
-        #     disable_surf = pygame.transform.smoothscale(disable_surf, self.rect.size)
-        # self.disable_sail.kill()
-        # self._disable_sail_ref = self.style["disable_class"](self, disable_surf, visible=False,
-        #                                                      layer=self.above_content).get_weakref()
-
         self.original_font_height = self.text_widget.font.height
 
         self.middle_color = 128 * 3

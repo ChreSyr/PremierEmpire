@@ -154,7 +154,7 @@ class Boat(bp.Zone, SoldiersContainer):
 
         self.soldiers_zone = bp.Zone(self, size=(0, 22), sticky="midtop", spacing=-1)
         self.soldiers = ()
-        for _ in range(self.scene.SOLDIERS_PER_BOAT):
+        for _ in range(self.scene.MAX_SOLDIERS_IN_BOAT):
             soldier = bp.Image(self.soldiers_zone, image=self.region.owner.soldier_icon)
             soldier.sleep()
             self.soldiers += (soldier,)
@@ -165,7 +165,7 @@ class Boat(bp.Zone, SoldiersContainer):
                                     info_zone=self.scene.info_boat_zone)
 
         self.owner.boats.append(self)
-        self.add_soldiers(random.randint(1, self.scene.SOLDIERS_PER_BOAT))
+        self.add_soldiers(random.randint(1, self.scene.MAX_SOLDIERS_IN_BOAT))
         self.owner.update_soldiers_title()
 
     all_allied_neighbors = property(lambda self: self.region.all_allied_neighbors)
@@ -176,9 +176,9 @@ class Boat(bp.Zone, SoldiersContainer):
     def add_soldiers(self, amount):
 
         refused_soldiers = None
-        if amount + self.nb_soldiers > self.scene.SOLDIERS_PER_BOAT:
-            refused_soldiers = amount + self.nb_soldiers - self.scene.SOLDIERS_PER_BOAT
-            amount = self.scene.SOLDIERS_PER_BOAT - self.nb_soldiers
+        if amount + self.nb_soldiers > self.scene.MAX_SOLDIERS_IN_BOAT:
+            refused_soldiers = amount + self.nb_soldiers - self.scene.MAX_SOLDIERS_IN_BOAT
+            amount = self.scene.MAX_SOLDIERS_IN_BOAT - self.nb_soldiers
 
         if self.owner is None:
             self.owner = self.region.owner

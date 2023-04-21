@@ -322,7 +322,7 @@ class BoatInfoZone(InfoZone):
         bp.Image(self, sticky="center", image=hover, pos=(0, 8))
 
         self.soldiers = ()
-        for i in range(self.scene.SOLDIERS_PER_BOAT):
+        for i in range(self.scene.MAX_SOLDIERS_IN_BOAT):
             soldier = bp.Image(self.soldiers_zone, image=SOLDIERS[self.continent])
             soldier.sleep()
             self.soldiers += (soldier,)
@@ -397,7 +397,7 @@ class BoatInfoZone(InfoZone):
 
     def update_nb_soldiers(self, boat):
 
-            for i in range(self.scene.SOLDIERS_PER_BOAT):
+            for i in range(self.scene.MAX_SOLDIERS_IN_BOAT):
                 if i < boat.nb_soldiers:
                     self.soldiers[i].wake()
                 else:
@@ -732,7 +732,8 @@ class CardsZone(BackgroundedZone):
         if self.current_player is None:
             return
 
-        if self.current_player.gold < self.scene.CARD_PRICE or not self.scene.draw_pile:
+        if self.current_player.gold < self.scene.CARD_PRICE or \
+                (not self.scene.draw_pile and not self.scene.discard_pile):
             for btn in self.add_buttons:
                 btn.disable()
         else:
@@ -1634,6 +1635,11 @@ class ChooseCardZone(BackgroundedZone):
             self.parent.hide()
 
             self.scene.cards_zone.add_card(self.region, self.parent.slot_destination)
+
+            for card in self.parent.cards:
+                if card is self:
+                    continue
+                self.scene.discard_pile.append(card.region)
 
         def handle_unhover(self):
 

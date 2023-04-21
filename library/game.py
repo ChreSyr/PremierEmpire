@@ -31,13 +31,13 @@ class Game(bp.Scene):
     BUILD_PRICE = 3
     CARDS_PER_HAND = 3
     CARD_PRICE = 3
-    CARD_SELL_PRICE = 2
+    CARD_SELL_PRICE = 3
     MAX_CHOOSE_REGION_ATTEMPTS = 3
     PRODUCTION_CAMP = 3
     PRODUCTION_MINE = 3
-    SOLDIERS_PER_BOAT = 5
-    START_GOLD = 6
-    START_SOLDIERS = 3
+    MAX_SOLDIERS_IN_BOAT = 5
+    START_GOLD = 9
+    START_SOLDIERS = 4
 
     def __init__(self, app):
 

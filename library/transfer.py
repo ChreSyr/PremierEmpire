@@ -76,7 +76,7 @@ class TransferZone(bp.Zone):
                              pos=(front.get_width() / 2 - back.get_width() / 2, Boat.TOP_PADDING))
         self.soldiers_in_boat_zone = bp.Zone(self.boat_zone, size=(0, 22), sticky="midtop", spacing=-1)
         self.soldiers_in_boat = ()
-        for _ in range(self.scene.SOLDIERS_PER_BOAT):
+        for _ in range(self.scene.MAX_SOLDIERS_IN_BOAT):
             soldier = bp.Image(self.soldiers_in_boat_zone, image=SOLDIERS["north_america"])
             soldier.sleep()
             self.soldiers_in_boat += (soldier,)
