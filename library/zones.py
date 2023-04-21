@@ -1,5 +1,6 @@
 
 import math
+import random
 import baopig as bp
 from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
     LANGUAGES_TRANSLATED
@@ -1612,8 +1613,6 @@ class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):
 
 class ChooseCardZone(BackgroundedZone):
 
-    # TODO : if not choosen when timer ends, closes this zone and selects a random region
-
     NB_PICKS = 4
 
     class Card(CardTemplate, bp.LinkableByMouse):
@@ -1660,6 +1659,12 @@ class ChooseCardZone(BackgroundedZone):
         self.adapt()
 
         game.sail.add_target(self)
+
+    def random_choice(self):
+
+        valid_choices = tuple(card for card in self.cards if card is not None)
+        choice = random.choice(valid_choices)
+        choice.handle_link()
 
     def show(self):
 

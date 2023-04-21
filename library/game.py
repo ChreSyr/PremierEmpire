@@ -424,6 +424,8 @@ class Game(bp.Scene):
             for region in self.current_player.regions:
                 if region.structure.is_empty:
                     region.structure.hide()
+            if self.choose_card_zone.is_visible:
+                self.choose_card_zone.random_choice()
         Step(self, 20, start=start_build, end=end_build)
 
         def start_attack():
@@ -435,6 +437,8 @@ class Game(bp.Scene):
         def end_attack():
             if self.transferring:
                 self.end_transfer(self.transfer.from_region)
+            if self.choose_card_zone.is_visible:
+                self.choose_card_zone.random_choice()
         Step(self, 21, start=start_attack, end=end_attack)
 
         def start_reorganization():
@@ -449,6 +453,8 @@ class Game(bp.Scene):
         def end_reorganization():
             if self.transferring:
                 self.end_transfer(self.transfer.from_region)
+            if self.choose_card_zone.is_visible:
+                self.choose_card_zone.random_choice()
         Step(self, 22, start=start_reorganization, end=end_reorganization)
 
         self.step = self.step_from_id[0]
