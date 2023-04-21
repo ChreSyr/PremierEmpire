@@ -48,7 +48,7 @@ class GameSail(bp.Circle):
         from baopig.pybao import WeakList
         self._targets = WeakList()
 
-    def _needs_to_be_open(self):
+    def need_to_be_open(self):
 
         for target in self._targets:
             if target.is_visible:
@@ -67,7 +67,7 @@ class GameSail(bp.Circle):
 
     def animate(self):
 
-        if self._needs_to_be_open():
+        if self.need_to_be_open():
             if self.radius < 480:
                 self.set_radius(self.radius + 60)
             else:
@@ -98,7 +98,7 @@ class GameSail(bp.Circle):
         if self.radius == 0:
             return
 
-        if self._needs_to_be_open():
+        if self.need_to_be_open():
             return self.move_behind_main_target()
 
         if not self.animator.is_running:

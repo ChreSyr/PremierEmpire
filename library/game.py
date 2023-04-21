@@ -556,13 +556,13 @@ class Game(bp.Scene):
 
     def handle_link_motion(self, rel):
 
-        if self.step.id >= 11:
+        if self.step.id >= 11 and not self.sail.need_to_be_open():
 
             self.map.move(*rel)
 
     def handle_mousebuttondown(self, event):
 
-        if event.button == 3 and self.step.id >= 11:
+        if event.button == 3 and self.step.id >= 11 and not self.sail.need_to_be_open():
 
             if not self.transferring:
 
