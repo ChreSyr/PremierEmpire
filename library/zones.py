@@ -883,8 +883,8 @@ class InfoLeftZone(BackgroundedZone):
         stepbtns_zone.adapt()
 
         nextstep_zone = bp.Zone(self, padding=(padding, 40, padding, padding))
-        self.next_step_btn = PE_Button(nextstep_zone, text_id=15, background_color=self.standard_color,
-                                       command=game.next_player)
+        self.next_player_btn = PE_Button(nextstep_zone, text_id=15, background_color=self.standard_color,
+                                         command=game.next_player)
         nextstep_zone.pack()
         nextstep_zone.adapt()
 
@@ -988,6 +988,8 @@ class PlayerTurnZone(BackgroundedZone, bp.Focusable):
 
     def handle_defocus(self):
 
+        if self.scene.focused_widget is self.scene.info_left_zone.next_player_btn:
+            return
         self.hide()
 
     def handle_link(self):

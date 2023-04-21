@@ -604,41 +604,43 @@ class Game(bp.Scene):
 
     def next_player(self):
 
-        set_build = False
+        with bp.paint_lock:
 
-        if self.selected_region:
-            self.region_info_zone.close()
+            set_build = False
 
-        if self.current_player_id == -1:
-            # start of the game
-            set_build = True
+            if self.selected_region:
+                self.region_info_zone.close()
 
-        elif self.step.id >= 20:
+            if self.current_player_id == -1:
+                # start of the game
+                set_build = True
 
-            set_build = True
-            self.step.end()
+            elif self.step.id >= 20:
 
-            if self.turn_index >= 0 and self.current_player_id == len(self.players) - 1:
-                self.turn_index += 1
+                set_build = True
+                self.step.end()
 
-        self.current_player_id = (self.current_player_id + 1) % len(self.players)
-        if not self.current_player.is_alive:
-            self.next_player()
-            return
+                if self.turn_index >= 0 and self.current_player_id == len(self.players) - 1:
+                    self.turn_index += 1
 
-        if set_build:
-            self.set_step(20)
-            if not self.winner:
-                self.playerturn_zone.show()
+            self.current_player_id = (self.current_player_id + 1) % len(self.players)
+            if not self.current_player.is_alive:
+                self.next_player()
+                return
 
-        if self.time_left.is_running:
-            self.time_left.cancel()
-        if self.step.id >= 20:
-            self.time_left.start()
+            if set_build:
+                self.set_step(20)
+                if not self.winner:
+                    self.playerturn_zone.show()
 
-        set_cursor(self.current_player.name)
+            if self.time_left.is_running:
+                self.time_left.cancel()
+            if self.step.id >= 20:
+                self.time_left.start()
 
-        self.signal.PLAYER_TURN.emit()
+            set_cursor(self.current_player.name)
+
+            self.signal.PLAYER_TURN.emit()
 
     def next_step(self):
 
