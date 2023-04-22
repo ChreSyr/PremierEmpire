@@ -6,8 +6,8 @@ def set_progression(prc):
 
     if loading_screen:
 
-        logo_top, logo_left = fullscreen_size[0] / 2 - logo.get_width() / 2,\
-                              fullscreen_size[1] / 2 - logo.get_height() / 2
+        logo_top, logo_left = screen_size[0] / 2 - logo.get_width() / 2,\
+                              screen_size[1] / 2 - logo.get_height() / 2
         screen.fill(fuchsia)  # Transparent background
         pygame.draw.rect(screen, (255, 255, 255), pygame.Rect(int(logo_top), int(logo_left),
                                                    int(logo.get_width() * prc), logo.get_height()))
@@ -17,16 +17,15 @@ def set_progression(prc):
 
 pygame.init()
 screen_sizes = pygame.display.list_modes()
-fullscreen_size = screen_sizes[0]
+screen_size = screen_sizes[0]
 loading_screen = True
 
 if loading_screen:
     # LOADING SCREEN
 
     logo = pygame.image.load("images/logo.png")
-    # screen = pygame.display.set_mode(fullscreen_size, pygame.NOFRAME)
-    screen = pygame.display.set_mode(fullscreen_size, pygame.NOFRAME | pygame.HIDDEN)
-    pygame.display.set_mode(fullscreen_size, pygame.NOFRAME | pygame.SHOWN)
+    screen = pygame.display.set_mode(screen_size, pygame.NOFRAME | pygame.HIDDEN)
+    pygame.display.set_mode(screen_size, pygame.NOFRAME | pygame.SHOWN)
     done = False
     fuchsia = (1, 0, 0)  # Transparency color
 

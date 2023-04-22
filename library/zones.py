@@ -6,7 +6,7 @@ from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslata
     LANGUAGES_TRANSLATED
 import pygame
 from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
-from library.loading import logo, fullscreen_size, screen_sizes
+from library.loading import logo, screen_size, screen_sizes
 from library.buttons import PE_Button, PE_Button_Text, TransferButton
 from library.region import SoldiersContainer, Structure, back, front, hover
 
@@ -43,7 +43,7 @@ class GameSail(bp.Circle):
         bp.Circle.__init__(self, game, color=(0, 0, 0, 63), radius=120, visible=False, sticky="center",
                            layer=game.extra_layer)
 
-        self.max_radius = sum(fullscreen_size) / 2
+        self.max_radius = sum(screen_size) / 2
         self.animator = bp.RepeatingTimer(.03, self.animate)
 
         from baopig.pybao import WeakList

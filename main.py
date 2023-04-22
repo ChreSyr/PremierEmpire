@@ -1,11 +1,8 @@
 
-import os
+# import sys
+# sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\dev\\python\\baopig')
 
-os.chdir(os.path.dirname(os.path.realpath(__file__)))  # executable from console
-import sys
-sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\dev\\python\\baopig')
-
-from library.loading import set_progression, fullscreen_size
+from library.loading import set_progression, screen_size
 set_progression(.05)
 set_progression(.1)
 set_progression(.15)
@@ -20,7 +17,7 @@ from library.game import Game
 
 set_progression(.7)
 
-app = bp.Application(name="PremierEmpire", theme=MyTheme(), size=fullscreen_size)
+app = bp.Application(name="PremierEmpire", theme=MyTheme(), size=screen_size)
 app.set_debug(launchtime=True)
 
 set_progression(.8)
