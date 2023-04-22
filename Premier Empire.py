@@ -17,7 +17,7 @@ from library.game import Game
 
 set_progression(.7)
 
-app = bp.Application(name="PremierEmpire", theme=MyTheme(), size=screen_size)
+app = bp.Application(name="Premier Empire", theme=MyTheme(), size=screen_size)
 app.set_debug(launchtime=True)
 
 set_progression(.8)

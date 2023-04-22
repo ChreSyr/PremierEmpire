@@ -20,6 +20,9 @@ screen_sizes = pygame.display.list_modes()
 screen_size = screen_sizes[0]
 loading_screen = True
 
+# Game's icon
+pygame.display.set_icon(pygame.image.load("images/icon.png"))
+
 if loading_screen:
     # LOADING SCREEN
 
