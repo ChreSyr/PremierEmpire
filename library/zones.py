@@ -238,10 +238,12 @@ class Warning(BackgroundedZone):
 # --
 
 
-class MaintainableByFocus:  # TODO : move to baopig
+class MaintainableByFocus(bp.Widget):
     """ Class for widgets who need to be open as long as they have a focused maintainer """
 
-    def __init__(self, is_valid_maintainer):
+    def __init__(self, parent, is_valid_maintainer):
+
+        bp.Widget.__init__(self, parent)
 
         self._maintainer_ref = lambda: None  # this is the child that is focused
         self.is_valid_maintainer = is_valid_maintainer
@@ -275,7 +277,7 @@ class MaintainableByFocus:  # TODO : move to baopig
         self.maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
 
 
-class InfoZone(BackgroundedZone, bp.Focusable, MaintainableByFocus):
+class InfoZone(BackgroundedZone, bp.Focusable, bp.MaintainableByFocus):
 
     class RegionTitle(TranslatableText):
 
@@ -306,7 +308,7 @@ class InfoZone(BackgroundedZone, bp.Focusable, MaintainableByFocus):
                 widget = widget.parent
                 if widget.scene == widget:
                     return False
-        MaintainableByFocus.__init__(self, is_valid_maintainer=is_valid_maintainer)
+        bp.MaintainableByFocus.__init__(self, game, is_valid_maintainer=is_valid_maintainer)
 
         self._target_ref = lambda: None
 
@@ -549,7 +551,7 @@ class CardTemplate(BackgroundedZone):
                                       max_width=self.content_rect.w - 6, align_mode="center")
 
 
-class CardsZone(BackgroundedZone, bp.Focusable, MaintainableByFocus):
+class CardsZone(BackgroundedZone, bp.Focusable, bp.MaintainableByFocus):
 
     class Card(CardTemplate, bp.LinkableByMouse):
 
@@ -692,7 +694,7 @@ class CardsZone(BackgroundedZone, bp.Focusable, MaintainableByFocus):
                 widget = widget.parent
                 if widget.scene == widget:
                     return False
-        MaintainableByFocus.__init__(self, is_valid_maintainer)
+        bp.MaintainableByFocus.__init__(self, game, is_valid_maintainer)
 
         self.set_style_for(
             self.AddCardButton,

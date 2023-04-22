@@ -82,7 +82,7 @@ class TransferZone(bp.Zone):
             self.soldiers_in_boat += (soldier,)
         self.front = bp.Image(self.boat_zone, image=front, pos=(0, Boat.TOP_PADDING))
 
-        self.flag = bp.Image(self, FLAGS["north_america"])  # TODO : change or translate
+        self.flag = bp.Image(self, FLAGS["north_america"])
         self.flag.sleep()
 
         bp.mouse.signal.MOUSEMOTION.connect(self.handle_mouse_motion, owner=self)
