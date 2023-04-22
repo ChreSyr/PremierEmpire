@@ -123,7 +123,7 @@ class GameSail(bp.Circle):
 class RightClickZone(BackgroundedZone, bp.Focusable):
 
     INGAME_MODE = 0
-    LANG_MODE = 1
+    CUSTOM_MODE = 1
 
     def __init__(self, game):
 
@@ -165,7 +165,7 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
         if self.scene.focused_widget.parent is not self:
             self.hide()
 
-    def open(self, mode):
+    def open(self, mode, custom_btns=()):
 
         self.scene.right_click_zone.reset()
 
@@ -173,6 +173,14 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
             def recenter():
                 self.scene.map.pos_manager.config(pos=(0, 0))
             self.scene.right_click_zone.add_btn(btn_text_id=93, btn_command=recenter)
+
+        elif mode == self.CUSTOM_MODE:
+
+            for btn in custom_btns:
+                self.scene.right_click_zone.add_btn(btn_text_id=btn[0], btn_command=btn[1])
+
+        else:
+            raise ValueError(f"Unknwon mode : {mode}")
 
         self.layer.move_on_top(self)
         self.set_pos(topleft=bp.mouse.pos)
@@ -1237,9 +1245,9 @@ class ProgressTracker(bp.Zone):
 
 class ClosableZone(BackgroundedZone):
 
-    def __init__(self, game,  **kwargs):
+    def __init__(self, game, visible=False, **kwargs):
 
-        BackgroundedZone.__init__(self, game, sticky="center", layer=game.extra_layer, visible=False, **kwargs)
+        BackgroundedZone.__init__(self, game, sticky="center", layer=game.extra_layer, visible=visible, **kwargs)
 
         PE_Button(self, text="X", pos=(-10, 10), sticky="topright", layer_level=2, translatable=False, size=(40, 40),
                   background_color=(150, 20, 20), command=self.close)
@@ -1254,7 +1262,7 @@ class SettingsZone(ClosableZone):
 
     def __init__(self, game, behind=None, padding=(90, 60), **kwargs):
 
-        ClosableZone.__init__(self, game, spacing=20, padding=padding, **kwargs)
+        ClosableZone.__init__(self, game, spacing=20, padding=padding, visible=bool(behind), **kwargs)
 
         self.game = game
         self.behind = behind
@@ -1262,7 +1270,6 @@ class SettingsZone(ClosableZone):
         if behind:
             PE_Button(self, text="<", pos=(10, 10), layer_level=2, translatable=False, size=(40, 40),
                       command=self.hide, text_style={"font_height": 35}, padding=0)
-            self.show()
 
         self.main_layer = bp.Layer(self)
 
@@ -1504,12 +1511,8 @@ class SettingsLanguageZone(SettingsZone):
                         btn.kill()
                         self.pack_and_adapt()
 
-                    # rightclick_zone = RightClickZone(game, event)
-                    # rightclick_zone.add_btn(btn_text_id=14, btn_command=delete)
-
-                    # self.scene.right_click_zone.reset()
-                    # self.scene.right_click_zone.add_btn(btn_text_id=14, btn_command=delete)
-                    self.scene.right_click_zone.open(mode=RightClickZone.LANG_MODE)
+                    custom_btn = (14, delete)
+                    self.scene.right_click_zone.open(mode=RightClickZone.CUSTOM_MODE, custom_btns=(custom_btn,))
 
             def handle_validate(btn):
 
