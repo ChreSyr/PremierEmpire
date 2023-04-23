@@ -1407,6 +1407,9 @@ class SettingsMainZone(SettingsZone):
         lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self.resolution_btn)
         resolution_zone.adapt()
 
+        # SOUNDS
+        self.sounds_btn = PE_Button(parent=self, text_id=99)
+
         # EXIT
         PE_Button(parent=self, text_id=1, command=self.application.exit)
 
@@ -1669,6 +1672,99 @@ class SettingsResolutionZone(SettingsZone):
         self.pack_and_adapt()
 
         self.behind.resolution_btn.command = self.show
+
+
+class SettingsSoundZone(SettingsZone):
+
+    def __init__(self, game):
+
+        SettingsZone.__init__(self, game, behind=game.settings_zone)
+
+        sounds = self.scene.sounds
+
+        # MUSIC CHOICE
+        musicchoice_zone = bp.Zone(self, spacing=20, border_width=2, padding=12, width=164)
+        musicchoice_title = TranslatableText(musicchoice_zone, text_id=100, pos=(0, -1), max_width=140, align_mode="center",
+                                             font_height=PE_Button.STYLE["text_style"]["font_height"])
+
+        class MusicOnOff(ButtonWithSound):
+
+            def __init__(self, parent, **args):
+
+                ButtonWithSound.__init__(self, parent, **args)
+
+                self.check = bp.CheckBox(self, is_selected=True, size=(20, 20), padding=0,
+                                         sticky="midleft", pos=(10, 0))
+                self.check.checkmark.resize(10, 10)
+                self.title = TranslatableText(self, text_id=105, sticky="midleft", pos=(self.check.rect.w + 20, 0))
+
+                if not sounds.music_is_on:
+                    self.handle_validate()
+
+            def handle_validate(self):
+
+                self.check.handle_validate()
+                if self.check.is_selected:
+                    sounds.start_music()
+                    self.title.set_ref_text(text_id=105)
+                else:
+                    sounds.stop_music()
+                    self.title.set_ref_text(text_id=106)
+        MusicOnOff(musicchoice_zone, size=(140, 40))
+
+        music_names = tuple(sounds.musics.keys())
+        class MusicChoiceButton(PE_Button):
+            def __init__(btn, index):
+                PE_Button.__init__(btn, parent=musicchoice_zone, text=music_names[index], translatable=False)
+            def handle_validate(self):
+                super().handle_validate()
+                sounds.set_music(self.text)
+        for i in range(len(music_names)):
+            MusicChoiceButton(i)
+        musicchoice_zone.pack()
+        musicchoice_zone.adapt()
+
+        # VOLUME
+        volume_zone = bp.Zone(self, spacing=20, border_width=2, padding=12, width=164)
+        volume_title = TranslatableText(volume_zone, text_id=101, pos=(0, -1), max_width=140, align_mode="center",
+                                        font_height=PE_Button.STYLE["text_style"]["font_height"])
+        class VolumeTitle(TranslatableText):
+            STYLE = TranslatableText.STYLE.substyle()
+            STYLE.modify(max_width=140, align_mode="center")
+        class VolumeSlider(bp.Slider):
+            STYLE = bp.Slider.STYLE.substyle()
+            STYLE.modify(length=140, has_indicator=False)
+            def __init__(self, parent, target, **kwargs):
+                bp.Slider.__init__(self, parent, **kwargs)
+                self.target = target
+                self.signal.NEW_VAL.connect(self.handle_new_val, owner=self)
+            def handle_new_val(self):
+                sounds.set_volume(self.target, self.val)
+        VolumeTitle(volume_zone, text_id=102)
+        VolumeSlider(volume_zone, target="master", minval=0, maxval=1, defaultval=sounds.volume_master, step=.1)
+        VolumeTitle(volume_zone, text_id=100)
+        VolumeSlider(volume_zone, target="music", minval=0, maxval=1, defaultval=sounds.volume_music, step=.1)
+        VolumeTitle(volume_zone, text_id=103)
+        VolumeSlider(volume_zone, target="sfx", minval=0, maxval=1, defaultval=sounds.volume_sfx, step=.1)
+        VolumeTitle(volume_zone, text_id=104)
+        VolumeSlider(volume_zone, target="ui", minval=0, maxval=1, defaultval=sounds.volume_ui, step=.1)
+        volume_zone.pack()
+        volume_zone.adapt()
+
+        # Music level
+        # musiclevel_zone = bp.Zone(self)
+        # musiclevel_title = TranslatableText(musiclevel_zone, text_id=101, sticky="midtop")
+        # self.musiclevel_btn = PE_Button(parent=musiclevel_zone, text=f"{game.rect.width} × {game.rect.height}",
+        #                                 pos=(0, musiclevel_title.rect.bottom + 3), translatable=False)
+        # def handle_update_language():
+        #     if "×"  not in self.musiclevel_btn.text:
+        #         self.musiclevel_btn.set_text(lang_manager.get_text_from_id(text_id=47))
+        # # lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self.musiclevel_btn)
+        # musiclevel_zone.adapt()
+
+        self.pack_and_adapt()
+
+        self.behind.sounds_btn.command = self.show
 
 
 class WinnerInfoZone(bp.Zone, bp.LinkableByMouse):

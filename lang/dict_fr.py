@@ -96,4 +96,12 @@ texts = [
     "Égalité !",
     "Impossible de construire un bâtiment :\nVous n'avez pas assez d'or",
     "Vendre",
+    "Audio",
+    "Musique",
+    "Volume",
+    "Global",
+    "SFX",
+    "Interface",
+    "Activée",
+    "Désactivée",
 ]

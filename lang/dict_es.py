@@ -96,4 +96,13 @@ texts = [
     "Empate !",
     "Imposible construir un edificio :\nNo tienes suficiente oro",
     "Vender",
+    # TODO : Audio
+    "Sonido",
+    "Música",
+    "Volumen",
+    "Principal",
+    "SFX",
+    "Interfaz",
+    "Activada",
+    "Desactivada",
 ]

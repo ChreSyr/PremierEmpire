@@ -9,6 +9,12 @@ class SoundManager:
 
         self.game = game
 
+        self.music_is_on = True  # TODO : from memory
+        self.volume_master = 1
+        self.volume_music = 1
+        self.volume_sfx = 1
+        self.volume_ui = 1
+
         self.click = bp.mixer.Sound("sounds/256116__kwahmah_02__click_2.wav")
         self.soldier_grunt = bp.mixer.Sound("sounds/427972__lipalearning__male-grunt_10.wav")
         self.build = bp.mixer.Sound("sounds/388269__sami_kullstrom__knocking-on-a-wood-table.wav")
@@ -18,13 +24,40 @@ class SoundManager:
         self.win = bp.mixer.Sound("sounds/60444__jobro__tada2_2.wav")
         self.defeat = bp.mixer.Sound("sounds/455396__insanity54__accidentally-punching-the-floor_3.wav")
 
-        self.musics = (
-            "sounds/614838__quadraslayer__medieval-city-middle-east.mp3",
-            "sounds/615166__quadraslayer__medieval-tavern.mp3",
+        self.musics = {
+            "Oasis City": "sounds/614838__quadraslayer__medieval-city-middle-east.mp3",
+            "The Tavern": "sounds/615166__quadraslayer__medieval-tavern.mp3",
+        }
+        bp.mixer.music.load(random.choice(tuple(self.musics.values())))
+
+        self._music = (bp.mixer.music,)
+
+        self._sfx = (
+            self.soldier_grunt, self.build, self.flag, self.change_gold, self.conquest, self.win, self.defeat,
         )
-        bp.mixer.music.load(random.choice(self.musics))
+
+        self._ui = (
+            self.click,
+        )
+
+        self._master = self._music + self._sfx + self._ui
+
+    def set_music(self, music_name):
+
+        bp.mixer.music.load(self.musics[music_name])
+        self.start_music()
+
+    def set_volume(self, target, val):
+
+        for element in getattr(self, '_' + target):
+            element.set_volume(val)
 
     @staticmethod
     def start_music():
 
-        bp.mixer.music.play(loops=10)
+        bp.mixer.music.play(loops=-1)
+
+    @staticmethod
+    def stop_music():
+
+        bp.mixer.music.stop()

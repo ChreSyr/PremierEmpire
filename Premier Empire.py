@@ -1,6 +1,6 @@
 
-# import sys
-# sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\dev\\python\\baopig')
+import sys
+sys.path.insert(0, 'C:\\Users\\symrb\\Documents\\dev\\python\\baopig')
 
 from library.loading import set_progression, screen_size
 set_progression(.05)

@@ -125,7 +125,7 @@ class Game(bp.Scene):
         self.sail = GameSail(self)
 
         # PARAMETERS
-        from library.zones import SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone
+        from library.zones import SettingsMainZone, SettingsLanguageZone, SettingsResolutionZone, SettingsSoundZone
         self.settings_zone = SettingsMainZone(self)
         self.settings_zone.tuto_btn.command = create_tuto_zone
         self.settings_btn = PE_Button(self, text_id=13, command=self.settings_zone.toggle, layer=self.extra_layer)
@@ -138,6 +138,9 @@ class Game(bp.Scene):
 
         # RESOLUTION
         self.settings_zone.resolution_btn.command = bp.PrefilledFunction(SettingsResolutionZone, self)
+
+        # SOUNDS
+        self.settings_zone.sounds_btn.command = bp.PrefilledFunction(SettingsSoundZone, self)
 
         # PROGRESS TRACKER
         # self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
