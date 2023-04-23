@@ -255,6 +255,9 @@ class InfoZone(BackgroundedZone, bp.Focusable, bp.MaintainableByFocus):
 
         def is_valid_maintainer(widget):
 
+            if game.step.id < 20:
+                return True
+
             if isinstance(widget, SoldiersContainer) and self.target is None:
                 return True
 
