@@ -51,6 +51,11 @@ class Game(bp.Scene):
         self.current_player_id = 0
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
 
+        # MEMORY
+        self.memory = Memory()
+        lang_manager.set_ref_language("fr")
+        lang_manager.set_language(self.memory.lang_id)
+
         # SOUNDS
         self.sounds = SoundManager(self)
 
@@ -64,11 +69,6 @@ class Game(bp.Scene):
             for player in self.players.values():
                 player.translated_name = lang_manager.get_text_from_id(player.name_id)
         lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self)
-
-        # MEMORY
-        self.memory = Memory()
-        lang_manager.set_ref_language("fr")
-        lang_manager.set_language(self.memory.lang_id)
 
         # LAYERS
         self.game_layer = bp.Layer(self, level=1, weight=2)
@@ -140,7 +140,7 @@ class Game(bp.Scene):
         self.settings_zone.resolution_btn.command = bp.PrefilledFunction(SettingsResolutionZone, self)
 
         # SOUNDS
-        self.settings_zone.sounds_btn.command = bp.PrefilledFunction(SettingsSoundZone, self)
+        SettingsSoundZone(self)  # created from the start because it needs to read the memory
 
         # PROGRESS TRACKER
         # self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
@@ -366,7 +366,8 @@ class Game(bp.Scene):
         self._init_steps()
 
         # Start music
-        self.sounds.start_music()
+        if self.memory.music_is_on:
+            self.sounds.start_music()
 
     def _init_steps(self):
 

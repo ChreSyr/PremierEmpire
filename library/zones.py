@@ -1469,7 +1469,7 @@ class SettingsLanguageZone(SettingsZone):
                 super().handle_validate()
                 lang_manager.set_language(btn.lang_id)
                 self.behind.lang_btn.set_text(btn.text)
-                game.memory.set_lang(btn.lang_id)
+                game.memory.set('lang_id', btn.lang_id)
                 self.hide()
 
             def set_text(btn, text):
@@ -1680,7 +1680,10 @@ class SettingsSoundZone(SettingsZone):
 
         SettingsZone.__init__(self, game, behind=game.settings_zone)
 
+        self.hide()  # hidden because created at launch
+
         sounds = self.scene.sounds
+        memory = self.scene.memory
 
         # MUSIC CHOICE
         musicchoice_zone = bp.Zone(self, spacing=20, border_width=2, padding=12, width=164)
@@ -1698,12 +1701,13 @@ class SettingsSoundZone(SettingsZone):
                 self.check.checkmark.resize(10, 10)
                 self.title = TranslatableText(self, text_id=105, sticky="midleft", pos=(self.check.rect.w + 20, 0))
 
-                if not sounds.music_is_on:
+                if not memory.music_is_on:
                     self.handle_validate()
 
             def handle_validate(self):
 
                 self.check.handle_validate()
+                memory.set('music_is_on', self.check.is_selected)
                 if self.check.is_selected:
                     sounds.start_music()
                     self.title.set_ref_text(text_id=105)
@@ -1741,13 +1745,13 @@ class SettingsSoundZone(SettingsZone):
             def handle_new_val(self):
                 sounds.set_volume(self.target, self.val)
         VolumeTitle(volume_zone, text_id=102)
-        VolumeSlider(volume_zone, target="master", minval=0, maxval=1, defaultval=sounds.volume_master, step=.1)
+        VolumeSlider(volume_zone, target="master", minval=0, maxval=1, defaultval=memory.volume_master, step=.1)
         VolumeTitle(volume_zone, text_id=100)
-        VolumeSlider(volume_zone, target="music", minval=0, maxval=1, defaultval=sounds.volume_music, step=.1)
+        VolumeSlider(volume_zone, target="music", minval=0, maxval=1, defaultval=memory.volume_music, step=.1)
         VolumeTitle(volume_zone, text_id=103)
-        VolumeSlider(volume_zone, target="sfx", minval=0, maxval=1, defaultval=sounds.volume_sfx, step=.1)
+        VolumeSlider(volume_zone, target="sfx", minval=0, maxval=1, defaultval=memory.volume_sfx, step=.1)
         VolumeTitle(volume_zone, text_id=104)
-        VolumeSlider(volume_zone, target="ui", minval=0, maxval=1, defaultval=sounds.volume_ui, step=.1)
+        VolumeSlider(volume_zone, target="ui", minval=0, maxval=1, defaultval=memory.volume_ui, step=.1)
         volume_zone.pack()
         volume_zone.adapt()
 

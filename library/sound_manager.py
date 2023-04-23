@@ -9,14 +9,8 @@ class SoundManager:
 
         self.game = game
 
-        self.music_is_on = True  # TODO : from memory
-        self.volume_master = 1
-        self.volume_music = 1
-        self.volume_sfx = 1
-        self.volume_ui = 1
-
         self.click = bp.mixer.Sound("sounds/256116__kwahmah_02__click_2.wav")
-        self.soldier_grunt = bp.mixer.Sound("sounds/427972__lipalearning__male-grunt_10.wav")
+        self.soldier_grunt = bp.mixer.Sound("sounds/427972__lipalearning__male-grunt_10_2.wav")
         self.build = bp.mixer.Sound("sounds/388269__sami_kullstrom__knocking-on-a-wood-table.wav")
         self.flag = bp.mixer.Sound("sounds/244976__ani_music__wing-flap-flag-flapping-4a_2.wav")
         self.change_gold = bp.mixer.Sound("sounds/439538__ethanchase7744__epic-sword-clang-2_2.wav")
@@ -42,6 +36,11 @@ class SoundManager:
 
         self._master = self._music + self._sfx + self._ui
 
+        self.set_volume('master', game.memory.volume_master)
+        self.set_volume('music', game.memory.volume_music)
+        self.set_volume('sfx', game.memory.volume_sfx)
+        self.set_volume('ui', game.memory.volume_ui)
+
     def set_music(self, music_name):
 
         bp.mixer.music.load(self.musics[music_name])
@@ -51,6 +50,8 @@ class SoundManager:
 
         for element in getattr(self, '_' + target):
             element.set_volume(val)
+
+        self.game.memory.set(f"volume_{target}", val)
 
     @staticmethod
     def start_music():

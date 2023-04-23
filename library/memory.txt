@@ -1,3 +1,6 @@
-lang:fr
-Hello world
-parametres lambddas !
+lang_id:fr
+music_is_on:1
+volume_master:0.8
+volume_music:1.0
+volume_sfx:1.0
+volume_ui:1.0
