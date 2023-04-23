@@ -26,6 +26,7 @@ class Transfer:
 
     def add_flag(self):
 
+        self.game.sounds.flag.play()
         self.has_flag = True
         self.zone.flag.set_surface(FLAGS[self.owner.continent])
         self.zone.flag.wake()
@@ -42,6 +43,8 @@ class Transfer:
         self.mode = None
         self._amount = 0
         self.boat = None
+        if self.has_flag:
+            self.game.sounds.flag.play()
         self.has_flag = False
 
     def set_amount(self, amount):

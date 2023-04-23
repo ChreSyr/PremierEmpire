@@ -11,10 +11,12 @@ from baopig.googletrans import TranslatableText, lang_manager, translator
 
 set_progression(.4)
 
+
+from library.sound_manager import SoundManager
 from library.memory import Memory
 from library.theme import set_cursor
 from library.images import FLAGS, FLAGS_BIG
-from library.buttons import PE_Button, RegionInfoButton
+from library.buttons import ButtonWithSound, PE_Button, RegionInfoButton
 from library.player import Player
 from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseCardZone, GameSail, InfoLeftZone,\
     NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, RightClickZone, TmpMessage, WinnerInfoZone
@@ -48,6 +50,9 @@ class Game(bp.Scene):
         self.flags = []
         self.current_player_id = 0
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
+
+        # SOUNDS
+        self.sounds = SoundManager(self)
 
         # SIGNALS
         self.create_signal("PLAYER_TURN")
@@ -169,21 +174,6 @@ class Game(bp.Scene):
 
                 return pile.pop()
 
-                try:
-                    card = pile.pop()
-                    if len(pile) == 0:
-                        pile.merge_with_discard_pile()
-                        pile.shuffle()
-                    return card
-
-                except IndexError:
-                    assert len(pile) == 0
-                    if len(self.discard_pile) == 0:
-                        return None
-                    pile.merge_with_discard_pile()
-                    pile.shuffle()
-                    return pile.pop()
-
             def pop(self, *args):
                 val = super().pop(*args)
 
@@ -269,17 +259,18 @@ class Game(bp.Scene):
         btn_w = 36*3
         btn_marg = 20
         btn_mid = int(btn_w / 2 + btn_marg / 2)
-        class ClickableNb(bp.Button):
-            STYLE = bp.Button.STYLE.substyle()
+        class ClickableNb(ButtonWithSound):
+            STYLE = ButtonWithSound.STYLE.substyle()
             STYLE.modify(text_style={"font_height":30}, background_color=(0, 0, 0, 24), width=btn_w, height=60*3)
             def __init__(btn, number, pos):
-                bp.Button.__init__(btn, self.choose_nb_players_zone, text=str(number), center=pos)
+                ButtonWithSound.__init__(btn, self.choose_nb_players_zone, text=str(number), center=pos)
                 btn.original_font_height = btn.text_widget.font.height
             def handle_hover(btn):
                 btn.text_widget.font.config(height=int(btn.original_font_height * 1.5))
             def handle_unhover(btn):
                 btn.text_widget.font.config(height=btn.original_font_height)
             def handle_validate(btn):
+                super().handle_validate()
                 self.set_step(10)
                 self.nb_players = int(btn.text)
 
@@ -301,11 +292,11 @@ class Game(bp.Scene):
         centery = int((self.choose_color_zone.rect.h + r2.rect.h + 3) / 2)
         TranslatableText(self.choose_color_zone, text_id=26, center=r2.rect.center, font_height=30,
                 font_color=self.theme.colors.font_opposite)
-        class ClickableFlag(bp.Button):
-            STYLE = bp.Button.STYLE.substyle()
+        class ClickableFlag(ButtonWithSound):
+            STYLE = ButtonWithSound.STYLE.substyle()
             STYLE.modify(background_color=(0, 0, 0, 24), width=btn_w, height=60*3, hover_class=None)
             def __init__(btn, continent, pos):
-                bp.Button.__init__(btn, self.choose_color_zone, center=pos)
+                ButtonWithSound.__init__(btn, self.choose_color_zone, center=pos)
                 btn.continent = continent
                 btn.flag = bp.Image(btn, FLAGS[continent], sticky="center")
                 btn.flag2 = bp.Image(btn, FLAGS_BIG[continent], sticky="center", visible=False)
@@ -325,6 +316,7 @@ class Game(bp.Scene):
                     btn.flag.show()
                     btn.flag2.hide()
             def handle_validate(btn):
+                super().handle_validate()
                 Player(self, btn.continent)
                 self.next_player()
                 self.flags.append(self.current_player.flag)
@@ -344,11 +336,12 @@ class Game(bp.Scene):
 
         # CONFIRMATION
         self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
-        bp.Button(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
-                  background_image=Structure.BUILDS.subsurface(0, 60, 30, 30),
-                  command=bp.PackedFunctions(lambda: self.step.confirm(), self.region_info_zone.close))
-        bp.Button(self.confirm_zone, size=(30, 30), background_color="red4", focus=-1,
-                  background_image=Structure.BUILDS.subsurface(30, 60, 30, 30), command=self.region_info_zone.close)
+        ButtonWithSound(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
+                        background_image=Structure.BUILDS.subsurface(0, 60, 30, 30),
+                        command=bp.PackedFunctions(lambda: self.step.confirm(), self.region_info_zone.close))
+        ButtonWithSound(self.confirm_zone, size=(30, 30), background_color="red4", focus=-1,
+                        background_image=Structure.BUILDS.subsurface(30, 60, 30, 30),
+                        command=self.region_info_zone.close)
         self.confirm_zone.pack(adapt=True)
 
         # CARDS
@@ -368,6 +361,9 @@ class Game(bp.Scene):
         self.step = None
         self.step_from_id = {}
         self._init_steps()
+
+        # Start music
+        self.sounds.start_music()
 
     def _init_steps(self):
 
@@ -484,6 +480,8 @@ class Game(bp.Scene):
         assert region is not None
 
         if self.transfer.mode == self.transfer.BOAT_MODE:  # landing the boat
+
+            self.sounds.build.play()
 
             boat = self.transfer.boat
             boat.wake()
@@ -659,6 +657,8 @@ class Game(bp.Scene):
 
     def newgame_setup(self):
 
+        # TODO : mute soldier sounds during reset
+
         self.winner = None
 
         for player in self.players.values():
@@ -749,6 +749,9 @@ class Game(bp.Scene):
 
     def set_winner(self, winner):
 
+        if winner is not None:
+            self.sounds.win.play()
+
         if winner is None:
             self.winner_info_zone.title.set_text(lang_manager.get_text_from_id(96))
             self.winner_info_zone.panel.set_background_color(BackgroundedZone.STYLE["background_color"])
@@ -776,6 +779,9 @@ class Game(bp.Scene):
             boat = region
 
             if self.step.id == 21:  # boat transfer
+
+                self.sounds.build.play()
+
                 assert not self.transferring
                 assert boat.nb_soldiers > 0
 

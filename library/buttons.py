@@ -2,7 +2,7 @@
 import baopig as bp
 import pygame
 load = pygame.image.load
-from baopig.googletrans import Translatable, dicts, lang_manager
+from baopig.googletrans import Translatable, lang_manager
 
 
 class BtnImg:
@@ -191,6 +191,14 @@ class BtnImg:
 btnimg_manager = BtnImg()
 
 
+class ButtonWithSound(bp.Button):
+
+    def handle_link(self):
+
+        self.scene.sounds.click.play()
+        super().handle_link()
+
+
 class PE_Button_Text(bp.Button_Text, Translatable):
 
     def __init__(self, *args, **kwargs):
@@ -219,7 +227,7 @@ class PE_Button_Text(bp.Button_Text, Translatable):
         self.parent.text_widget2.font.config(height=self.font.height)
 
 
-class PE_Button(bp.Button):
+class PE_Button(ButtonWithSound):
 
     class Button_DisableImage(bp.Image):
 
@@ -257,7 +265,7 @@ class PE_Button(bp.Button):
 
             bp.Image.__init__(self, textbutton, image=surf, visible=False, layer=textbutton.above_content)
 
-    STYLE = bp.Button.STYLE.substyle()
+    STYLE = ButtonWithSound.STYLE.substyle()
     STYLE.modify(
         disable_class=Button_DisableImage,
         focus_class=None,
@@ -280,7 +288,7 @@ class PE_Button(bp.Button):
 
         self.text_id = text_id
         self.is_translatable = translatable
-        bp.Button.__init__(self, parent, *args, **kwargs)
+        ButtonWithSound.__init__(self, parent, *args, **kwargs)
         self.__delattr__("text_id")
 
         surf = btnimg_manager.default_background
@@ -354,7 +362,7 @@ class TransferButton(RegionInfoButton):
 
     def handle_validate(self):
 
-        super().handle_validate()
+        super().handle_validate()  # end_transfer
 
         self.scene.region_info_zone.close()
         self.scene.info_boat_zone.close()

@@ -38,7 +38,7 @@ class Flag(bp.Image, bp.LinkableByMouse):
 
     def handle_mousebuttondown(self, event):
 
-        if event.button == 3:  # right click
+        if event.button in (1, 3):  # left or right click
             self.hide()
             self.game.transfer.add_flag()
 
@@ -180,6 +180,9 @@ class Player(bp.Communicative):
 
     def change_gold(self, delta):
 
+        if delta:
+            self.game.sounds.change_gold.play()
+
         self.gold += delta
         assert self.gold >= 0
         self.gold_tracker.set_text(str(self.gold))
@@ -201,6 +204,8 @@ class Player(bp.Communicative):
 
     def conquer(self, region):
 
+        self.game.sounds.conquest.play()
+
         if isinstance(region, Region):
             if region.flag is not None:
                 flag_owner = self.game.players[int(region.flag.name)]
@@ -220,6 +225,8 @@ class Player(bp.Communicative):
             assert isinstance(region, Boat)
 
     def die(self, attacker):
+
+        self.game.sounds.defeat.play()
 
         attacker.change_gold( + self.gold)
         self.change_gold( - self.gold)

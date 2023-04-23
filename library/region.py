@@ -95,6 +95,9 @@ class SoldiersContainer(bp.Focusable):
     def add_soldiers(self, amount):
         """ Add soldiers -> return the amount of refused soldiers """
 
+        for _ in range(amount):
+            self.scene.sounds.soldier_grunt.play()
+
     def handle_focus(self):
 
         if self.scene.step.id >= 20:
@@ -110,6 +113,8 @@ class SoldiersContainer(bp.Focusable):
         self.hover.wake()
 
     def handle_link(self):
+
+        self.scene.sounds.click.play()
 
         if self.ignore_next_link:
             self.ignore_next_link = False
@@ -128,6 +133,9 @@ class SoldiersContainer(bp.Focusable):
 
     def rem_soldiers(self, amount):
         """ Remove soldiers """
+
+        for _ in range(amount):
+            self.scene.sounds.soldier_grunt.play()
 
 
 class Boat(bp.Zone, SoldiersContainer):
@@ -174,6 +182,8 @@ class Boat(bp.Zone, SoldiersContainer):
     region = property(lambda self: self._region)
 
     def add_soldiers(self, amount):
+
+        super().add_soldiers(amount)  # sound
 
         refused_soldiers = None
         if amount + self.nb_soldiers > self.scene.MAX_SOLDIERS_IN_BOAT:
@@ -270,6 +280,8 @@ class Boat(bp.Zone, SoldiersContainer):
 
     def rem_soldiers(self, amount):
 
+        super().rem_soldiers(amount)  # sound
+
         assert self.nb_soldiers - amount >= 0
 
         self._nb_soldiers -= amount
@@ -331,6 +343,8 @@ class Region(bp.Zone, SoldiersContainer):
         Boat(self)
 
     def add_soldiers(self, amount):
+
+        super().add_soldiers(amount)  # sound
 
         if self.owner is None:
             raise PermissionError("This country is unoccupied")
@@ -412,6 +426,8 @@ class Region(bp.Zone, SoldiersContainer):
                 self.scene.start_transfer(self)
 
     def rem_soldiers(self, amount):
+
+        super().rem_soldiers(amount)  # sound
 
         if self.owner is None:
             raise PermissionError("This country is unoccupied")

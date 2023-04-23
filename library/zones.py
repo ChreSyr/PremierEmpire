@@ -7,7 +7,7 @@ from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslata
 import pygame
 from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
 from library.loading import logo, screen_size, screen_sizes
-from library.buttons import PE_Button, PE_Button_Text, TransferButton
+from library.buttons import ButtonWithSound, PE_Button, PE_Button_Text, TransferButton
 from library.region import SoldiersContainer, Structure, back, front, hover
 
 
@@ -132,9 +132,9 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
 
     def add_btn(self, btn_text_id, btn_command):
 
-        class RightClickButton(bp.Button):
+        class RightClickButton(ButtonWithSound):
 
-            STYLE = bp.Button.STYLE.substyle()
+            STYLE = ButtonWithSound.STYLE.substyle()
             STYLE.modify(
                 text_class=PE_Button_Text,
             )
@@ -147,7 +147,7 @@ class RightClickZone(BackgroundedZone, bp.Focusable):
                 btn.is_translatable = True
                 btn.text_id = text_id
 
-                bp.Button.__init__(btn, *args, **kwargs)
+                ButtonWithSound.__init__(btn, *args, **kwargs)
 
             def handle_validate(btn):
 
@@ -238,45 +238,6 @@ class Warning(BackgroundedZone):
 # --
 
 
-class MaintainableByFocus(bp.Widget):
-    """ Class for widgets who need to be open as long as they have a focused maintainer """
-
-    def __init__(self, parent, is_valid_maintainer):
-
-        bp.Widget.__init__(self, parent)
-
-        self._maintainer_ref = lambda: None  # this is the child that is focused
-        self.is_valid_maintainer = is_valid_maintainer
-
-    maintainer = property(lambda self: self._maintainer_ref())
-
-    def _handle_maintainer_defocus(self):
-
-        self.maintainer.signal.DEFOCUS.disconnect(self._handle_maintainer_defocus)
-
-        focused_widget = self.scene.focused_widget
-        if focused_widget is None:
-            return self.close()
-
-        if self.is_valid_maintainer(focused_widget):
-            self._maintainer_ref = focused_widget.get_weakref()
-            self.maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
-
-        else:
-            self.close()
-
-    def close(self):
-        """ Stuff to do when there is no focused maintainer anymore """
-
-    def open(self, maintainer):
-
-        if not self.is_valid_maintainer(maintainer):
-            raise PermissionError(f"Invalid maintainer : {maintainer}")
-
-        self._maintainer_ref = maintainer.get_weakref()
-        self.maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
-
-
 class InfoZone(BackgroundedZone, bp.Focusable, bp.MaintainableByFocus):
 
     class RegionTitle(TranslatableText):
@@ -318,35 +279,12 @@ class InfoZone(BackgroundedZone, bp.Focusable, bp.MaintainableByFocus):
     target = property(lambda self: None if self.is_hidden else self._target_ref())
     last_target = property(lambda self: self._target_ref())
 
-    def _handle_maintainer_defocus_tbr(self):
-
-        self._maintainer.signal.DEFOCUS.disconnect(self._handle_maintainer_defocus)
-
-        focused = self.scene.focused_widget
-        if focused is None:
-            return self.close()
-
-        widget = focused
-
-        if widget.is_asleep:  # usefull in this particular case
-            return self.close()
-
-        while True:
-
-            if widget is self:
-                break
-
-            widget = widget.parent
-            if widget.scene == widget:
-                return self.close()
-
-        self._maintainer = focused
-        self._maintainer.signal.DEFOCUS.connect(self._handle_maintainer_defocus, owner=self)
-
     def close(self):
 
         if self.is_hidden:
             return
+
+        self.scene.sounds.click.play()
 
         self.target.handle_unhover()
         self.target.hover.sleep()
@@ -401,6 +339,8 @@ class BoatInfoZone(InfoZone):
                     return
                 if self.target.owner is None and self.target.region.owner != self.scene.current_player:
                     return
+
+                super().handle_validate()
 
                 with bp.paint_lock:
                     if btn.text == "+":
@@ -863,6 +803,8 @@ class ChooseCardZone(BackgroundedZone):
 
         def handle_link(self):
 
+            self.scene.sounds.click.play()
+
             self.parent.hide()
 
             self.scene.cards_zone.add_card(self.region, self.parent.slot_destination)
@@ -933,14 +875,17 @@ class ChooseBuildZone(bp.Zone):
         boat_background.blit(boat_back, (40 - 68 / 2, 40 - 20 / 2))
         boat_background.blit(boat_front, (40 - 73 / 2, 43 - 26 / 2))
 
-        class BuildButton(bp.Button):
+        class BuildButton(ButtonWithSound):
 
             def __init__(btn, image, name):
 
-                bp.Button.__init__(btn, self, "", size=(size, size), background_image=image, name=name)
+                ButtonWithSound.__init__(btn, self, "", size=(size, size), background_image=image, name=name)
 
             def handle_validate(btn):
 
+                super().handle_validate()
+
+                self.scene.sounds.build.play()
                 if self.scene.current_player.gold < self.scene.BUILD_PRICE:
                     return TmpMessage(self.scene, text_id=97)
                 if btn.name == "boat":
@@ -1518,6 +1463,7 @@ class SettingsLanguageZone(SettingsZone):
 
             def handle_validate(btn):
 
+                super().handle_validate()
                 lang_manager.set_language(btn.lang_id)
                 self.behind.lang_btn.set_text(btn.text)
                 game.memory.set_lang(btn.lang_id)
@@ -1576,16 +1522,16 @@ class SettingsLangAddZone(SettingsZone):
 
     def __init__(self, game, behind):
 
-        class AddLangBtn(bp.Button):
+        class AddLangBtn(ButtonWithSound):
 
-            STYLE = bp.Button.STYLE.substyle()
+            STYLE = ButtonWithSound.STYLE.substyle()
             STYLE.modify(
                 text_style={"font_height":20}
             )
 
             def __init__(btn, parent, lang_id, lang):
 
-                bp.Button.__init__(btn, parent, text=lang, background_color=(0, 0, 0, 0), size=(140, 32), padding=2)
+                ButtonWithSound.__init__(btn, parent, text=lang, background_color=(0, 0, 0, 0), size=(140, 32), padding=2)
 
                 btn.id = lang_id
 
@@ -1708,6 +1654,7 @@ class SettingsResolutionZone(SettingsZone):
 
             def handle_validate(btn):
 
+                super().handle_validate()
                 if btn.resolution is None:
                     self.application.set_default_size(screen_sizes[0])
                     pygame.display.set_mode(screen_sizes[0], pygame.FULLSCREEN)
