@@ -1739,17 +1739,6 @@ class SettingsSoundZone(SettingsZone):
         volume_zone.pack()
         volume_zone.adapt()
 
-        # Music level
-        # musiclevel_zone = bp.Zone(self)
-        # musiclevel_title = TranslatableText(musiclevel_zone, text_id=101, sticky="midtop")
-        # self.musiclevel_btn = PE_Button(parent=musiclevel_zone, text=f"{game.rect.width} × {game.rect.height}",
-        #                                 pos=(0, musiclevel_title.rect.bottom + 3), translatable=False)
-        # def handle_update_language():
-        #     if "×"  not in self.musiclevel_btn.text:
-        #         self.musiclevel_btn.set_text(lang_manager.get_text_from_id(text_id=47))
-        # # lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self.musiclevel_btn)
-        # musiclevel_zone.adapt()
-
         self.pack_and_adapt()
 
         self.behind.sounds_btn.command = self.show

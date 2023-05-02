@@ -36,22 +36,23 @@ class SoundManager:
 
         self._master = self._music + self._sfx + self._ui
 
-        self.set_volume('master', game.memory.volume_master)
-        self.set_volume('music', game.memory.volume_music)
-        self.set_volume('sfx', game.memory.volume_sfx)
-        self.set_volume('ui', game.memory.volume_ui)
+        self.set_volume('master', game.memory.volume_master, from_init=True)
+        self.set_volume('music', game.memory.volume_music, from_init=True)
+        self.set_volume('sfx', game.memory.volume_sfx, from_init=True)
+        self.set_volume('ui', game.memory.volume_ui, from_init=True)
 
     def set_music(self, music_name):
 
         bp.mixer.music.load(self.musics[music_name])
         self.start_music()
 
-    def set_volume(self, target, val):
+    def set_volume(self, target, val, from_init=False):
 
         for element in getattr(self, '_' + target):
             element.set_volume(val)
 
-        self.game.memory.set(f"volume_{target}", val)
+        if from_init is False:
+            self.game.memory.set(f"volume_{target}", val)
 
     @staticmethod
     def start_music():
