@@ -5,7 +5,7 @@ import baopig as bp
 from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslatableText, dicts, lang_manager,\
     LANGUAGES_TRANSLATED
 import pygame
-from library.images import FLAGS_BIG, SOLDIERS, boat_back, boat_front
+from library.images import image
 from library.loading import logo, screen_size, screen_sizes
 from library.buttons import ButtonWithSound, PE_Button, PE_Button_Text, TransferButton
 from library.region import SoldiersContainer, Structure, back, front, hover
@@ -330,7 +330,7 @@ class BoatInfoZone(InfoZone):
 
         self.soldiers = ()
         for i in range(self.scene.MAX_SOLDIERS_IN_BOAT):
-            soldier = bp.Image(self.soldiers_zone, image=SOLDIERS[self.continent])
+            soldier = bp.Image(self.soldiers_zone, image=image.SOLDIERS[self.continent])
             soldier.sleep()
             self.soldiers += (soldier,)
 
@@ -379,7 +379,7 @@ class BoatInfoZone(InfoZone):
             if owner and owner.continent != self.continent:
                 self.continent = owner.continent
                 for soldier in self.soldiers:
-                    soldier.set_surface(SOLDIERS[self.continent])
+                    soldier.set_surface(image.SOLDIERS[self.continent])
 
             self.update_nb_soldiers(boat)
 
@@ -427,7 +427,7 @@ class RegionInfoZone(InfoZone):
 
         self.soldier_zone = bp.Zone(self, sticky="center", pos=(0, -10), spacing=5)
         self.soldier_amount = bp.Text(self.soldier_zone, "")
-        self.soldier_icon = bp.Image(self.soldier_zone, SOLDIERS["asia"])
+        self.soldier_icon = bp.Image(self.soldier_zone, image.SOLDIERS["asia"])
 
         game.region_info_zone = self
         self.invade_btn = TransferButton(game, zone=self, text_id=4)
@@ -870,13 +870,13 @@ class ChooseBuildZone(bp.Zone):
                          size=(140, size), spacing=spacing)
 
         mine_background = pygame.Surface((size, size), pygame.SRCALPHA)
-        mine_background.blit(Structure.DONE, (size / 2 - 15, size / 2 - 15))
+        mine_background.blit(image.DONE, (size / 2 - 15, size / 2 - 15))
         camp_background = mine_background.copy()
-        mine_background.blit(Structure.MINE, (size / 2 - 15, size / 2 - 15))
-        camp_background.blit(Structure.CAMP, (size / 2 - 15, size / 2 - 15))
+        mine_background.blit(image.MINE, (size / 2 - 15, size / 2 - 15))
+        camp_background.blit(image.CAMP, (size / 2 - 15, size / 2 - 15))
         boat_background = pygame.Surface((80, 80), pygame.SRCALPHA)
-        boat_background.blit(boat_back, (40 - 68 / 2, 40 - 20 / 2))
-        boat_background.blit(boat_front, (40 - 73 / 2, 43 - 26 / 2))
+        boat_background.blit(image.boat_back, (40 - 68 / 2, 40 - 20 / 2))
+        boat_background.blit(image.boat_front, (40 - 73 / 2, 43 - 26 / 2))
 
         class BuildButton(ButtonWithSound):
 
@@ -1058,7 +1058,7 @@ class PlayerTurnZone(BackgroundedZone, bp.Focusable):
             x_rel = math.cos(i2) * radius
             y_rel = math.sin(i2) * radius
 
-            flag = FLAGS_BIG[player.continent]
+            flag = image.FLAGS_BIG[player.continent]
             self.flags[player.id] = bp.Image(self, image=flag,
                                              center=(x_rel + self.rect.width / 2, y_rel + self.rect.height / 2))
 
@@ -1172,25 +1172,6 @@ class PlayZone(bp.Zone):
                 else:
                     play_btn.resize(play_btn.rect.w-2, play_btn.rect.h-2)
         self.btn_animator = bp.RepeatingTimer(.1, anim_play_zone)
-
-
-class ProgressTracker(bp.Zone):
-
-    def __init__(self, scene, **kwargs):
-
-        bp.Zone.__init__(self, parent=scene, size=("100%", "100%"), **kwargs)
-
-        self.logo = bp.Image(self, image=bp.image.load("images/logo.png"), sticky="center")
-        self.progress_rect = bp.Rectangle(self, color="white", ref=self.logo, size=(0, self.logo.rect.height))
-        self.logo.move_in_front_of(self.progress_rect)
-
-        self.progress = 0
-
-    def set_progress(self, progress):
-
-        assert 0 <= progress <= 1
-        self.progress = progress
-        self.progress_rect.resize_width(int(self.logo.rect.width * progress))
 
 
 class ClosableZone(BackgroundedZone):

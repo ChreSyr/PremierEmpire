@@ -3,19 +3,14 @@ import random
 import baopig as bp
 import pygame
 from baopig.googletrans import dicts
-from library.images import load, boat_back, boat_front, boat_front_hover
-front = pygame.transform.smoothscale(boat_front, ((59, 20)))
-hover = pygame.transform.smoothscale(boat_front_hover, ((59, 20)))
-back = pygame.transform.smoothscale(boat_back, ((54, 17)))
+from library.images import image, load
+
+front = pygame.transform.smoothscale(image.boat_front, ((59, 20)))
+hover = pygame.transform.smoothscale(image.boat_front_hover, ((59, 20)))
+back = pygame.transform.smoothscale(image.boat_back, ((54, 17)))
 
 
 class Structure(bp.Image):
-
-    BUILDS = bp.image.load("images/builds.png")
-    WIP = BUILDS.subsurface(0, 0, 30, 30)
-    DONE = BUILDS.subsurface(30, 0, 30, 30)
-    MINE = BUILDS.subsurface(0, 30, 30, 30)
-    CAMP = BUILDS.subsurface(30, 30, 30, 30)
 
     def __init__(self, region, image, center):
 
@@ -41,7 +36,7 @@ class Structure(bp.Image):
         self.icon = None
 
         self.hide()
-        self.set_surface(Structure.WIP)
+        self.set_surface(image.WIP)
         self._state = 0
         self._name = "NoName"
     
@@ -50,7 +45,7 @@ class Structure(bp.Image):
         if not self.is_under_construction:
             raise PermissionError
         
-        self.set_surface(Structure.DONE)
+        self.set_surface(image.DONE)
         self._state = 2
     
     def produce(self):
@@ -67,7 +62,7 @@ class Structure(bp.Image):
         self._state = 1
         self.show()
         self._name = build_name.upper()
-        self.icon = bp.Image(self.parent, getattr(Structure, self.name), name=build_name, touchable=False,
+        self.icon = bp.Image(self.parent, getattr(image, self.name), name=build_name, touchable=False,
                              center=self.rect.center - bp.Vector2(self.parent.map_image.rect.topleft),
                              ref=self.parent.map_image, layer=self.layer)
 
@@ -319,7 +314,7 @@ class Region(bp.Zone, SoldiersContainer):
                                     info_zone=None)  # will be set at RegionInfoZone's construction
 
         self.mask = bp.mask.from_surface(hover)
-        self.structure = Structure(self, image=Structure.WIP,
+        self.structure = Structure(self, image=image.WIP,
                                    center=build_center if build_center is not None else center)
         if flag_midbottom is None:
             flag_midbottom = self.structure.rect.midtop

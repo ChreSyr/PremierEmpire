@@ -21,12 +21,28 @@ screen_size = screen_sizes[0]
 loading_screen = True
 
 # Game's icon
-pygame.display.set_icon(pygame.image.load("images/icon.png"))
+import sys
+import os
+
+
+def load(name):
+    # Get absolute path to resource, works for dev and for PyInstaller
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    abs_path = os.path.join(base_path, f"images/{name}.png")
+
+    return pygame.image.load(abs_path)
+
+pygame.display.set_icon(load("icon"))
 
 if loading_screen:
     # LOADING SCREEN
 
-    logo = pygame.image.load("images/logo.png")
+    logo = load("logo")
     screen = pygame.display.set_mode(screen_size, pygame.NOFRAME | pygame.HIDDEN)
     pygame.display.set_mode(screen_size, pygame.NOFRAME | pygame.SHOWN)
     done = False

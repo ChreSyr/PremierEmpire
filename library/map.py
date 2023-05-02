@@ -1,12 +1,10 @@
 
 import baopig as bp
-from library.images import map_borders
+from library.images import image
 from library.region import Region
 
 
 class Map(bp.Zone):
-
-    IMAGE = bp.image.load("images/map.png")
 
     def __init__(self, parent):
 
@@ -20,11 +18,11 @@ class Map(bp.Zone):
         self.create_signal("REGION_SELECT")
         self.create_signal("REGION_UNSELECT")
 
-        self.map_image = bp.Image(self, Map.IMAGE, sticky="center", layer=self.background_layer)
+        self.map_image = bp.Image(self, image.map, sticky="center", layer=self.background_layer)
 
         self._create_regions()
 
-        self.borders = bp.Image(self, image=map_borders, ref=self.map_image,
+        self.borders = bp.Image(self, image=image.map_borders, ref=self.map_image,
                                 layer=self.background_layer, touchable=False)
 
     def _create_regions(self):

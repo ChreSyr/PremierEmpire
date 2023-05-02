@@ -1,8 +1,8 @@
 
 import baopig as bp
-import pygame
-load = pygame.image.load
+from baopig import pygame
 from baopig.googletrans import Translatable, lang_manager
+from library.images import image
 
 
 class BtnImg:
@@ -15,32 +15,29 @@ class BtnImg:
         self.win_color = (255, 255, 255, 15)
         self.hover_color = (0, 20, 0, 128)
 
-        self.raw_back = load("images/btn_back.png")
-        self.raw_window = load("images/btn_window.png")
-
         self.hover_dict = {}  # from size to colored hover
-        self.rawback_dict = {self.raw_back.get_size(): self.raw_back}  # from size to raw background
-        self.rawwin_dict = {self.raw_window.get_size(): self.raw_window}  # from size to raw window
+        self.rawback_dict = {image.raw_back.get_size(): image.raw_back}  # from size to raw background
+        self.rawwin_dict = {image.raw_window.get_size(): image.raw_window}  # from size to raw window
 
-        self.colored_back = self.raw_back.copy()
-        self.colored_win = self.raw_window.copy()
+        self.colored_back = image.raw_back.copy()
+        self.colored_win = image.raw_window.copy()
         self.colored_back.fill(self.default_color, special_flags=pygame.BLEND_RGBA_MIN)  # flag for transparency
         self.colored_win.fill(self.win_color, special_flags=pygame.BLEND_RGBA_MIN)  # flag for transparency
 
-        w, h = self.raw_back.get_size()
+        w, h = image.raw_back.get_size()
         self.raw_back_corners = (
-            self.raw_back.subsurface(0, 0, 6, 6),
-            self.raw_back.subsurface(w - 6, 0, 6, 6),
-            self.raw_back.subsurface(w - 6, h - 6, 6, 6),
-            self.raw_back.subsurface(0, h - 6, 6, 6),
+            image.raw_back.subsurface(0, 0, 6, 6),
+            image.raw_back.subsurface(w - 6, 0, 6, 6),
+            image.raw_back.subsurface(w - 6, h - 6, 6, 6),
+            image.raw_back.subsurface(0, h - 6, 6, 6),
         )
 
-        w, h = self.raw_window.get_size()
+        w, h = image.raw_window.get_size()
         self.raw_win_corners = (
-            self.raw_window.subsurface(0, 0, 6, 6),
-            self.raw_window.subsurface(w - 6, 0, 6, 6),
-            self.raw_window.subsurface(w - 6, h - 6, 6, 6),
-            self.raw_window.subsurface(0, h - 6, 6, 6),
+            image.raw_window.subsurface(0, 0, 6, 6),
+            image.raw_window.subsurface(w - 6, 0, 6, 6),
+            image.raw_window.subsurface(w - 6, h - 6, 6, 6),
+            image.raw_window.subsurface(0, h - 6, 6, 6),
         )
 
         self.default_background = self.colored_back.copy()
@@ -49,12 +46,12 @@ class BtnImg:
         self.default_link = self.colored_back.copy()
         self.default_link.fill((0, 0, 0, 63), special_flags=pygame.BLEND_RGBA_MIN)
 
-        self.default_hover = self.raw_back.copy()
+        self.default_hover = image.raw_back.copy()
         self.default_hover.fill(self.hover_color, special_flags=pygame.BLEND_RGBA_MIN)
-        self.win_hover = self.raw_window.copy()
+        self.win_hover = image.raw_window.copy()
         self.win_hover.fill((255, 255, 255, 50), special_flags=pygame.BLEND_RGBA_MIN)
         self.default_hover.blit(self.win_hover, self.window_topleft)
-        self.hover_dict[self.raw_back.get_size()] = self.default_hover
+        self.hover_dict[image.raw_back.get_size()] = self.default_hover
 
     def get_resized_background(self, size, color=None):
 

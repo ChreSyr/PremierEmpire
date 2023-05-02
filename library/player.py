@@ -1,10 +1,9 @@
 
 import baopig as bp
 
-load = bp.image.load
 from baopig.googletrans import dicts, lang_manager, TranslatableText
-from library.images import FLAGS, SOLDIERS
-from library.region import Structure, Boat, Region
+from library.images import image
+from library.region import Boat, Region
 from library.zones import BackgroundedZone
 
 
@@ -12,7 +11,7 @@ class Flag(bp.Image, bp.LinkableByMouse):
 
     def __init__(self, player):
 
-        bp.Image.__init__(self, player.game.map, image=FLAGS[player.continent], name=str(player.id),
+        bp.Image.__init__(self, player.game.map, image=image.FLAGS[player.continent], name=str(player.id),
                           touchable=False, visible=False, ref=player.game.map.map_image)
         bp.LinkableByMouse.__init__(self, self.parent)
 
@@ -32,7 +31,7 @@ class Flag(bp.Image, bp.LinkableByMouse):
 
     def handle_unhover(self):
 
-        self.set_surface(FLAGS[self.player.continent])
+        self.set_surface(image.FLAGS[self.player.continent])
         self.set_pos(center=self.center)
         self.center = None
 
@@ -92,7 +91,7 @@ class Player(bp.Communicative):
             self.translated_name = lang_manager.get_text_from_id(self.name_id)
 
         self.color = Player.COLORS[continent]
-        self.soldier_icon = SOLDIERS[continent]
+        self.soldier_icon = image.SOLDIERS[continent]
         self.flag = Flag(self)
         self.choose_region_attemps = 0
 
@@ -106,7 +105,7 @@ class Player(bp.Communicative):
         colored_rect = bp.Rectangle(z, size=(z.rect.w, 42), color=self.color, border_width=2, border_color="black")
         TranslatableText(z, text_id=self.name_id, ref=colored_rect, sticky="center")
         self.gold_tracker = bp.Text(z, str(self.gold), pos=(10, 50))
-        bp.Image(z, Structure.MINE, ref=self.gold_tracker, pos=(-4, -8), refloc="topright")
+        bp.Image(z, image.MINE, ref=self.gold_tracker, pos=(-4, -8), refloc="topright")
         self.soldiers_title = bp.Text(z, "0", pos=(10, 75))
         bp.Image(z, self.soldier_icon, ref=self.soldiers_title, pos=(4, -4), refloc="topright",
                  name="soldier")

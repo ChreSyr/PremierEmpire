@@ -2,6 +2,7 @@
 import baopig as bp
 import pygame
 from baopig.prefabs.themes import DarkTheme
+from library.images import image
 
 
 class MyTheme(DarkTheme):
@@ -18,19 +19,9 @@ class MyTheme(DarkTheme):
 
 def set_cursor(cursor_name):
     try:
-        bp.pygame.mouse.set_cursor((5, 0), mouses[cursor_name])
+        bp.pygame.mouse.set_cursor((5, 0), image.mouses[cursor_name])
     except pygame.error as e:
         bp.LOGGER.warning(e)
 
 
-mouses_full = bp.image.load("images/hands.png")
-mouses = {
-    "default": mouses_full.subsurface(0, 0, 32, 32),
-    "Jaune": mouses_full.subsurface(0, 32, 32, 32),
-    "Bleu": mouses_full.subsurface(0, 64, 32, 32),
-    "Vert": mouses_full.subsurface(0, 96, 32, 32),
-    "Rouge": mouses_full.subsurface(0, 128, 32, 32),
-    "Gris": mouses_full.subsurface(0, 160, 32, 32),
-    "Violet": mouses_full.subsurface(0, 192, 32, 32),
-}
 set_cursor("default")

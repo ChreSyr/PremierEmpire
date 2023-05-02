@@ -1,50 +1,60 @@
 
-import baopig as bp
+from library.loading import load
 
-load = lambda val: bp.image.load(f"images/{val}.png")
+class ImagesConatiner:
 
-f = load("flags")
-w, h = f.get_size()
-w = w / 3
-h = h / 2
-FLAGS = {
-    "north_america": f.subsurface(0, 0, w, h),
-    "europa": f.subsurface(w, 0, w, h),
-    "asia": f.subsurface(2 * w, 0, w, h),
-    "south_america": f.subsurface(0, h, w, h),
-    "africa": f.subsurface(w, h, w, h),
-    "oceania": f.subsurface(2 * w, h, w, h),
-}
+    def __init__(self):
 
-f_big = load("flags_big")
-w, h = f_big.get_size()
-w = w / 3
-h = h / 2
-FLAGS_BIG = {
-    "north_america": f_big.subsurface(0, 0, w, h),
-    "europa": f_big.subsurface(w, 0, w, h),
-    "asia": f_big.subsurface( 2 *w, 0, w, h),
-    "south_america": f_big.subsurface(0, h, w, h),
-    "africa": f_big.subsurface(w, h, w, h),
-    "oceania": f_big.subsurface( 2 *w, h, w, h),
-}
+        # MOUSE
+        self.mouses_full = load("hands")
+        self.mouses = {
+            "default": self.mouses_full.subsurface(0, 0, 32, 32),
+            "Jaune": self.mouses_full.subsurface(0, 32, 32, 32),
+            "Bleu": self.mouses_full.subsurface(0, 64, 32, 32),
+            "Vert": self.mouses_full.subsurface(0, 96, 32, 32),
+            "Rouge": self.mouses_full.subsurface(0, 128, 32, 32),
+            "Gris": self.mouses_full.subsurface(0, 160, 32, 32),
+            "Violet": self.mouses_full.subsurface(0, 192, 32, 32),
+        }
 
-all_soldiers = load("soldiers")
-w, h = all_soldiers.get_size()
-w = w / 3
-h = h / 2
-SOLDIERS = {
-    "north_america": all_soldiers.subsurface(0, 0, w, h),
-    "europa": all_soldiers.subsurface(w, 0, w, h),
-    "asia": all_soldiers.subsurface(2 * w, 0, w, h),
-    "south_america": all_soldiers.subsurface(0, h, w, h),
-    "africa": all_soldiers.subsurface(w, h, w, h),
-    "oceania": all_soldiers.subsurface(2 * w, h, w, h),
-    # "black": load("images/builds.png").subsurface(38, 38, 14, 14)
-}
+        # PACKED IMAGES
+        self.FLAGS = self.load_packed("flags")
+        self.FLAGS_BIG = self.load_packed("flags_big")
+        self.SOLDIERS = self.load_packed("soldiers")
 
-boat_back = load("boat_back")
-boat_front = load("boat_front")
-boat_front_hover = load("boat_front_hover")
+        # MAP
+        self.map = load("map")
+        self.map_borders = load("map_borders")
 
-map_borders = load("map_borders")
+        # BUTTON
+        self.raw_back = load("btn_back")
+        self.raw_window = load("btn_window")
+
+        # STRUCTURE
+        self.BUILDS = load("builds")
+        self.WIP = self.BUILDS.subsurface(0, 0, 30, 30)
+        self.DONE = self.BUILDS.subsurface(30, 0, 30, 30)
+        self.MINE = self.BUILDS.subsurface(0, 30, 30, 30)
+        self.CAMP = self.BUILDS.subsurface(30, 30, 30, 30)
+
+        # BOAT
+        self.boat_back = load("boat_back")
+        self.boat_front = load("boat_front")
+        self.boat_front_hover = load("boat_front_hover")
+
+    def load_packed(self, name):
+
+        full = load(name)
+        w, h = full.get_size()
+        w = w / 3
+        h = h / 2
+        return {
+            "north_america": full.subsurface(0, 0, w, h),
+            "europa": full.subsurface(w, 0, w, h),
+            "asia": full.subsurface(2 * w, 0, w, h),
+            "south_america": full.subsurface(0, h, w, h),
+            "africa": full.subsurface(w, h, w, h),
+            "oceania": full.subsurface(2 * w, h, w, h),
+        }
+
+image = ImagesConatiner()

@@ -3,8 +3,6 @@ import random
 
 import baopig as bp
 
-load = bp.image.load
-
 from library.loading import set_progression
 
 from baopig.googletrans import TranslatableText, lang_manager, translator
@@ -15,7 +13,7 @@ set_progression(.4)
 from library.sound_manager import SoundManager
 from library.memory import Memory
 from library.theme import set_cursor
-from library.images import FLAGS, FLAGS_BIG
+from library.images import image
 from library.buttons import ButtonWithSound, PE_Button, RegionInfoButton
 from library.player import Player
 from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseCardZone, GameSail, InfoLeftZone,\
@@ -141,10 +139,6 @@ class Game(bp.Scene):
 
         # SOUNDS
         SettingsSoundZone(self)  # created from the start because it needs to read the memory
-
-        # PROGRESS TRACKER
-        # self.progress_tracker = ProgressTracker(self, layer=self.progress_layer)
-        # self.progress_tracker.hide()
 
         # MAP
         class Pile(list, bp.Communicative):
@@ -301,8 +295,8 @@ class Game(bp.Scene):
             def __init__(btn, continent, pos):
                 ButtonWithSound.__init__(btn, self.choose_color_zone, center=pos)
                 btn.continent = continent
-                btn.flag = bp.Image(btn, FLAGS[continent], sticky="center")
-                btn.flag2 = bp.Image(btn, FLAGS_BIG[continent], sticky="center", visible=False)
+                btn.flag = bp.Image(btn, image.FLAGS[continent], sticky="center")
+                btn.flag2 = bp.Image(btn, image.FLAGS_BIG[continent], sticky="center", visible=False)
                 btn.flag2.resize(int(btn.flag.rect.width * 1.5), int(btn.flag.rect.height * 1.5))
             def disable(btn):
                 btn.set_background_color((0, 0, 0, 0))
@@ -336,16 +330,6 @@ class Game(bp.Scene):
 
         # CLICK TO START
         self.play_zone = PlayZone(self)
-
-        # CONFIRMATION
-        self.confirm_zone = BackgroundedZone(self, visible=False, padding=6, spacing=4, layer=self.game_layer)
-        ButtonWithSound(self.confirm_zone, size=(30, 30), background_color="green4", focus=-1,
-                        background_image=Structure.BUILDS.subsurface(0, 60, 30, 30),
-                        command=bp.PackedFunctions(lambda: self.step.confirm(), self.region_info_zone.close))
-        ButtonWithSound(self.confirm_zone, size=(30, 30), background_color="red4", focus=-1,
-                        background_image=Structure.BUILDS.subsurface(30, 60, 30, 30),
-                        command=self.region_info_zone.close)
-        self.confirm_zone.pack(adapt=True)
 
         # CARDS
         self.cards_zone = CardsZone(self)

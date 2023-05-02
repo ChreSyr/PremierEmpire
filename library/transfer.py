@@ -1,6 +1,6 @@
 
 import baopig as bp
-from library.images import FLAGS, SOLDIERS
+from library.images import image
 from library.zones import BackgroundedZone
 from library.region import Boat, front, back
 
@@ -28,7 +28,7 @@ class Transfer:
 
         self.game.sounds.flag.play()
         self.has_flag = True
-        self.zone.flag.set_surface(FLAGS[self.owner.continent])
+        self.zone.flag.set_surface(image.FLAGS[self.owner.continent])
         self.zone.flag.wake()
         self.zone.flag.layer.move_on_top(self.zone.flag)
         self.zone.pack(axis="horizontal", adapt=True)
@@ -71,7 +71,7 @@ class TransferZone(bp.Zone):
         # Soldiers mode
         self.soldiers_zone = BackgroundedZone(self, padding=4, spacing=4)
         self.title = bp.Text(self.soldiers_zone, "")
-        self.icon = bp.Image(self.soldiers_zone, SOLDIERS["asia"])
+        self.icon = bp.Image(self.soldiers_zone, image.SOLDIERS["asia"])
 
         # Boat mode
         self.boat_zone = bp.Zone(self, size=(front.get_width(), front.get_height() + Boat.TOP_PADDING))
@@ -80,12 +80,12 @@ class TransferZone(bp.Zone):
         self.soldiers_in_boat_zone = bp.Zone(self.boat_zone, size=(0, 22), sticky="midtop", spacing=-1)
         self.soldiers_in_boat = ()
         for _ in range(self.scene.MAX_SOLDIERS_IN_BOAT):
-            soldier = bp.Image(self.soldiers_in_boat_zone, image=SOLDIERS["north_america"])
+            soldier = bp.Image(self.soldiers_in_boat_zone, image=image.SOLDIERS["north_america"])
             soldier.sleep()
             self.soldiers_in_boat += (soldier,)
         self.front = bp.Image(self.boat_zone, image=front, pos=(0, Boat.TOP_PADDING))
 
-        self.flag = bp.Image(self, FLAGS["north_america"])
+        self.flag = bp.Image(self, image.FLAGS["north_america"])
         self.flag.sleep()
 
         bp.mouse.signal.MOUSEMOTION.connect(self.handle_mouse_motion, owner=self)
