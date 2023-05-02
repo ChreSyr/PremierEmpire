@@ -25,17 +25,20 @@ import sys
 import os
 
 
-def load(name):
-    # Get absolute path to resource, works for dev and for PyInstaller
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
-    except AttributeError:
+    except Exception:
         base_path = os.path.abspath(".")
 
-    abs_path = os.path.join(base_path, f"images/{name}.png")
+    return os.path.join(base_path, relative_path)
 
-    return pygame.image.load(abs_path)
+
+def load(name):
+
+    return pygame.image.load(resource_path(f"images/{name}.png"))
 
 pygame.display.set_icon(load("icon"))
 

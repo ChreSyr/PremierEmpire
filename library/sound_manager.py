@@ -1,6 +1,7 @@
 
 import random
 import baopig as bp
+from library.loading import resource_path
 
 
 class SoundManager:
@@ -9,18 +10,22 @@ class SoundManager:
 
         self.game = game
 
-        self.click = bp.mixer.Sound("sounds/256116__kwahmah_02__click_2.wav")
-        self.soldier_grunt = bp.mixer.Sound("sounds/427972__lipalearning__male-grunt_10_2.wav")
-        self.build = bp.mixer.Sound("sounds/388269__sami_kullstrom__knocking-on-a-wood-table.wav")
-        self.flag = bp.mixer.Sound("sounds/244976__ani_music__wing-flap-flag-flapping-4a_2.wav")
-        self.change_gold = bp.mixer.Sound("sounds/439538__ethanchase7744__epic-sword-clang-2_2.wav")
-        self.conquest = bp.mixer.Sound("sounds/384882__ali_6868__knight-left-footstep-on-gravel-3-with-chainmail.wav")
-        self.win = bp.mixer.Sound("sounds/60444__jobro__tada2_2.wav")
-        self.defeat = bp.mixer.Sound("sounds/455396__insanity54__accidentally-punching-the-floor_3.wav")
+        get_sound = lambda name: bp.mixer.Sound(resource_path(f"sounds/{name}.wav"))
+
+        self.click = get_sound("256116__kwahmah_02__click_2")
+        self.soldier_grunt = get_sound("427972__lipalearning__male-grunt_10_2")
+        self.build = get_sound("388269__sami_kullstrom__knocking-on-a-wood-table")
+        self.flag = get_sound("244976__ani_music__wing-flap-flag-flapping-4a_2")
+        self.change_gold = get_sound("439538__ethanchase7744__epic-sword-clang-2_2")
+        self.conquest = get_sound("384882__ali_6868__knight-left-footstep-on-gravel-3-with-chainmail")
+        self.win = get_sound("60444__jobro__tada2_2")
+        self.defeat = get_sound("455396__insanity54__accidentally-punching-the-floor_3")
+
+        get_music_path = lambda name: resource_path(f"sounds/{name}.mp3")
 
         self.musics = {
-            "Oasis City": "sounds/614838__quadraslayer__medieval-city-middle-east.mp3",
-            "The Tavern": "sounds/615166__quadraslayer__medieval-tavern.mp3",
+            "Oasis City": get_music_path("614838__quadraslayer__medieval-city-middle-east"),
+            "The Tavern": get_music_path("615166__quadraslayer__medieval-tavern"),
         }
         bp.mixer.music.load(random.choice(tuple(self.musics.values())))
 

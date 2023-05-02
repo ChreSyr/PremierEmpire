@@ -1,9 +1,13 @@
 
+from library.loading import resource_path
+
 class Memory:
 
     def __init__(self):
 
-        with open('library\memory.txt', 'r') as reader:
+        self.storage_path = resource_path("library\memory.txt")
+
+        with open(self.storage_path, 'r') as reader:
             lines = reader.readlines()
 
         self.lang_id = None
@@ -41,9 +45,9 @@ class Memory:
 
         setattr(self, key, value)
 
-        with open('library\memory.txt', 'r') as reader:
+        with open(self.storage_path, 'r') as reader:
             memory_lines = reader.readlines()
         memory_lines[self._keys.index(key)] = f"{key}:{value}\n"
-        with open('library\memory.txt', 'w') as writer:
+        with open(self.storage_path, 'w') as writer:
             for line in memory_lines:
                 writer.write(line)

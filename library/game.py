@@ -3,7 +3,7 @@ import random
 
 import baopig as bp
 
-from library.loading import set_progression
+from library.loading import set_progression, resource_path
 
 from baopig.googletrans import TranslatableText, lang_manager, translator
 
@@ -20,7 +20,7 @@ from library.zones import BackgroundedZone, BoatInfoZone, CardsZone, ChooseCardZ
     NextStepZone, PlayerTurnZone, PlayZone, RegionInfoZone, RightClickZone, TmpMessage, WinnerInfoZone
 from library.transfer import Transfer
 from library.map import Map
-from library.region import Structure, Boat
+from library.region import Boat
 
 set_progression(.5)
 
@@ -51,6 +51,7 @@ class Game(bp.Scene):
 
         # MEMORY
         self.memory = Memory()
+        lang_manager.set_dicts_path(resource_path("lang"))
         lang_manager.set_ref_language("fr")
         lang_manager.set_language(self.memory.lang_id)
 
