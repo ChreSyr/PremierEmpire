@@ -42,6 +42,9 @@ class ImagesConatiner:
         self.boat_front = load("boat_front")
         self.boat_front_hover = load("boat_front_hover")
 
+        # SOCIAL MEDIA
+        self.kofi = load("kofi")
+
     def load_packed(self, name):
 
         full = load(name)

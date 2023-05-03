@@ -104,4 +104,5 @@ texts = [
     "Interface",
     "Activée",
     "Désactivée",
+    "Pour me soutenir :",
 ]

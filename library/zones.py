@@ -1354,6 +1354,9 @@ class SettingsMainZone(SettingsZone):
             self.qs_btn.command = qs_zone.show
         self.qs_btn = PE_Button(parent=self, text="Quick setup", translatable=False, command=init_qs)
 
+        # SOUNDS
+        self.sounds_btn = PE_Button(parent=self, text_id=99)
+
         # TUTORIAL
         self.tuto_btn = PE_Button(parent=self, text_id=7)
 
@@ -1391,8 +1394,35 @@ class SettingsMainZone(SettingsZone):
         lang_manager.signal.UPDATE_LANGUAGE.connect(handle_update_language, owner=self.resolution_btn)
         resolution_zone.adapt()
 
-        # SOUNDS
-        self.sounds_btn = PE_Button(parent=self, text_id=99)
+        # KO-FI
+        class UrlButton(PE_Button):
+
+            def __init__(self, parent, url, icon, **kwargs):
+                PE_Button.__init__(self, parent, **kwargs)
+
+                import webbrowser
+                self.command = lambda: webbrowser.open(url)
+
+                self.icon = bp.Image(self, image=icon, w=self.content_rect.h, h=self.content_rect.h, smoothscale=True,
+                                     sticky="center", pos=(self.content_rect.left - self.content_rect.w / 2, 0))
+
+            def handle_hover(self):
+                with bp.paint_lock:
+                    super().handle_hover()
+                    self.icon.resize(self.content_rect.h + 4, self.content_rect.h + 4)
+
+            def handle_unhover(self):
+                with bp.paint_lock:
+                    super().handle_unhover()
+                    self.icon.resize(self.content_rect.h, self.content_rect.h)
+
+        kofi_zone = bp.Zone(self)
+        kofi_title = TranslatableText(kofi_zone, text_id=107, sticky="midtop")
+
+        self.kofi_btn = UrlButton(kofi_zone, url="https://ko-fi.com/chresyr", icon=image.kofi,
+                                  text="Ko-fi", translatable=False,
+                                  pos=(0, kofi_title.rect.bottom + 3))
+        kofi_zone.adapt()
 
         # EXIT
         PE_Button(parent=self, text_id=1, command=self.application.exit)

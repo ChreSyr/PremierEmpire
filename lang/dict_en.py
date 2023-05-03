@@ -96,7 +96,6 @@ texts = [
     "Draw !",
     "Could not construct a building :\nYou don't have enough gold",
     "Sell",
-    # TODO : Audio
     "Sound",
     "Music",
     "Volume",
@@ -105,4 +104,5 @@ texts = [
     "Interface",
     "ON",
     "OFF",
+    "To support me :",
 ]
