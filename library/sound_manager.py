@@ -4,7 +4,7 @@ import baopig as bp
 from library.loading import resource_path
 
 
-class SoundManager:
+class SoundManager:  # TODO : solve : wrong levels at start in EXE
 
     def __init__(self, game):
 
@@ -39,8 +39,6 @@ class SoundManager:
             self.click,
         )
 
-        self._master = self._music + self._sfx + self._ui
-
         self.set_volume('master', game.memory.volume_master, from_init=True)
         self.set_volume('music', game.memory.volume_music, from_init=True)
         self.set_volume('sfx', game.memory.volume_sfx, from_init=True)
@@ -53,11 +51,20 @@ class SoundManager:
 
     def set_volume(self, target, val, from_init=False):
 
-        for element in getattr(self, '_' + target):
-            element.set_volume(val)
+        if target == 'master':
+            if from_init is False:
+                self.game.memory.set(f"volume_{target}", val)
 
-        if from_init is False:
-            self.game.memory.set(f"volume_{target}", val)
+            for group in ('music', 'sfx', 'ui'):
+                for element in getattr(self, '_' + group):
+                    element.set_volume(self.game.memory.volume_master * getattr(self.game.memory, 'volume_' + group))
+
+        else:
+            for element in getattr(self, '_' + target):
+                element.set_volume(self.game.memory.volume_master * val)
+
+            if from_init is False:
+                self.game.memory.set(f"volume_{target}", val)
 
     @staticmethod
     def start_music():
