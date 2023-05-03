@@ -1437,8 +1437,8 @@ class SettingsLanguageZone(SettingsZone):
                 if event.button == 3:  # right click
 
                     def delete():
-                        dict_path = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}{os.sep}lang{os.sep}" \
-                                    f"dict_{btn.lang_id}.py"
+
+                        dict_path = f"{lang_manager.dicts_path}{os.sep}dict_{btn.lang_id}.py"
                         assert os.path.exists(dict_path), f"Where is the dict file for {btn.lang_id} ?"
                         os.remove(dict_path)
                         dicts.pop(btn.lang_id)
@@ -1471,7 +1471,7 @@ class SettingsLanguageZone(SettingsZone):
 
         import os
         import sys
-        directory = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}{os.sep}lang"
+        directory = lang_manager.dicts_path
         for root, dirs, files in os.walk(directory):
             for file_name in files:
                 if file_name.endswith(".py") and file_name.startswith("dict_"):
