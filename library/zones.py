@@ -6,9 +6,9 @@ from baopig.googletrans import Dictionnary, TranslatableText, PartiallyTranslata
     LANGUAGES_TRANSLATED
 import pygame
 from library.images import image
-from library.loading import logo, screen_size, screen_sizes
+from library.loading import logo, screen_size
 from library.buttons import ButtonWithSound, PE_Button, PE_Button_Text, TransferButton
-from library.region import SoldiersContainer, Structure, back, front, hover
+from library.region import SoldiersContainer, back, front, hover
 
 
 class BackgroundedZone(bp.Zone):
@@ -1386,8 +1386,11 @@ class SettingsMainZone(SettingsZone):
         # RESOLUTION
         resolution_zone = bp.Zone(self)
         resolution_title = TranslatableText(resolution_zone, text_id=46, sticky="midtop")
-        self.resolution_btn = PE_Button(parent=resolution_zone, text=f"{game.rect.width} × {game.rect.height}",
-                                        pos=(0, resolution_title.rect.bottom + 3), translatable=False)
+        resolution = f"{game.rect.width} × {game.rect.height}"
+        if game.rect.size == bp.pygame.display.list_modes()[0]:
+            resolution = lang_manager.get_text_from_id(47)
+        self.resolution_btn = PE_Button(parent=resolution_zone, text=resolution, translatable=False,
+                                        pos=(0, resolution_title.rect.bottom + 3))
         def handle_update_language():
             if "×"  not in self.resolution_btn.text:
                 self.resolution_btn.set_text(lang_manager.get_text_from_id(text_id=47))
@@ -1658,6 +1661,8 @@ class SettingsResolutionZone(SettingsZone):
 
         SettingsZone.__init__(self, game, behind=game.settings_zone)
 
+        screen_sizes = bp.pygame.display.list_modes()
+
         class ResolutionBtn(PE_Button):
 
             def __init__(btn, resolution=None):
@@ -1680,8 +1685,8 @@ class SettingsResolutionZone(SettingsZone):
                     self.application.set_default_size(btn.resolution)
 
         ResolutionBtn()
-        for i in range(min(len(screen_sizes), 7)):
-            ResolutionBtn(screen_sizes[i])
+        for i in range(min(len(screen_sizes) - 1, 7)):
+            ResolutionBtn(screen_sizes[i + 1])
 
         self.pack_and_adapt()
 

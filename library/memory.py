@@ -1,5 +1,50 @@
 
-from library.loading import resource_path
+import sys
+import os
+import pygame
+
+
+class ScreenSize:
+
+    def __init__(self, val):
+
+        self.width = self.height = 0
+        self.fullscreen = False
+
+        if val == 'fullscreen':
+            self.fullscreen = True
+
+        elif type(val) == str:
+            values = val.split(",")
+            self.width = int(values[0])
+            self.height = int(values[1])
+
+        else:
+            self.width = val[0]
+            self.height = val[1]
+
+    def __getitem__(self, item):
+
+        if item == 0:
+            return self.width
+        if item == 1:
+            return self.height
+        return KeyError(f"A screen size only has 2 values")
+
+    def __str__(self):
+
+        if self.fullscreen:
+            return "fullscreen"
+        else:
+            return f"{self.width},{self.height}"
+
+    def get(self):
+
+        if self.fullscreen:
+            return pygame.display.list_modes()[0]
+        else:
+            return self.width, self.height
+
 
 class Memory:
 
@@ -10,6 +55,7 @@ class Memory:
         with open(self.storage_path, 'r') as reader:
             lines = reader.readlines()
 
+        self.screen_size = None
         self.lang_id = None
         self.music_is_on = None
         self.volume_master = None
@@ -18,6 +64,7 @@ class Memory:
         self.volume_ui = None
 
         self._types = {
+            'screen_size': ScreenSize,
             'lang_id': str,
             'music_is_on': int,
             'volume_master': float,
@@ -51,3 +98,14 @@ class Memory:
         with open(self.storage_path, 'w') as writer:
             for line in memory_lines:
                 writer.write(line)
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)

@@ -3,7 +3,7 @@ import random
 
 import baopig as bp
 
-from library.loading import set_progression, resource_path
+from library.loading import memory, set_progression, resource_path
 
 from baopig.googletrans import TranslatableText, lang_manager, translator
 
@@ -11,7 +11,6 @@ set_progression(.4)
 
 
 from library.sound_manager import SoundManager
-from library.memory import Memory
 from library.theme import set_cursor
 from library.images import image
 from library.buttons import ButtonWithSound, PE_Button, RegionInfoButton
@@ -50,7 +49,7 @@ class Game(bp.Scene):
         self.turn_index = 0  # 0 is the setup, 1 is the first turn
 
         # MEMORY
-        self.memory = Memory()
+        self.memory = memory
         lang_manager.set_dicts_path(resource_path("lang"))
         lang_manager.set_ref_language("fr")
         lang_manager.set_language(self.memory.lang_id)
@@ -596,6 +595,12 @@ class Game(bp.Scene):
         self.nextstep_zone.resize_width(self.rect.height)
         self.nextstep_zone.circle.set_radius(self.auto_rect.centery)
         self.nextstep_zone.set_pos(x=-self.rect.h)
+
+    def handle_scene_open(self):
+
+        import os
+        os.environ['SDL_VIDEO_WINDOW_POS'] = "-1000,300"
+        os.environ['SDL_VIDEO_CENTERED'] = '0'
 
     def next_player(self):
 

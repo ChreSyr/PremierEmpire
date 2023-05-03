@@ -1,5 +1,6 @@
 
 import pygame
+from library.memory import Memory, resource_path
 
 
 def set_progression(prc):
@@ -16,24 +17,9 @@ def set_progression(prc):
 
 
 pygame.init()
-screen_sizes = pygame.display.list_modes()
-screen_size = screen_sizes[0]
+memory = Memory()
+screen_size = memory.screen_size.get()
 loading_screen = True
-
-# Game's icon
-import sys
-import os
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 
 def load(name):
